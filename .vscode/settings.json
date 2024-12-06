@@ -1,0 +1,10 @@
+{
+  "eslint.workingDirectories": ["./apps/*", "./packages/*"],
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+  "[typescriptreact][typescript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+}

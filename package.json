@@ -1,0 +1,27 @@
+{
+  "name": "quory",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/**/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test --parallel",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "eslint-config-custom": "*",
+    "prettier": "2.8.4",
+    "prettier-plugin-tailwindcss": "^0.2.4",
+    "turbo": "latest"
+  },
+  "engines": {
+    "npm": ">=7.0.0",
+    "node": ">=14.0.0"
+  },
+  "packageManager": "npm@10.7.0"
+}
