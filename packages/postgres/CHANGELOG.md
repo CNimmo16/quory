@@ -1,5 +1,11 @@
 # @quory/postgres
 
+## 1.0.0
+
+### Major Changes
+
+- b4e8ac5: rename driver
+
 ## 0.1.1
 
 ### Patch Changes
