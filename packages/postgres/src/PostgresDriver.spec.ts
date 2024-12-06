@@ -3,13 +3,13 @@ import {
   StartedPostgreSqlContainer,
 } from "testcontainers";
 import knex, { Knex } from "knex";
-import { PostgresDatabaseInspectionDriver } from "./PostgresDatabaseInspectionDriver";
+import { PostgresDriver } from "./PostgresDriver";
 import type { Relationship, TableColumn } from "@quory/core";
 
-describe("PostgresDatabaseInspectionDriver", () => {
+describe("PostgresDriver", () => {
   let postgresContainer: StartedPostgreSqlContainer;
   let db: Knex;
-  let driver: PostgresDatabaseInspectionDriver;
+  let driver: PostgresDriver;
   beforeAll(async () => {
     postgresContainer = await new PostgreSqlContainer().start();
 
@@ -27,7 +27,7 @@ describe("PostgresDatabaseInspectionDriver", () => {
 
     await driver?.teardown();
 
-    driver = new PostgresDatabaseInspectionDriver({
+    driver = new PostgresDriver({
       host: postgresContainer.getHost(),
       port: postgresContainer.getPort(),
       database: postgresContainer.getDatabase(),

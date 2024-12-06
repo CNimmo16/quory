@@ -1,14 +1,14 @@
 import { DatabaseSchema } from ".";
-import { FakeDatabaseInspectionDriver } from ".";
+import FakeDatabaseDriver from "./FakeDatabaseDriver";
 import fetchRelatedRows from "./fetchRelatedRows";
 
 const formatSqlToOneLine = (sql: string) =>
   sql.replace(/\n/g, " ").replace(/  +/g, " ").trim();
 
 describe("fetchRelatedRows", () => {
-  const fakeDatabaseInspectionDriver = new FakeDatabaseInspectionDriver();
+  const fakeDatabaseDriver = new FakeDatabaseDriver();
 
-  fakeDatabaseInspectionDriver.mockExecResponse([
+  fakeDatabaseDriver.mockExecResponse([
     {
       foo: "bar",
     },
@@ -112,7 +112,7 @@ describe("fetchRelatedRows", () => {
 
   it("finds related row from hasMany relations", async () => {
     const { sql } = await fetchRelatedRows(
-      fakeDatabaseInspectionDriver,
+      fakeDatabaseDriver,
       mockRelationships,
       {
         localSchema: "customer_data",
@@ -137,7 +137,7 @@ describe("fetchRelatedRows", () => {
 
   it("finds related row from belongsTo relations", async () => {
     const { sql } = await fetchRelatedRows(
-      fakeDatabaseInspectionDriver,
+      fakeDatabaseDriver,
       mockRelationships,
       {
         localSchema: "order_data",

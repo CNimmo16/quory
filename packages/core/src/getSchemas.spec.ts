@@ -1,12 +1,12 @@
 import { DatabaseSchema } from ".";
 import getSchemas from "./getSchemas";
-import { FakeDatabaseInspectionDriver } from ".";
+import FakeDatabaseDriver from "./FakeDatabaseDriver";
 
 describe("getSchemas", () => {
-  const fakeDatabaseInspectionDriver = new FakeDatabaseInspectionDriver();
+  const fakeDatabaseDriver = new FakeDatabaseDriver();
 
   it("correctly detects all inter-table relationships", async () => {
-    fakeDatabaseInspectionDriver.defineTables([
+    fakeDatabaseDriver.defineTables([
       {
         name: "customers",
         schemaName: "customer_data",
@@ -57,7 +57,7 @@ describe("getSchemas", () => {
       },
     ]);
 
-    const schemas = await getSchemas(fakeDatabaseInspectionDriver);
+    const schemas = await getSchemas(fakeDatabaseDriver);
 
     expect(schemas).toHaveLength(2);
     expect(schemas).toEqual<DatabaseSchema[]>([

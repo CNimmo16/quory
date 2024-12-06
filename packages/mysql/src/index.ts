@@ -1,1 +1,1 @@
-export * from "./MySQLDatabaseInspectionDriver";
+export * from "./MySQLDriver";

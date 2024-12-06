@@ -1,10 +1,10 @@
 import {
-  DatabaseInspectionDriver,
+  DatabaseDriver,
   GenericDataType,
   Relationship,
   Row,
   TableColumn,
-} from "./DatabaseInspectionDriver";
+} from "./DatabaseDriver";
 
 type FakeTableDefinition = {
   name: string;
@@ -24,9 +24,7 @@ type FakeTableDefinition = {
   data?: Record<string, string>[];
 };
 
-export default class FakeDatabaseInspectionDriver
-  implements DatabaseInspectionDriver
-{
+export default class FakeDatabaseDriver implements DatabaseDriver {
   private tables: FakeTableDefinition[] = [];
 
   private mockedExecResponse?: Row[];
@@ -84,7 +82,7 @@ export default class FakeDatabaseInspectionDriver
   async exec(sql: string): Promise<Row[]> {
     if (!this.mockedExecResponse) {
       throw new Error(
-        "Call mockExec() with a value to resolve with before calling exec() on FakeDatabaseInspectionDriver"
+        "Call mockExec() with a value to resolve with before calling exec() on FakeDatabaseDriver"
       );
     }
     return this.mockedExecResponse;

@@ -1,5 +1,5 @@
 import type {
-  DatabaseInspectionDriver,
+  DatabaseDriver,
   Relationship,
   Row,
   TableColumn,
@@ -8,7 +8,7 @@ import mysqlDatatypeToGenericDatatype from "./util/mysqlDatatypeToGenericDatatyp
 import mysql, { Pool, PoolOptions, RowDataPacket } from "mysql2/promise";
 import { sortBy, uniqBy } from "lodash";
 
-export class MySQLDatabaseInspectionDriver implements DatabaseInspectionDriver {
+export class MySQLDriver implements DatabaseDriver {
   pool: Pool;
   constructor(poolConfig: PoolOptions) {
     this.pool = mysql.createPool(poolConfig);

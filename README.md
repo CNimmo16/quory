@@ -19,10 +19,16 @@ npm install @quory/core @quory/mysql --save
 A basic use case involves simply extracting data about your database schema(s) and their foreign key relationships.
 
 ```ts
-import QuoryPostgresDriver from '@quory/postgres';
+import { PostgresDriver } from '@quory/postgres';
 import { getSchemas } from '@quory/core';
 
-const schemasWithRelationships = getSchemas(QuoryPostgresDriver);
+const driver = new PostgresDriver({
+    host: 'localhost',
+    port: 5432,
+    user: 'postgres',
+    password: 'password',
+});
+const schemasWithRelationships = getSchemas(driver);
 ```
 
 The returned schema could look like this for a database of books:
@@ -84,13 +90,19 @@ A common use case of this type of schema mapping is to find the row(s) in table 
 This function currently uses the [Dijkstra algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm) to find the shortest path between the tables and performs a join across those tables to extract the relevant row data. A future release may allow configuration of the join-path used by this function, to support cases where there are multiple ways to join the tables. If you'd like to see this supported please feel free to raise a PR!
 
 ```ts
-import QuoryPostgresDriver from '@quory/postgres';
+import { PostgresDriver } from '@quory/postgres';
 import { fetchRelatedRows } from '@quory/core';
 import { getSchemas } from '@quory/core';
 
-const schemasWithRelationships = getSchemas(QuoryPostgresDriver);
+const driver = new PostgresDriver({
+    host: 'localhost',
+    port: 5432,
+    user: 'postgres',
+    password: 'password',
+});
+const schemasWithRelationships = getSchemas(driver);
 const { sql, rowData } = fetchRelatedRows(
-    QuoryPostgresDriver,
+    driver,
     schemasWithRelationships,
     {
         localSchema: "public",
@@ -126,10 +138,16 @@ The `getEntitiesAndJunctions` function can be used to determine which tables are
 For example:
 
 ```ts
-import QuoryPostgresDriver from '@quory/postgres';
+import { PostgresDriver } from '@quory/postgres';
 import { getSchemas } from '@quory/core';
 
-const schemasWithRelationships = getSchemas(QuoryPostgresDriver);
+const driver = new PostgresDriver({
+    host: 'localhost',
+    port: 5432,
+    user: 'postgres',
+    password: 'password',
+});
+const schemasWithRelationships = getSchemas(driver);
 
 const {
     entities,

@@ -1,11 +1,10 @@
 import type {
-  DatabaseInspectionDriver,
+  DatabaseDriver,
   GenericDataType,
   Relationship,
   TableColumn,
   Row,
-} from "../src/DatabaseInspectionDriver";
-import FakeDatabaseInspectionDriver from "./FakeDatabaseInspectionDriver";
+} from "./DatabaseDriver";
 import getSchemas from "./getSchemas";
 import fetchRelatedRows from "./fetchRelatedRows";
 import getEntitiesAndJunctions from "./getEntitiesAndJunctions";
@@ -18,8 +17,7 @@ export {
   TableColumn,
   GenericDataType,
   Row,
-  DatabaseInspectionDriver,
-  FakeDatabaseInspectionDriver,
+  DatabaseDriver,
 };
 
 export type DatabaseTableInfo = {

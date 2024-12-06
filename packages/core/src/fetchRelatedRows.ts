@@ -1,9 +1,9 @@
-import { DatabaseInspectionDriver, Row } from ".";
+import { DatabaseDriver, Row } from ".";
 import type { DatabaseSchema } from ".";
 import makeGraphForDatabase from "../util/makeGraphForDatabase";
 
 export default async function fetchRelatedRows(
-  databaseInspectionDriver: DatabaseInspectionDriver,
+  databaseDriver: DatabaseDriver,
   databaseSchemas: DatabaseSchema[],
   args: {
     localSchema: string;
@@ -110,6 +110,6 @@ export default async function fetchRelatedRows(
 
   return {
     sql,
-    rowData: await databaseInspectionDriver.exec(sql),
+    rowData: await databaseDriver.exec(sql),
   };
 }

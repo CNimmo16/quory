@@ -1,16 +1,14 @@
 import { Pool } from "pg";
 import type { PoolConfig } from "pg";
 import type {
-  DatabaseInspectionDriver,
+  DatabaseDriver,
   Relationship,
   Row,
   TableColumn,
 } from "@quory/core";
 import postgresDatatypeToGenericDatatype from "./util/postgresDatatypeToGenericDatatype";
 
-export class PostgresDatabaseInspectionDriver
-  implements DatabaseInspectionDriver
-{
+export class PostgresDriver implements DatabaseDriver {
   pool: Pool;
   constructor(poolConfig: PoolConfig) {
     this.pool = new Pool(poolConfig);

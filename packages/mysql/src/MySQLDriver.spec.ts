@@ -1,12 +1,12 @@
 import { MySqlContainer, type StartedMySqlContainer } from "testcontainers";
 import knex, { Knex } from "knex";
-import { MySQLDatabaseInspectionDriver } from "./MySQLDatabaseInspectionDriver";
+import { MySQLDriver } from "./MySQLDriver";
 import type { Relationship, TableColumn } from "@quory/core";
 
-describe("MySQLDatabaseInspectionDriver", () => {
+describe("MySQLDriver", () => {
   let mysqlContainer: StartedMySqlContainer;
   let db: Knex;
-  let driver: MySQLDatabaseInspectionDriver;
+  let driver: MySQLDriver;
   beforeAll(async () => {
     mysqlContainer = await new MySqlContainer("mysql:8.0.32").start();
 
@@ -21,7 +21,7 @@ describe("MySQLDatabaseInspectionDriver", () => {
       `DROP database test; CREATE database test;`
     );
 
-    driver = new MySQLDatabaseInspectionDriver({
+    driver = new MySQLDriver({
       host: mysqlContainer.getHost(),
       port: mysqlContainer.getPort(),
       database: mysqlContainer.getDatabase(),

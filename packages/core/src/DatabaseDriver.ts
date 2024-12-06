@@ -30,7 +30,7 @@ export type Relationship = {
   foreignColumn: string;
 };
 
-export interface DatabaseInspectionDriver {
+export interface DatabaseDriver {
   getAllColumnsInDatabase(): Promise<TableColumn[]>;
 
   getAllForeignKeysInDatabase(): Promise<Relationship[]>;

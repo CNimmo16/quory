@@ -1,8 +1,8 @@
 import type { DatabaseSchema } from ".";
-import { DatabaseInspectionDriver } from ".";
+import { DatabaseDriver } from ".";
 
 export default async function getSchemas(
-  databaseInspectionDriver: DatabaseInspectionDriver
+  databaseDriver: DatabaseDriver
 ): Promise<DatabaseSchema[]> {
   let schemas: DatabaseSchema[] = [];
   const retrieveOrCreateTable = (
@@ -22,9 +22,8 @@ export default async function getSchemas(
     return tableInfo;
   };
 
-  const allColumns = await databaseInspectionDriver.getAllColumnsInDatabase();
-  const allForeignKeys =
-    await databaseInspectionDriver.getAllForeignKeysInDatabase();
+  const allColumns = await databaseDriver.getAllColumnsInDatabase();
+  const allForeignKeys = await databaseDriver.getAllForeignKeysInDatabase();
 
   allColumns.forEach(({ tableName, schemaName, ...column }) => {
     const tableInfo = retrieveOrCreateTable(schemaName, tableName);
