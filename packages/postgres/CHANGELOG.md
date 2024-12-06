@@ -1,5 +1,11 @@
 # @quory/postgres
 
+## 1.0.1
+
+### Patch Changes
+
+- 0e74bfe: Add missing @types/pg
+
 ## 1.0.0
 
 ### Major Changes
