@@ -1,9 +1,9 @@
-# Quory
+# Quory 
 
 > A simple tool for extracting schema and foreign key information from any database!
 
 
-## Installation
+## Installation [![npm version](https://badge.fury.io/js/@quory%2Fcore.svg)](https://badge.fury.io/js/@quory%2Fcore)
 
 Install the `@quory/core` module, as well as dedicated driver(s) for the database(s) you will be interacting with.
 
