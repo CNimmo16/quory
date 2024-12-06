@@ -1,11 +1,11 @@
 import { DatabaseSchema } from ".";
 import { FakeDatabaseInspectionDriver } from "@quory/core";
-import fetchRelatedTableRow from "./fetchRelatedTableRow";
+import fetchRelatedRows from "./fetchRelatedRows";
 
 const formatSqlToOneLine = (sql: string) =>
   sql.replace(/\n/g, " ").replace(/  +/g, " ").trim();
 
-describe("fetchRelatedTableRow", () => {
+describe("fetchRelatedRows", () => {
   const fakeDatabaseInspectionDriver = new FakeDatabaseInspectionDriver();
 
   fakeDatabaseInspectionDriver.mockExecResponse([
@@ -111,7 +111,7 @@ describe("fetchRelatedTableRow", () => {
   ];
 
   it("finds related row from hasMany relations", async () => {
-    const { sql } = await fetchRelatedTableRow(
+    const { sql } = await fetchRelatedRows(
       fakeDatabaseInspectionDriver,
       mockRelationships,
       {
@@ -136,7 +136,7 @@ describe("fetchRelatedTableRow", () => {
   });
 
   it("finds related row from belongsTo relations", async () => {
-    const { sql } = await fetchRelatedTableRow(
+    const { sql } = await fetchRelatedRows(
       fakeDatabaseInspectionDriver,
       mockRelationships,
       {

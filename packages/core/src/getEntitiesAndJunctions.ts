@@ -5,7 +5,7 @@ import { DatabaseSchema } from ".";
 const getRef = (table: { schemaName: string; name: string }) =>
   `${table.schemaName}.${table.name}`;
 
-export default function detectDatabaseEntities(
+export default function getEntitiesAndJunctions(
   schemaRelationships: DatabaseSchema[]
 ) {
   const allTables = schemaRelationships.flatMap((schema) =>

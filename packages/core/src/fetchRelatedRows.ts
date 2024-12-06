@@ -3,7 +3,7 @@ import { DatabaseInspectionDriver, Row } from "@quory/core";
 import type { DatabaseSchema } from ".";
 import makeGraphForDatabase from "../util/makeGraphForDatabase";
 
-export default async function fetchRelatedTableRow(
+export default async function fetchRelatedRows(
   databaseInspectionDriver: DatabaseInspectionDriver,
   databaseSchemas: DatabaseSchema[],
   args: {
@@ -15,7 +15,7 @@ export default async function fetchRelatedTableRow(
   }
 ): Promise<{
   sql: string;
-  rowData: Row;
+  rowData: Row[];
 }> {
   const { localSchema, localTable, localRowData, foreignSchema, foreignTable } =
     args;
@@ -111,6 +111,6 @@ export default async function fetchRelatedTableRow(
 
   return {
     sql,
-    rowData: (await databaseInspectionDriver.exec(sql))[0],
+    rowData: await databaseInspectionDriver.exec(sql),
   };
 }

@@ -1,7 +1,7 @@
 import type { DatabaseSchema } from ".";
 import { DatabaseInspectionDriver } from "@quory/core";
 
-export default async function detectDatabaseSchemaRelationships(
+export default async function getSchemas(
   databaseInspectionDriver: DatabaseInspectionDriver
 ): Promise<DatabaseSchema[]> {
   let schemas: DatabaseSchema[] = [];

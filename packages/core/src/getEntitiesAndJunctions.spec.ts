@@ -1,7 +1,7 @@
 import { DatabaseSchema, DatabaseTableInfo } from ".";
-import detectDatabaseEntities from "./detectDatabaseEntities";
+import getEntitiesAndJunctions from "./getEntitiesAndJunctions";
 
-describe("detectDatabaseEntities", () => {
+describe("getEntitiesAndJunctions", () => {
   it("correctly detects all entities and junction tables", async () => {
     const people: DatabaseTableInfo = {
       name: "people",
@@ -120,7 +120,7 @@ describe("detectDatabaseEntities", () => {
       },
     ];
 
-    const { junctions, entities } = detectDatabaseEntities(mockRelationships);
+    const { junctions, entities } = getEntitiesAndJunctions(mockRelationships);
 
     expect(junctions).toEqual(["order_data.people_orders"]);
     expect(entities).toEqual([

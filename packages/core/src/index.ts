@@ -6,14 +6,14 @@ import type {
   Row,
 } from "../src/DatabaseInspectionDriver";
 import FakeDatabaseInspectionDriver from "./FakeDatabaseInspectionDriver";
-import detectDatabaseSchemaRelationships from "./detectDatabaseSchemaRelationships";
-import fetchRelatedTableRow from "./fetchRelatedTableRow";
-import detectDatabaseEntities from "./detectDatabaseEntities";
+import getSchemas from "./getSchemas";
+import fetchRelatedRows from "./fetchRelatedRows";
+import getEntitiesAndJunctions from "./getEntitiesAndJunctions";
 
 export {
-  detectDatabaseSchemaRelationships,
-  fetchRelatedTableRow,
-  detectDatabaseEntities,
+  getSchemas,
+  fetchRelatedRows,
+  getEntitiesAndJunctions,
   Relationship,
   TableColumn,
   GenericDataType,

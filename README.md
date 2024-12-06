@@ -1,77 +1,152 @@
-# Turborepo starter
+# Quory
 
-This is an official Yarn v1 starter turborepo.
+> A simple tool for extracting schema and foreign key information from any database!
 
-## What's inside?
 
-This turborepo uses [Yarn](https://classic.yarnpkg.com/lang/en/) as a package manager. It includes the following packages/apps:
+## Installation
 
-### Apps and Packages
+Install the `@quory/core` module, as well as dedicated driver(s) for the database(s) you will be interacting with.
 
-- `docs`: a [Next.js](https://nextjs.org) app
-- `web`: another [Next.js](https://nextjs.org) app
-- `ui`: a stub React component library shared by both `web` and `docs` applications
-- `eslint-config-custom`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `tsconfig`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-## Setup
-
-This repository is used in the `npx create-turbo` command, and selected when choosing which package manager you wish to use with your monorepo (Yarn).
-
-### Build
-
-To build all apps and packages, run the following command:
-
+For example:
 ```
-cd my-turborepo
-yarn run build
+npm install @quory/core @quory/mysql --save
 ```
 
-### Develop
+## Usage
 
-To develop all apps and packages, run the following command:
+### Schema extraction
 
-```
-cd my-turborepo
-yarn run dev
-```
+A basic use case involves simply extracting data about your database schema(s) and their foreign key relationships.
 
-### Remote Caching
+```ts
+import QuoryPostgresDriver from '@quory/postgres';
+import { getSchemas } from '@quory/core';
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.org/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
+const schemasWithRelationships = getSchemas(QuoryPostgresDriver);
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+The returned schema could look like this for a database of books:
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your turborepo:
+```json
+{
+    "name": "public",
+    "tables": [
+        {
+            "name": "Books",
+            "columns": [
+                {
+                    "name": "id",
+                    "dataType": "BIGINT",
+                    "genericDataType": "number",
+                    "isNullable": false,
+                    "includedInPrimaryKey": true,
+                    "foreignKeys": [],
+                    "foreignKeyReferences": [
+                        {
+                            "localSchemaName": "public",
+                            // the books table is referenced by the book_categories table
+                            "localTableName": "book_categories",
+                            "localColumnName": "book_id",
 
+                            // only foreign key relationships are detected currently so this is always true
+                            "hasForeignKeyConstraint": true,
+                            // and this is always 1
+                            "confidence": 1.0
+                        }
+                    ]
+                }
+                {
+                    "name": "author_id",
+                    "dataType": "BIGINT",
+                    "genericDataType": "number",
+                    "isNullable": false,
+                    "includedInPrimaryKey": false,
+                    "foreignKeys": [
+                        {
+                            "foreignSchemaName": "public",
+                            "foreignTableName": "authors",
+                            "foreignColumnName": "id",
+                            "hasForeignKeyConstraint": true,
+                            "confidence": 1.0
+                        }
+                    ]
+                }
+            ]
+            // ...more tables...
+        }
+    ]
+}
 ```
-npx turbo link
+
+### Graph traversal
+
+A common use case of this type of schema mapping is to find the row(s) in table B that are associated with a given row in table A (possibly through multiple layers of relationship). Quory can do this for you using the `fetchRelatedRows` function:
+
+```ts
+import QuoryPostgresDriver from '@quory/postgres';
+import { fetchRelatedRows } from '@quory/core';
+import { getSchemas } from '@quory/core';
+
+const schemasWithRelationships = getSchemas(QuoryPostgresDriver);
+const { sql, rowData } = fetchRelatedRows(
+    QuoryPostgresDriver,
+    schemasWithRelationships,
+    {
+        localSchema: "public",
+        localTable: "books",
+        foreignSchema: "public",
+        // find related row(s) in the "categories" table
+        foreignTable: "categories",
+        localRowData: {
+            // find rows related to the book with id=1
+            id: "1",
+        }
+    }
+);
 ```
 
-## Useful Links
+In a the database imagined above, this may return something like:
 
-Learn more about the power of Turborepo:
+```json
+    [
+        {
+            "slug": "fiction",
+        },
+        {
+            "slug": "horror",
+        }
+    ]
+```
 
-- [Pipelines](https://turborepo.org/docs/core-concepts/pipelines)
-- [Caching](https://turborepo.org/docs/core-concepts/caching)
-- [Remote Caching](https://turborepo.org/docs/core-concepts/remote-caching)
-- [Scoped Tasks](https://turborepo.org/docs/core-concepts/scopes)
-- [Configuration Options](https://turborepo.org/docs/reference/configuration)
-- [CLI Usage](https://turborepo.org/docs/reference/command-line-reference)
+### Entities and junctions
+
+The `getEntitiesAndJunctions` function can be used to determine which tables are "entity" tables, used to represent an actual entity in the business logic, and which are "junction" or "linking" tables, used simply for maintaining a many-to-many relationship.
+
+For example:
+
+```ts
+import QuoryPostgresDriver from '@quory/postgres';
+import { getSchemas } from '@quory/core';
+
+const schemasWithRelationships = getSchemas(QuoryPostgresDriver);
+
+const {
+    entities,
+    junctions
+} = getEntitiesAndJunctions(schemasWithRelationships);
+```
+
+For our imaginary books database, this could return:
+
+```json
+{
+    "entities": [
+        "public.authors",
+        "public.books",
+        "public.categories"
+    ],
+    "junctions": [
+        "public.book_categories"
+    ]
+}
+```

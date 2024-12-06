@@ -1,8 +1,8 @@
 import { DatabaseSchema } from ".";
-import detectDatabaseSchemaRelationships from "./detectDatabaseSchemaRelationships";
+import getSchemas from "./getSchemas";
 import { FakeDatabaseInspectionDriver } from "@quory/core";
 
-describe("detectDatabaseSchemaRelationships", () => {
+describe("getSchemas", () => {
   const fakeDatabaseInspectionDriver = new FakeDatabaseInspectionDriver();
 
   it("correctly detects all inter-table relationships", async () => {
@@ -57,9 +57,7 @@ describe("detectDatabaseSchemaRelationships", () => {
       },
     ]);
 
-    const schemas = await detectDatabaseSchemaRelationships(
-      fakeDatabaseInspectionDriver
-    );
+    const schemas = await getSchemas(fakeDatabaseInspectionDriver);
 
     expect(schemas).toHaveLength(2);
     expect(schemas).toEqual<DatabaseSchema[]>([
