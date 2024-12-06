@@ -1,5 +1,11 @@
 # @quory/postgres
 
+## 1.0.2
+
+### Patch Changes
+
+- 331de24: make @types/pg a non-dev dependency
+
 ## 1.0.1
 
 ### Patch Changes
