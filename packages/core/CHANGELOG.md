@@ -1,5 +1,11 @@
 # @quory/core
 
+## 1.0.2
+
+### Patch Changes
+
+- 993f465: Fix dist not included in published package
+
 ## 1.0.1
 
 ### Patch Changes
