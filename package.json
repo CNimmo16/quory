@@ -10,7 +10,8 @@
     "build": "turbo run build",
     "test": "turbo run test --parallel",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "release": "changeset publish"
   },
   "devDependencies": {
     "eslint-config-custom": "*",
