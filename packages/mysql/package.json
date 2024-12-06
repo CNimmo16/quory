@@ -1,6 +1,6 @@
 {
   "name": "@quory/mysql",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MySQL driver for Quory",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
