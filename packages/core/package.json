@@ -1,6 +1,6 @@
 {
   "name": "@quory/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Quickly extract relationships from any database",
   "keywords": [
     "database",
