@@ -1,5 +1,5 @@
 import { DatabaseSchema } from ".";
-import { FakeDatabaseInspectionDriver } from "@quory/core";
+import { FakeDatabaseInspectionDriver } from ".";
 import fetchRelatedRows from "./fetchRelatedRows";
 
 const formatSqlToOneLine = (sql: string) =>

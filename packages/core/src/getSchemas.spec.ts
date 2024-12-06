@@ -1,6 +1,6 @@
 import { DatabaseSchema } from ".";
 import getSchemas from "./getSchemas";
-import { FakeDatabaseInspectionDriver } from "@quory/core";
+import { FakeDatabaseInspectionDriver } from ".";
 
 describe("getSchemas", () => {
   const fakeDatabaseInspectionDriver = new FakeDatabaseInspectionDriver();

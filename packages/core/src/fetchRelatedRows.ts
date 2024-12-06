@@ -1,5 +1,4 @@
-import { DatabaseInspectionDriver, Row } from "@quory/core";
-
+import { DatabaseInspectionDriver, Row } from ".";
 import type { DatabaseSchema } from ".";
 import makeGraphForDatabase from "../util/makeGraphForDatabase";
 

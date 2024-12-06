@@ -1,5 +1,5 @@
 import type { DatabaseSchema } from ".";
-import { DatabaseInspectionDriver } from "@quory/core";
+import { DatabaseInspectionDriver } from ".";
 
 export default async function getSchemas(
   databaseInspectionDriver: DatabaseInspectionDriver
