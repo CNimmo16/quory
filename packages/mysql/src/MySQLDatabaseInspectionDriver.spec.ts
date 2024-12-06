@@ -145,21 +145,25 @@ describe("MySQLDatabaseInspectionDriver", () => {
 
     const relationships = await driver.getAllForeignKeysInDatabase();
 
-    expect(relationships).toEqual<Relationship[]>([
-      {
-        localSchema: "test",
-        localTable: "orders",
-        localColumn: "customer_id",
-        foreignSchema: "test",
-        foreignTable: "customers",
-        foreignColumn: "id",
-      },
+    expect(
+      relationships.sort((a, b) =>
+        JSON.stringify(a).localeCompare(JSON.stringify(b))
+      )
+    ).toEqual<Relationship[]>([
       {
         localSchema: "test",
         localTable: "order_fulfilment",
         localColumn: "order_id",
         foreignSchema: "test",
         foreignTable: "orders",
+        foreignColumn: "id",
+      },
+      {
+        localSchema: "test",
+        localTable: "orders",
+        localColumn: "customer_id",
+        foreignSchema: "test",
+        foreignTable: "customers",
         foreignColumn: "id",
       },
     ]);
