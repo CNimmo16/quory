@@ -1,5 +1,11 @@
 # @quory/core
 
+## 1.1.0
+
+### Minor Changes
+
+- f305a9c: add getRelationsForTable function
+
 ## 1.0.2
 
 ### Patch Changes
