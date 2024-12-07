@@ -104,6 +104,13 @@ describe("getEntitiesAndJunctions", () => {
               confidence: 1,
               hasForeignKeyConstraint: true,
             },
+            {
+              localColumnName: "order_id",
+              localSchemaName: "order_data",
+              localTableName: "people_orders",
+              confidence: 1,
+              hasForeignKeyConstraint: true,
+            },
           ],
         },
       ],

@@ -19,42 +19,39 @@ export default function makeGraphForDatabase(
     tableName: string;
   }[] = []
 ) {
-  const links: Serialized["links"] = databaseSchemas.flatMap(
-    ({ name: schemaName, tables }) =>
-      tables
-        .filter(
-          ({ name: tableName }) =>
-            !ignoreTables.some(
-              (table) =>
-                table.schemaName === schemaName && table.tableName === tableName
-            )
-        )
-        .flatMap(({ name: tableName, columns }) => {
-          return [
-            ...columns.flatMap((column) =>
-              column.foreignKeys.map((key) => ({
-                source: `${schemaName}.${tableName}`,
-                target: `${key.foreignSchemaName}.${key.foreignTableName}`,
-                weight: 1 - compareTwoStrings(key.foreignTableName, tableName),
-              }))
-            ),
-            ...columns.flatMap((column) =>
-              column.foreignKeyReferences.map((key) => ({
-                source: `${schemaName}.${tableName}`,
-                target: `${key.localSchemaName}.${key.localTableName}`,
-                weight: 1 - compareTwoStrings(key.localTableName, tableName),
-              }))
-            ),
-          ];
-        })
+  const links = databaseSchemas.flatMap(({ name: schemaName, tables }) =>
+    tables
+      .filter(
+        ({ name: tableName }) =>
+          !ignoreTables.some(
+            (table) =>
+              table.schemaName === schemaName && table.tableName === tableName
+          )
+      )
+      .flatMap(({ name: tableName, columns }) => {
+        return [
+          ...columns.flatMap((column) =>
+            column.foreignKeys.map((key) => ({
+              source: `${schemaName}.${tableName}`,
+              target: `${key.foreignSchemaName}.${key.foreignTableName}`,
+              weight: 1 - compareTwoStrings(key.foreignTableName, tableName),
+            }))
+          ),
+          ...columns.flatMap((column) =>
+            column.foreignKeyReferences.map((key) => ({
+              source: `${schemaName}.${tableName}`,
+              target: `${key.localSchemaName}.${key.localTableName}`,
+              weight: 1 - compareTwoStrings(key.localTableName, tableName),
+            }))
+          ),
+        ];
+      })
   );
   const nodes = databaseSchemas.flatMap(({ name: schemaName, tables }) =>
-    tables.map(({ name: tableName, columns }) => ({
-      id: `${schemaName}.${tableName}`,
-    }))
+    tables.map(({ name: tableName, columns }) => `${schemaName}.${tableName}`)
   );
-  return Graph({
-    nodes,
-    links,
-  });
+  const graph = new Graph();
+  nodes.forEach((node) => graph.addNode(node));
+  links.forEach(({ source, target }) => graph.addEdge(source, target));
+  return graph;
 }

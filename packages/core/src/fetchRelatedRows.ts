@@ -1,6 +1,8 @@
+import { shortestPath } from "graph-data-structure";
 import { DatabaseDriver, Row } from ".";
 import type { DatabaseSchema } from ".";
 import makeGraphForDatabase from "../util/makeGraphForDatabase";
+import findTableFromSchemas from "./util/findTable";
 
 export default async function fetchRelatedRows(
   databaseDriver: DatabaseDriver,
@@ -19,22 +21,12 @@ export default async function fetchRelatedRows(
   const { localSchema, localTable, localRowData, foreignSchema, foreignTable } =
     args;
 
-  const findTable = (schemaName: string, tableName: string) => {
-    const schema = databaseSchemas.find((schema) => schema.name === schemaName);
-
-    if (!schema) {
-      throw new Error(`Could not find schema ${schemaName}`);
-    }
-    const table = schema.tables.find((table) => table.name === tableName);
-
-    if (!table) {
-      throw new Error(`Could not find table ${schemaName}.${tableName}`);
-    }
-    return table;
-  };
-
   if (
-    findTable(localSchema, localTable).columns.every(
+    findTableFromSchemas(
+      databaseSchemas,
+      localSchema,
+      localTable
+    ).columns.every(
       (column) =>
         column.foreignKeys.length === 0 &&
         column.foreignKeyReferences.length === 0
@@ -45,10 +37,11 @@ export default async function fetchRelatedRows(
 
   const graph = makeGraphForDatabase(databaseSchemas);
 
-  const path = graph.shortestPath(
+  const { nodes: path } = shortestPath(
+    graph,
     `${localSchema}.${localTable}`,
     `${foreignSchema}.${foreignTable}`
-  ) as string[]; // always string[] not PathResult because { cost: false } passed
+  );
 
   const sql =
     path.reduce((statement: string, table: string, index: number) => {
@@ -57,7 +50,11 @@ export default async function fetchRelatedRows(
         return statement;
       }
       const [nextSchemaName, nextTableName] = path[index + 1].split(".");
-      const thisTable = findTable(schemaName, tableName);
+      const thisTable = findTableFromSchemas(
+        databaseSchemas,
+        schemaName,
+        tableName
+      );
       const referenceFromThisTableToNextTable = thisTable.columns
         .flatMap((column) =>
           column.foreignKeys.map((ref) => ({
@@ -76,7 +73,11 @@ export default async function fetchRelatedRows(
           ` INNER JOIN ${nextSchemaName}.${nextTableName} ON ${nextSchemaName}.${nextTableName}.${referenceFromThisTableToNextTable.foreignColumnName} = ${schemaName}.${tableName}.${referenceFromThisTableToNextTable.columnName}`
         );
       }
-      const nextTable = findTable(nextSchemaName, nextTableName);
+      const nextTable = findTableFromSchemas(
+        databaseSchemas,
+        nextSchemaName,
+        nextTableName
+      );
       const referenceFromNextTableToThisTable = nextTable.columns
         .flatMap((column) =>
           column.foreignKeys.map((ref) => ({

@@ -7,11 +7,13 @@ import type {
 } from "./DatabaseDriver";
 import getSchemas from "./getSchemas";
 import fetchRelatedRows from "./fetchRelatedRows";
+import getRelationsForTable from "./getRelationsForTable";
 import getEntitiesAndJunctions from "./getEntitiesAndJunctions";
 
 export {
   getSchemas,
   fetchRelatedRows,
+  getRelationsForTable,
   getEntitiesAndJunctions,
   Relationship,
   TableColumn,

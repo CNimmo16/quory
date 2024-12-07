@@ -14,7 +14,7 @@ npm install @quory/core @quory/mysql --save
 
 ## Usage
 
-### Schema extraction
+### `getSchemas`
 
 A basic use case involves simply extracting data about your database schema(s) and their foreign key relationships.
 
@@ -83,24 +83,51 @@ The returned schema could look like this for a database of books:
 }
 ```
 
-### Graph traversal
+### `getRelationsForTable`
 
-A common use case of this type of schema mapping is to find the row(s) in table B that are associated with a given row in table A (possibly through multiple layers of relationship). Quory can do this for you using the `fetchRelatedRows` function.
+This function will list all the tables that are related to the specified table, including through multiple layers of joins, up to an optionally specified maximum join path length.
+
+```ts
+import { getRelationsForTable } from '@quory/core';
+
+// load driver and get schemas...
+
+const relatedTables = getRelationsForTable(schemasWithRelationships, 'public', 'books');
+```
+
+In a the database imagined above, this may return something like:
+
+```jsonc
+[
+    {
+        "schemaName": "public",
+        "tableName": "authors",
+        "shortestJoinPath": 1
+    },
+    {
+        "schemaName": "public",
+        "tableName": "book_categories",
+        "shortestJoinPath": 1
+    },
+    {
+        "schemaName": "public",
+        "tableName": "categories",
+        "shortestJoinPath": 2
+    }
+]
+```
+
+### `fetchRelatedRows`
+
+If you want to find the row(s) in table B that are associated with a given row in table A (possibly through multiple layers of relationship), Quory can do this for you using the `fetchRelatedRows` function.
 
 This function currently uses the [Dijkstra algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm) to find the shortest path between the tables and performs a join across those tables to extract the relevant row data. A future release may allow configuration of the join-path used by this function, to support cases where there are multiple ways to join the tables. If you'd like to see this supported please feel free to raise a PR!
 
 ```ts
-import { PostgresDriver } from '@quory/postgres';
 import { fetchRelatedRows } from '@quory/core';
-import { getSchemas } from '@quory/core';
 
-const driver = new PostgresDriver({
-    host: 'localhost',
-    port: 5432,
-    user: 'postgres',
-    password: 'password',
-});
-const schemasWithRelationships = getSchemas(driver);
+// load driver and get schemas...
+
 const { sql, rowData } = fetchRelatedRows(
     driver,
     schemasWithRelationships,
@@ -118,7 +145,7 @@ const { sql, rowData } = fetchRelatedRows(
 );
 ```
 
-In a the database imagined above, this may return something like:
+This might return row data such as:
 
 ```jsonc
     [
@@ -131,23 +158,16 @@ In a the database imagined above, this may return something like:
     ]
 ```
 
-### Entities and junctions
+### `getEntitiesAndJunctions`
 
-The `getEntitiesAndJunctions` function can be used to determine which tables are "entity" tables, used to represent an actual entity in the business logic, and which are "junction" or "linking" tables, used simply for maintaining a many-to-many relationship.
+This function can be used to determine which tables are "entity" tables, used to represent an actual entity in the business logic, and which are "junction" or "linking" tables, used simply for maintaining a many-to-many relationship.
 
 For example:
 
 ```ts
-import { PostgresDriver } from '@quory/postgres';
-import { getSchemas } from '@quory/core';
+import { getEntitiesAndJunctions } from '@quory/core';
 
-const driver = new PostgresDriver({
-    host: 'localhost',
-    port: 5432,
-    user: 'postgres',
-    password: 'password',
-});
-const schemasWithRelationships = getSchemas(driver);
+// load driver and get schemas...
 
 const {
     entities,
