@@ -127,10 +127,15 @@ describe("fetchRelatedRows", () => {
 
     expect(sql).toEqual(
       formatSqlToOneLine(`
-        SELECT * FROM customer_data.customers
+        SELECT
+          customer_data.customers.id AS customer_data__customers__id,
+          order_data.orders.id AS order_data__orders__id,
+          order_data.orders.customer_id AS order_data__orders__customer_id,
+          order_data.order_fulfilment.order_id AS order_data__order_fulfilment__order_id
+        FROM customer_data.customers
         INNER JOIN order_data.orders ON order_data.orders.customer_id = customer_data.customers.id
         INNER JOIN order_data.order_fulfilment ON order_data.order_fulfilment.order_id = order_data.orders.id
-        WHERE customer_data.customers.id = '3'
+        WHERE customer_data.customers.id = '3';
       `)
     );
   });
@@ -152,10 +157,15 @@ describe("fetchRelatedRows", () => {
 
     expect(sql).toEqual(
       formatSqlToOneLine(`
-        SELECT * FROM order_data.order_fulfilment
+        SELECT
+          order_data.order_fulfilment.order_id AS order_data__order_fulfilment__order_id,
+          order_data.orders.id AS order_data__orders__id,
+          order_data.orders.customer_id AS order_data__orders__customer_id,
+          customer_data.customers.id AS customer_data__customers__id
+        FROM order_data.order_fulfilment
         INNER JOIN order_data.orders ON order_data.orders.id = order_data.order_fulfilment.order_id
         INNER JOIN customer_data.customers ON customer_data.customers.id = order_data.orders.customer_id
-        WHERE order_data.order_fulfilment.id = '1'
+        WHERE order_data.order_fulfilment.id = '1';
       `)
     );
   });

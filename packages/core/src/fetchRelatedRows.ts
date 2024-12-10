@@ -3,6 +3,7 @@ import { DatabaseDriver, Row } from ".";
 import type { DatabaseSchema } from ".";
 import makeGraphForDatabase from "../util/makeGraphForDatabase";
 import findTableFromSchemas from "./util/findTable";
+import { writeFileSync } from "fs";
 
 export default async function fetchRelatedRows(
   databaseDriver: DatabaseDriver,
@@ -16,36 +17,59 @@ export default async function fetchRelatedRows(
   }
 ): Promise<{
   sql: string;
-  rowData: Row[];
+  rows: {
+    localTableData: Row;
+    foreignTableData: Row;
+    otherTables: {
+      [tableName: string]: Row | undefined;
+    };
+  }[];
 }> {
-  const { localSchema, localTable, localRowData, foreignSchema, foreignTable } =
-    args;
+  const {
+    localSchema,
+    localTable: localTableName,
+    localRowData,
+    foreignSchema: foreignSchemaArg,
+    foreignTable: foreignTableName,
+  } = args;
+  const foreignSchema = foreignSchemaArg || localSchema;
+
+  const localTable = findTableFromSchemas(
+    databaseSchemas,
+    localSchema,
+    localTableName
+  );
 
   if (
-    findTableFromSchemas(
-      databaseSchemas,
-      localSchema,
-      localTable
-    ).columns.every(
+    localTable.columns.every(
       (column) =>
         column.foreignKeys.length === 0 &&
         column.foreignKeyReferences.length === 0
     )
   ) {
-    throw new Error(`No relationships found for table ${localTable}`);
+    throw new Error(`No relationships found for table ${localTableName}`);
   }
 
   const graph = makeGraphForDatabase(databaseSchemas);
 
-  const { nodes: path } = shortestPath(
-    graph,
-    `${localSchema}.${localTable}`,
-    `${foreignSchema}.${foreignTable}`
-  );
+  const path = (() => {
+    try {
+      const { nodes } = shortestPath(
+        graph,
+        `${localSchema}.${localTableName}`,
+        `${foreignSchema}.${foreignTableName}`
+      );
+      return nodes;
+    } catch (err) {
+      throw new Error(
+        `Couldn't find a path from ${localSchema}.${localTableName} to ${foreignSchema}.${foreignTableName}`
+      );
+    }
+  })();
 
-  const sql =
-    path.reduce((statement: string, table: string, index: number) => {
-      const [schemaName, tableName] = table.split(".");
+  const joins = path.reduce(
+    (statement: string, tableRef: string, index: number) => {
+      const [schemaName, tableName] = tableRef.split(".");
       if (!path[index + 1]) {
         return statement;
       }
@@ -97,20 +121,90 @@ export default async function fetchRelatedRows(
         );
       }
       throw new Error(
-        `Could not find relationship between ${table} and ${path[index + 1]}`
+        `Could not find relationship between ${tableRef} and ${path[index + 1]}`
       );
-    }, `SELECT * FROM ${localSchema}.${localTable}`) +
-    Object.entries(localRowData).reduce((statement, [column, value], index) => {
-      return (
-        statement +
-        ` ${
-          index === 0 ? "WHERE" : "AND"
-        } ${localSchema}.${localTable}.${column} = '${value}'`
+    },
+    `${localSchema}.${localTableName}`
+  );
+
+  const select = path
+    .flatMap((tableRef) => {
+      const [schemaName, tableName] = tableRef.split(".");
+      const table = findTableFromSchemas(
+        databaseSchemas,
+        schemaName,
+        tableName
       );
-    }, "");
+      return table.columns.map(
+        (column) =>
+          `${schemaName}.${tableName}.${column.name} AS ${schemaName}__${tableName}__${column.name}`
+      );
+    })
+    .join(", ");
+
+  const where = Object.entries(localRowData)
+    .map(([column, value]) => {
+      return `${localSchema}.${localTableName}.${column} = '${value}'`;
+    })
+    .join(" AND ");
+
+  const sql = `SELECT ${select} FROM ${joins} WHERE ${where};`;
+
+  const execResult = await databaseDriver.exec(sql);
 
   return {
     sql,
-    rowData: await databaseDriver.exec(sql),
+    rows: execResult.map((row) => {
+      const foreignTable = findTableFromSchemas(
+        databaseSchemas,
+        foreignSchema,
+        foreignTableName
+      );
+      return {
+        localTableData: Object.fromEntries(
+          localTable.columns.map((column) => {
+            return [
+              column.name,
+              row[`${localSchema}__${localTableName}__${column.name}`],
+            ];
+          })
+        ),
+        foreignTableData: Object.fromEntries(
+          foreignTable.columns.map((column) => {
+            return [
+              column.name,
+              row[`${foreignSchema}__${foreignTableName}__${column.name}`],
+            ];
+          })
+        ),
+        otherTables: Object.fromEntries(
+          path
+            .filter(
+              (tableRef) =>
+                tableRef !== `${localSchema}.${localTableName}` &&
+                tableRef !== `${foreignSchema}.${foreignTableName}`
+            )
+            .map((tableRef) => {
+              const [schemaName, tableName] = tableRef.split(".");
+              const { columns } = findTableFromSchemas(
+                databaseSchemas,
+                schemaName,
+                tableName
+              );
+              return [
+                tableRef,
+                Object.fromEntries(
+                  columns.map((column) => {
+                    return [
+                      column.name,
+                      row[`${schemaName}__${tableName}__${column.name}`],
+                    ];
+                  })
+                ),
+              ];
+            })
+        ),
+      };
+    }),
   };
 }

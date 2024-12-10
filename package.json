@@ -7,11 +7,12 @@
   ],
   "scripts": {
     "build": "turbo run build",
+    "dev": "turbo run build:watch",
     "test": "turbo run test --parallel",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "changeset": "changeset",
-    "release": "turbo run build lint test && changeset version && changeset publish"
+    "changeset": "turbo run build && changeset",
+    "ci:release": "turbo run build lint test && changeset version && changeset publish"
   },
   "devDependencies": {
     "eslint-config-custom": "*",

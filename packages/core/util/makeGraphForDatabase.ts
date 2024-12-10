@@ -1,6 +1,5 @@
-import { DatabaseSchema, DatabaseTableInfo } from "../src";
-import { Graph, Serialized } from "graph-data-structure";
-
+import { DatabaseTableInfo } from "../src";
+import { Graph } from "graph-data-structure";
 import { compareTwoStrings } from "string-similarity";
 
 export default function makeGraphForDatabase(
@@ -34,14 +33,12 @@ export default function makeGraphForDatabase(
             column.foreignKeys.map((key) => ({
               source: `${schemaName}.${tableName}`,
               target: `${key.foreignSchemaName}.${key.foreignTableName}`,
-              weight: 1 - compareTwoStrings(key.foreignTableName, tableName),
             }))
           ),
           ...columns.flatMap((column) =>
             column.foreignKeyReferences.map((key) => ({
               source: `${schemaName}.${tableName}`,
               target: `${key.localSchemaName}.${key.localTableName}`,
-              weight: 1 - compareTwoStrings(key.localTableName, tableName),
             }))
           ),
         ];
