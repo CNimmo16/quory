@@ -1,5 +1,13 @@
 # @quory/postgres
 
+## 1.0.4
+
+### Patch Changes
+
+- 524e121: ## Fix fetchRelatedRows naming colisions in return
+
+  This changes the return type of fetchRelatedRows from `{ ...allRowData }[]` to `{ localTableData: ..., foreignTableData: ..., otherTables: [...] }[]`
+
 ## 1.0.3
 
 ### Patch Changes
