@@ -21,7 +21,7 @@ export default async function fetchRelatedRows(
     localTableData: Row;
     foreignTableData: Row;
     otherTables: {
-      [tableName: string]: Row | undefined;
+      [tableName: string]: Row;
     };
   }[];
 }> {
