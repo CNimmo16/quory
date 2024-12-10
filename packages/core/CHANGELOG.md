@@ -1,5 +1,13 @@
 # @quory/core
 
+## 2.0.0
+
+### Major Changes
+
+- 0f5f245: ## Fix fetchRelatedRows naming colisions in return
+
+  This changes the return type of fetchRelatedRows from `{ ...allRowData }[]` to `{ localTableData: ..., foreignTableData: ..., otherTables: [...] }[]`
+
 ## 1.1.0
 
 ### Minor Changes
