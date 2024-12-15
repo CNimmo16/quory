@@ -1,5 +1,13 @@
 # @quory/core
 
+## 4.0.0
+
+### Major Changes
+
+- 1ca4abc: - Support and/or in fetchRelatedRows where condition
+  - Add "via" prop for fetchRelatedRows to specify join path
+  - Return entire table in getRelationsForTable
+
 ## 3.0.0
 
 ### Major Changes
