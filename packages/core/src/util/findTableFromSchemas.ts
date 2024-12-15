@@ -15,5 +15,8 @@ export default function findTableFromSchemas(
   if (!table) {
     throw new Error(`Could not find table ${schemaName}.${tableName}`);
   }
-  return table;
+  return {
+    ...table,
+    schemaName,
+  };
 }

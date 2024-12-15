@@ -6,9 +6,10 @@ import type {
   Row,
 } from "./DatabaseDriver";
 import getSchemas from "./getSchemas";
-import fetchRelatedRows from "./fetchRelatedRows";
+import fetchRelatedRows, { type WhereCondition } from "./fetchRelatedRows";
 import getRelationsForTable from "./getRelationsForTable";
 import getEntitiesAndJunctions from "./getEntitiesAndJunctions";
+import findTableFromSchemas from "./util/findTableFromSchemas";
 
 export {
   getSchemas,
@@ -20,6 +21,8 @@ export {
   GenericDataType,
   Row,
   DatabaseDriver,
+  WhereCondition,
+  findTableFromSchemas,
 };
 
 export type DatabaseTableInfo = {

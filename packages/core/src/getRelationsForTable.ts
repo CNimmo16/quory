@@ -1,19 +1,17 @@
 import { shortestPath } from "graph-data-structure";
-import { Row } from ".";
-import type { DatabaseSchema } from ".";
+import type { DatabaseSchema, DatabaseTableInfo } from ".";
 import makeGraphForDatabase from "../util/makeGraphForDatabase";
-import findTableFromSchemas from "./util/findTable";
+import findTableFromSchemas from "./util/findTableFromSchemas";
 
 export default function getRelationsForTable(
   databaseSchemas: DatabaseSchema[],
   schemaName: string,
   tableName: string,
   maxJoins?: number
-): {
+): (DatabaseTableInfo & {
   schemaName: string;
-  tableName: string;
   shortestJoinPath: number;
-}[] {
+})[] {
   const table = findTableFromSchemas(databaseSchemas, schemaName, tableName);
 
   if (
@@ -47,8 +45,8 @@ export default function getRelationsForTable(
           return null;
         }
         return {
+          ...foreignTable,
           schemaName: foreignTable.schemaName,
-          tableName: foreignTable.name,
           shortestJoinPath,
         };
       } catch {
