@@ -134,22 +134,25 @@ describe("getRelationsForTable", () => {
     );
 
     expect(
-      relationsForOrders.sort((a, b) => a.tableName.localeCompare(b.tableName))
+      relationsForOrders.sort((a, b) => a.name.localeCompare(b.name))
     ).toEqual([
       {
         schemaName: "order_data",
-        tableName: "order_fulfilment",
+        name: "order_fulfilment",
         shortestJoinPath: 1,
+        columns: expect.any(Array),
       },
       {
         schemaName: "people_data",
-        tableName: "people",
+        name: "people",
         shortestJoinPath: 2,
+        columns: expect.any(Array),
       },
       {
         schemaName: "order_data",
-        tableName: "people_orders",
+        name: "people_orders",
         shortestJoinPath: 1,
+        columns: expect.any(Array),
       },
     ]);
   });
@@ -257,8 +260,9 @@ describe("getRelationsForTable", () => {
       // "actors" is not included because maxJoins is 1
       {
         schemaName: "public",
-        tableName: "movie_actors",
+        name: "movie_actors",
         shortestJoinPath: 1,
+        columns: expect.any(Array),
       },
     ]);
   });
