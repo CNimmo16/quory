@@ -128,21 +128,28 @@ import { fetchRelatedRows } from '@quory/core';
 
 // load driver and get schemas...
 
-const { sql, rowData } = fetchRelatedRows(
-    driver,
-    schemasWithRelationships,
-    {
-        localSchema: "public",
-        localTable: "books",
-        foreignSchema: "public",
-        // find related row(s) in the "categories" table
-        foreignTable: "categories",
-        localRowData: {
-            // find rows related to the book with id=1
-            id: "1",
-        }
-    }
-);
+const { sql, rowData } = await fetchRelatedRows(
+        driver,
+        schemasWithRelationships,
+        {
+            base: {
+                tableRef: "public.books",
+                select: [],
+                where: {
+                    id: {
+                        operator: "=",
+                        value: "1",
+                    },
+                },
+            },
+            joins: [
+            {
+                tableRef: "public.categories",
+                select: "*",
+            },
+        ],
+      }
+    );
 ```
 
 This might return row data such as:
@@ -150,10 +157,14 @@ This might return row data such as:
 ```jsonc
     [
         {
-            "slug": "fiction"
+            "categories": {
+                "slug": "fiction"
+            }
         },
         {
-            "slug": "horror"
+            "categories": {
+                "slug": "horror"
+            }
         }
     ]
 ```
