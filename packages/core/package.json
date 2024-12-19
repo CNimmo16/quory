@@ -25,6 +25,7 @@
     "build:watch": "tsup src/index.ts --format cjs,esm --dts --watch"
   },
   "devDependencies": {
+    "@sqltools/formatter": "^1.2.5",
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.14.182",
     "@types/pg": "^8.6.5",

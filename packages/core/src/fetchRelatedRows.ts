@@ -156,6 +156,11 @@ export default async function fetchRelatedRows(
         schemaName,
         tableName
       );
+      const nextTable = findTableFromSchemas(
+        databaseSchemas,
+        nextSchemaName,
+        nextTableName
+      );
       const referenceFromThisTableToNextTable = thisTable.columns
         .flatMap((column) =>
           column.foreignKeys.map((ref) => ({
@@ -171,29 +176,25 @@ export default async function fetchRelatedRows(
       if (referenceFromThisTableToNextTable) {
         if (thisIsBaseTable) {
           fromClause += nextTableRef;
-          const baseTableColumn = thisTable.columns.find(
+          const nextTableColumn = nextTable.columns.find(
             (column) =>
-              column.name === referenceFromThisTableToNextTable.columnName
+              column.name ===
+              referenceFromThisTableToNextTable.foreignColumnName
           );
-          if (!baseTableColumn) {
+          if (!nextTableColumn) {
             throw new Error(
-              "Could not find base table column. This should never happen."
+              "Could not find next table column. This should never happen."
             );
           }
           baseTableJoin = {
             baseTableColumn: referenceFromThisTableToNextTable.columnName,
-            subQuerySelect: getSelectForColumn(thisTable, baseTableColumn),
+            subQuerySelect: getSelectForColumn(nextTable, nextTableColumn),
           };
           continue;
         }
         fromClause += ` INNER JOIN ${nextSchemaName}.${nextTableName} ON ${nextSchemaName}.${nextTableName}.${referenceFromThisTableToNextTable.foreignColumnName} = ${schemaName}.${tableName}.${referenceFromThisTableToNextTable.columnName}`;
         continue;
       }
-      const nextTable = findTableFromSchemas(
-        databaseSchemas,
-        nextSchemaName,
-        nextTableName
-      );
       const referenceFromNextTableToThisTable = nextTable.columns
         .flatMap((column) =>
           column.foreignKeys.map((ref) => ({
@@ -294,10 +295,10 @@ export default async function fetchRelatedRows(
         const { ref, alias } = getSelectForColumn(baseTable, column);
         return `${ref} AS ${alias}`;
       }),
-    ...subQueries.flatMap(({ selects }) =>
+    ...subQueries.flatMap(({ selects, id }) =>
       selects
         .filter(({ includeInOuter }) => includeInOuter)
-        .map(({ alias }) => alias)
+        .map(({ alias }) => `${id}.${alias}`)
     ),
   ];
 

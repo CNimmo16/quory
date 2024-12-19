@@ -1,9 +1,7 @@
 import { DatabaseSchema } from ".";
 import FakeDatabaseDriver from "./FakeDatabaseDriver";
 import fetchRelatedRows from "./fetchRelatedRows";
-
-const formatSqlToOneLine = (sql: string) =>
-  sql.replace(/\n/g, " ").replace(/  +/g, " ").trim();
+import { format as formatSql } from "@sqltools/formatter";
 
 describe("fetchRelatedRows", () => {
   const fakeDatabaseDriver = new FakeDatabaseDriver();
@@ -138,13 +136,13 @@ describe("fetchRelatedRows", () => {
       }
     );
 
-    expect(sql).toEqual(
-      formatSqlToOneLine(`
+    expect(formatSql(sql)).toEqual(
+      formatSql(`
         SELECT
           customer_data.customers.id AS customer_data__customers__id,
-          order_data__orders__id,
-          order_data__orders__customer_id,
-          order_data__order_fulfilment__order_id
+          sq1.order_data__orders__id,
+          sq1.order_data__orders__customer_id,
+          sq1.order_data__order_fulfilment__order_id
         FROM customer_data.customers
         INNER JOIN (SELECT
             order_data.orders.id AS order_data__orders__id,
@@ -197,18 +195,20 @@ describe("fetchRelatedRows", () => {
       }
     );
 
-    expect(sql).toEqual(
-      formatSqlToOneLine(`
+    expect(formatSql(sql)).toEqual(
+      formatSql(`
         SELECT
           order_data.order_fulfilment.order_id AS order_data__order_fulfilment__order_id,
-          customer_data__customers__id
+          sq1.customer_data__customers__id
         FROM order_data.order_fulfilment
-        INNER JOIN (SELECT
-            customer_data.customers.id AS customer_data__customers__id
+        INNER JOIN (
+          SELECT
+            customer_data.customers.id AS customer_data__customers__id,
+            order_data.orders.id AS order_data__orders__id
           FROM order_data.orders
           INNER JOIN customer_data.customers ON customer_data.customers.id = order_data.orders.customer_id
-          GROUP BY order_data.orders.id, customer_data.customers.id) AS sq1
-        ON order_data.order_fulfilment.order_id = sq1.order_data__orders__id
+          GROUP BY order_data.orders.id, customer_data.customers.id
+        ) AS sq1 ON order_data.order_fulfilment.order_id = sq1.order_data__orders__id
         WHERE order_data.order_fulfilment.order_id = '1'
       `)
     );
