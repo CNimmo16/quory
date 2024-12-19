@@ -1,5 +1,13 @@
 # @quory/mysql
 
+## 1.0.1
+
+### Patch Changes
+
+- c95bfe9: - Support multiple foreign tables in fetchRelatedRows (this is a large breaking change!)
+  - Remove unnecessary dependency on Knex.js from Postgres and MySQL drivers (move to dev dependency)
+  - Introduce new SQLite driver!
+
 ## 1.0.0
 
 ### Major Changes
