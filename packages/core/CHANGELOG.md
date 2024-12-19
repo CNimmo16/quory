@@ -1,5 +1,17 @@
 # @quory/core
 
+## 5.0.0
+
+### Major Changes
+
+- c95bfe9: - Support multiple foreign tables in fetchRelatedRows (this is a large breaking change!)
+  - Remove unnecessary dependency on Knex.js from Postgres and MySQL drivers (move to dev dependency)
+  - Introduce new SQLite driver!
+
+### Patch Changes
+
+- 9490eda: Remove rogue console log
+
 ## 4.0.0
 
 ### Major Changes

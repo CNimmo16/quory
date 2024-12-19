@@ -1,6 +1,6 @@
 {
   "name": "@quory/postgres",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Postgres driver for Quory",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
