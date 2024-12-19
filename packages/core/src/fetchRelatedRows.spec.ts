@@ -111,25 +111,30 @@ describe("fetchRelatedRows", () => {
   ];
 
   it("finds related row from hasMany relations", async () => {
-    const { sql } = await fetchRelatedRows(
+    const { sql, meta } = await fetchRelatedRows(
       fakeDatabaseDriver,
       mockRelationships,
       {
-        localTableRef: "customer_data.customers",
-        foreignTableRef: "order_data.order_fulfilment",
-        where: {
-          "customer_data.customers": {
+        base: {
+          tableRef: "customer_data.customers",
+          select: "*",
+          where: {
             id: {
               operator: "=",
               value: "3",
             },
           },
         },
-        select: {
-          "customer_data.customers": "*",
-          "order_data.orders": "*",
-          "order_data.order_fulfilment": "*",
-        },
+        joins: [
+          {
+            tableRef: "order_data.orders",
+            select: "*",
+          },
+          {
+            tableRef: "order_data.order_fulfilment",
+            select: "*",
+          },
+        ],
       }
     );
 
@@ -137,16 +142,35 @@ describe("fetchRelatedRows", () => {
       formatSqlToOneLine(`
         SELECT
           customer_data.customers.id AS customer_data__customers__id,
-          order_data.orders.id AS order_data__orders__id,
-          order_data.orders.customer_id AS order_data__orders__customer_id,
-          order_data.order_fulfilment.order_id AS order_data__order_fulfilment__order_id
+          order_data__orders__id,
+          order_data__orders__customer_id,
+          order_data__order_fulfilment__order_id
         FROM customer_data.customers
-        INNER JOIN order_data.orders ON order_data.orders.customer_id = customer_data.customers.id
-        INNER JOIN order_data.order_fulfilment ON order_data.order_fulfilment.order_id = order_data.orders.id
+        INNER JOIN (SELECT
+            order_data.orders.id AS order_data__orders__id,
+            order_data.orders.customer_id AS order_data__orders__customer_id,
+            order_data.order_fulfilment.order_id AS order_data__order_fulfilment__order_id
+          FROM order_data.orders
+          INNER JOIN order_data.order_fulfilment ON order_data.order_fulfilment.order_id = order_data.orders.id
+          GROUP BY order_data.orders.id, order_data.order_fulfilment.order_id) AS sq1
+        ON customer_data.customers.id = sq1.order_data__orders__customer_id
         WHERE customer_data.customers.id = '3'
-        GROUP BY customer_data.customers.id, order_data.orders.id, order_data.order_fulfilment.order_id;
       `)
     );
+
+    expect(meta).toEqual({
+      subQueries: [
+        {
+          id: "sq1",
+          path: [
+            "customer_data.customers",
+            "order_data.orders",
+            "order_data.order_fulfilment",
+          ],
+          tableRefs: ["order_data.orders", "order_data.order_fulfilment"],
+        },
+      ],
+    });
   });
 
   it("finds related row from belongsTo relations", async () => {
@@ -154,34 +178,38 @@ describe("fetchRelatedRows", () => {
       fakeDatabaseDriver,
       mockRelationships,
       {
-        localTableRef: "order_data.order_fulfilment",
-        foreignTableRef: "customer_data.customers",
-        where: {
-          "order_data.order_fulfilment": {
+        base: {
+          tableRef: "order_data.order_fulfilment",
+          select: "*",
+          where: {
             order_id: {
               operator: "=",
               value: "1",
             },
           },
         },
-        select: {
-          "order_data.orders": "*",
-          "customer_data.customers": "*",
-        },
+        joins: [
+          {
+            tableRef: "customer_data.customers",
+            select: "*",
+          },
+        ],
       }
     );
 
     expect(sql).toEqual(
       formatSqlToOneLine(`
         SELECT
-          order_data.orders.id AS order_data__orders__id,
-          order_data.orders.customer_id AS order_data__orders__customer_id,
-          customer_data.customers.id AS customer_data__customers__id
+          order_data.order_fulfilment.order_id AS order_data__order_fulfilment__order_id,
+          customer_data__customers__id
         FROM order_data.order_fulfilment
-        INNER JOIN order_data.orders ON order_data.orders.id = order_data.order_fulfilment.order_id
-        INNER JOIN customer_data.customers ON customer_data.customers.id = order_data.orders.customer_id
+        INNER JOIN (SELECT
+            customer_data.customers.id AS customer_data__customers__id
+          FROM order_data.orders
+          INNER JOIN customer_data.customers ON customer_data.customers.id = order_data.orders.customer_id
+          GROUP BY order_data.orders.id, customer_data.customers.id) AS sq1
+        ON order_data.order_fulfilment.order_id = sq1.order_data__orders__id
         WHERE order_data.order_fulfilment.order_id = '1'
-        GROUP BY order_data.order_fulfilment.order_id, order_data.orders.id, customer_data.customers.id;
       `)
     );
   });
