@@ -46,7 +46,6 @@ export default async function fetchRelatedRows(
     [tableName: string]: Row;
   }[];
 }> {
-  console.log("we here");
   const { base, joins } = args;
 
   const [baseSchemaName, baseTableName] = base.tableRef.split(".");
