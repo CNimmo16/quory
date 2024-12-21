@@ -1,5 +1,11 @@
 # @quory/sqlite
 
+## 0.2.1
+
+### Patch Changes
+
+- a6234e0: Use affinity to get data types for sqlite
+
 ## 0.2.0
 
 ### Minor Changes
