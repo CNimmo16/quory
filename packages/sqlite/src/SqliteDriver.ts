@@ -4,8 +4,9 @@ import type {
   Row,
   TableColumn,
 } from "@quory/core";
-import sqliteDatatypeToGenericDatatype from "./util/sqliteDatatypeToGenericDatatype";
+import sqliteAffinityToGenericDatatype from "./util/sqliteAffinityToGenericDatatype";
 import sqlite, { Database } from "better-sqlite3";
+import getAffinityForType from "./util/getAffinityForType";
 
 export class SqliteDriver implements DatabaseDriver {
   db: Database;
@@ -13,10 +14,13 @@ export class SqliteDriver implements DatabaseDriver {
   constructor(filenameOrClient: string, options: sqlite.Options);
   constructor(filenameOrClient: Database);
   constructor(filenameOrClient: string | Database, options?: sqlite.Options) {
-    if (filenameOrClient instanceof sqlite) {
-      this.db = filenameOrClient;
-    } else {
+    if (!filenameOrClient) {
+      throw new Error("No filename or client provided");
+    }
+    if (typeof filenameOrClient === "string") {
       this.db = sqlite(filenameOrClient, options);
+    } else {
+      this.db = filenameOrClient;
     }
     this.db.pragma("journal_mode = WAL");
   }
@@ -49,17 +53,24 @@ export class SqliteDriver implements DatabaseDriver {
             notnull: 1 | 0;
             dflt_value: string | null;
           }[]
-        ).map(
-          (column): TableColumn => ({
+        ).map((column): TableColumn => {
+          const dataType = column.type;
+          const typeRes = this.db
+            .prepare(`SELECT typeof(${column.name}) FROM ${table.name};`)
+            .get() as { [key: string]: string } | null;
+          const affinity = getAffinityForType(
+            typeRes ? Object.values(typeRes)[0] : column.type
+          );
+          return {
             schemaName: schema.name,
             tableName: table.name,
             name: column.name,
-            dataType: column.type,
-            genericDataType: sqliteDatatypeToGenericDatatype(column.type),
+            dataType,
+            genericDataType: sqliteAffinityToGenericDatatype(affinity),
             isNullable: column.notnull === 0,
             includedInPrimaryKey: column.pk === 1,
-          })
-        );
+          };
+        });
       });
     });
 

@@ -80,7 +80,7 @@ describe("SqliteDriver", () => {
         tableName: "models",
         name: "in_production",
         dataType: "boolean",
-        genericDataType: "boolean",
+        genericDataType: "number",
         isNullable: true,
         includedInPrimaryKey: false,
       },
@@ -89,7 +89,7 @@ describe("SqliteDriver", () => {
         tableName: "models",
         name: "launched_at",
         dataType: "datetime",
-        genericDataType: "datetime",
+        genericDataType: "number",
         isNullable: true,
         includedInPrimaryKey: false,
       },
@@ -121,6 +121,34 @@ describe("SqliteDriver", () => {
         includedInPrimaryKey: false,
       },
     ]);
+  });
+
+  it("Returns generic type based on values where possible", async () => {
+    await knexCreateTable("makes", (table) => {
+      table.integer("number");
+    });
+
+    await knexTable("makes").insert([
+      {
+        number: "bob",
+      },
+    ]);
+
+    const columns = await driver.getAllColumnsInDatabase();
+
+    expect(columns[0].dataType).toEqual("INTEGER");
+    expect(columns[0].genericDataType).toEqual("text");
+  });
+
+  it("Falls back to generic type based on columns", async () => {
+    await knexCreateTable("makes", (table) => {
+      table.integer("number");
+    });
+
+    const columns = await driver.getAllColumnsInDatabase();
+
+    expect(columns[0].dataType).toEqual("INTEGER");
+    expect(columns[0].genericDataType).toEqual("number");
   });
 
   it("Finds all relationships from foreign keys", async () => {
