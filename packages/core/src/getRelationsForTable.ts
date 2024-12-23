@@ -31,8 +31,8 @@ export default function getRelationsForTable(
   return databaseSchemas
     .flatMap((schema) =>
       schema.tables
-        .filter((table) => table.name !== tableName)
-        .map((table) => ({ ...table, schemaName: schema.name }))
+        .filter(({ name }) => name !== tableName)
+        .map((_table) => ({ ..._table, schemaName: schema.name }))
     )
     .map((foreignTable) => {
       try {
@@ -54,5 +54,5 @@ export default function getRelationsForTable(
         return null;
       }
     })
-    .filter((table) => table !== null);
+    .filter((_table) => _table !== null);
 }

@@ -39,8 +39,9 @@ export default function getEntitiesAndJunctions(
           ).split("_");
 
           return (
-            table.name.includes(assumedEntityName) ||
-            table.name.includes(plural(assumedEntityName))
+            assumedEntityName &&
+            (table.name.includes(assumedEntityName) ||
+              table.name.includes(plural(assumedEntityName)))
           );
         }
       );

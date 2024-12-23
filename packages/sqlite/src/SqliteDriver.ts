@@ -59,7 +59,7 @@ export class SqliteDriver implements DatabaseDriver {
             .prepare(`SELECT typeof(${column.name}) FROM ${table.name};`)
             .get() as { [key: string]: string } | null;
           const affinity = getAffinityForType(
-            typeRes ? Object.values(typeRes)[0] : column.type
+            typeRes ? Object.values(typeRes)[0]! : column.type
           );
           return {
             schemaName: schema.name,

@@ -5,6 +5,7 @@ import makeGraphForDatabase from "../util/makeGraphForDatabase";
 import findTableFromSchemas from "./util/findTableFromSchemas";
 import dedupeJoinPaths from "./util/dedupeJoinPaths";
 import getWhereClauseFromConditions from "./util/getWhereClauseFromConditions";
+import splitTableRef from "./util/splitTableRef";
 
 export type WhereCondition =
   | string
@@ -48,7 +49,8 @@ export default async function fetchRelatedRows(
 }> {
   const { base, joins } = args;
 
-  const [baseSchemaName, baseTableName] = base.tableRef.split(".");
+  const { schemaName: baseSchemaName, tableName: baseTableName } =
+    splitTableRef(base.tableRef);
   const baseTable = findTableFromSchemas(
     databaseSchemas,
     baseSchemaName,
@@ -92,10 +94,11 @@ export default async function fetchRelatedRows(
         path: [
           base.tableRef,
           ...desiredRoute.flatMap((tableRef, i, arr) => {
-            if (!arr[i + 1]) {
+            const next = arr[i + 1];
+            if (!next) {
               return [];
             }
-            const { nodes } = shortestPath(graph, tableRef, arr[i + 1]);
+            const { nodes } = shortestPath(graph, tableRef, next);
             return nodes.slice(1);
           }),
         ],
@@ -128,7 +131,7 @@ export default async function fetchRelatedRows(
     const primaryKeyRefs = path
       .slice(1) // exclude base table as not being joined here
       .flatMap((tableRef) => {
-        const [schemaName, tableName] = tableRef.split(".");
+        const { schemaName, tableName } = splitTableRef(tableRef);
         const table = findTableFromSchemas(
           databaseSchemas,
           schemaName,
@@ -145,12 +148,13 @@ export default async function fetchRelatedRows(
     } | null = null;
     for (const [index, tableRef] of path.entries()) {
       const thisIsBaseTable = index === 0;
-      const [schemaName, tableName] = tableRef.split(".");
+      const { schemaName, tableName } = splitTableRef(tableRef);
       const nextTableRef = path[index + 1];
       if (!nextTableRef) {
         break;
       }
-      const [nextSchemaName, nextTableName] = nextTableRef.split(".");
+      const { schemaName: nextSchemaName, tableName: nextTableName } =
+        splitTableRef(nextTableRef);
       const thisTable = findTableFromSchemas(
         databaseSchemas,
         schemaName,
@@ -240,7 +244,7 @@ export default async function fetchRelatedRows(
     }
     const selectsAndConditions = tableRefs.map((tableRef) => {
       const joinDef = joins.find((join) => join.tableRef === tableRef)!;
-      const [schemaName, tableName] = tableRef.split(".");
+      const { schemaName, tableName } = splitTableRef(tableRef);
       const table = findTableFromSchemas(
         databaseSchemas,
         schemaName,
@@ -330,7 +334,7 @@ export default async function fetchRelatedRows(
     rows: execResult.map((row) => {
       return Object.fromEntries(
         [base, ...joins].map((joinDef) => {
-          const [schemaName, tableName] = joinDef.tableRef.split(".");
+          const { schemaName, tableName } = splitTableRef(joinDef.tableRef);
           const table = findTableFromSchemas(
             databaseSchemas,
             schemaName,
@@ -350,7 +354,7 @@ export default async function fetchRelatedRows(
             `${schemaName}.${tableName}`,
             Object.fromEntries(
               columns.map((column) => {
-                return [column.name, row[column.alias]];
+                return [column.name, row[column.alias]!];
               })
             ),
           ];

@@ -136,8 +136,8 @@ describe("SqliteDriver", () => {
 
     const columns = await driver.getAllColumnsInDatabase();
 
-    expect(columns[0].dataType).toEqual("INTEGER");
-    expect(columns[0].genericDataType).toEqual("text");
+    expect(columns[0]!.dataType).toEqual("INTEGER");
+    expect(columns[0]!.genericDataType).toEqual("text");
   });
 
   it("Falls back to generic type based on columns", async () => {
@@ -147,8 +147,8 @@ describe("SqliteDriver", () => {
 
     const columns = await driver.getAllColumnsInDatabase();
 
-    expect(columns[0].dataType).toEqual("INTEGER");
-    expect(columns[0].genericDataType).toEqual("number");
+    expect(columns[0]!.dataType).toEqual("INTEGER");
+    expect(columns[0]!.genericDataType).toEqual("number");
   });
 
   it("Finds all relationships from foreign keys", async () => {

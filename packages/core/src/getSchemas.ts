@@ -4,7 +4,7 @@ import { DatabaseDriver } from ".";
 export default async function getSchemas(
   databaseDriver: DatabaseDriver
 ): Promise<DatabaseSchema[]> {
-  let schemas: DatabaseSchema[] = [];
+  const schemas: DatabaseSchema[] = [];
   const retrieveOrCreateTable = (
     schemaName: string,
     tableName: string

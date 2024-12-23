@@ -12,10 +12,11 @@ export default function dedupeJoinPaths(
     const supersets = joinPaths.filter(({ path: otherPath }) => {
       return path.every((node, i) => otherPath[i] === node);
     });
-    if (supersets.length >= 1) {
+    const firstSuperset = supersets[0];
+    if (firstSuperset) {
       const longestSuperset = supersets.reduce((longest, superset) => {
         return superset.path.length > longest.path.length ? superset : longest;
-      }, supersets[0]);
+      }, firstSuperset);
       const inRet = ret.find(
         (r) => r.path.join(",") === longestSuperset.path.join(",")
       );
