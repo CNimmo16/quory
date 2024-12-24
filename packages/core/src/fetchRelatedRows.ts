@@ -1,12 +1,11 @@
 import { shortestPath } from "graph-data-structure";
 import { DatabaseDriver, Row } from ".";
-import type { DatabaseSchema } from ".";
+import type { DatabaseSchema, DatabaseTableInfo } from ".";
 import makeGraphForDatabase from "../util/makeGraphForDatabase";
 import findTableFromSchemas from "./util/findTableFromSchemas";
 import groupByPath from "./util/groupByPath";
 import getWhereClauseFromConditions from "./util/getWhereClauseFromConditions";
 import splitTableRef from "./util/splitTableRef";
-import { DatabaseTableInfo } from "../dist";
 
 export type WhereCondition =
   | string
