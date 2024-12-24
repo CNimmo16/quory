@@ -164,6 +164,7 @@ describe("fetchRelatedRows", () => {
           GROUP BY order_data__orders__1.id, order_data__order_fulfilment__1.order_id) AS sq1
         ON customer_data.customers.id = sq1.order_data__orders__1__customer_id
         WHERE customer_data.customers.id = '3'
+        GROUP BY customer_data.customers.id
       `)
     );
 
@@ -221,6 +222,7 @@ describe("fetchRelatedRows", () => {
           GROUP BY order_data__orders__1.id, customer_data__customers__1.id
         ) AS sq1 ON order_data.order_fulfilment.order_id = sq1.order_data__orders__1__id
         WHERE order_data.order_fulfilment.order_id = '1'
+        GROUP BY order_data.order_fulfilment.order_id
       `)
     );
   });
@@ -291,6 +293,7 @@ describe("fetchRelatedRows", () => {
               order_data__orders__2.id
           ) AS sq1 ON customer_data.customers.id = sq1.order_data__orders__1__customer_id
         WHERE customer_data.customers.id = '3'
+        GROUP BY customer_data.customers.id
       `)
     );
 
@@ -357,6 +360,7 @@ describe("fetchRelatedRows", () => {
             GROUP BY order_data__orders__1.id, customer_data__customers__1.id
           ) AS sq1 ON customer_data.customers.id = sq1.order_data__orders__1__customer_id
         WHERE customer_data.customers.id = '3'
+        GROUP BY customer_data.customers.id
       `)
     );
   });

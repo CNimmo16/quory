@@ -366,6 +366,10 @@ export default async function fetchRelatedRows(
     sql += ` INNER JOIN (${subQuerySql}) AS ${subQuery.id} ON ${base.tableRef}.${subQuery.baseTableJoin.baseTableColumn} = ${subQuery.id}.${subQuery.baseTableJoin.subQuerySelect.subQueryAlias}`;
   }
   sql += ` WHERE ${getWhereClauseFromConditions(baseTable, null, base.where)}`;
+  sql += ` GROUP BY ${baseTable.columns
+    .filter((col) => col.includedInPrimaryKey)
+    .map((col) => `${baseTable.schemaName}.${baseTable.name}.${col.name}`)
+    .join(", ")}`;
 
   const execResult = await databaseDriver.exec(sql).catch((err) => {
     console.error(`Error while executing SQL: \n${sql}\n. Error below`);

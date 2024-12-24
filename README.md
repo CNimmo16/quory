@@ -1,7 +1,10 @@
 # Quory 
 
-> A simple tool for extracting schema and foreign key information from any database!
+> Query across your SQL database instantly without worrying about joins
 
+## Why do I need this?
+
+Quory is a collection of functions for those building data apps that offer users the ability to join tables without writing SQL. It can return information about the database's schema and foreign keys, as well as write queries to fetch data from multiple tables at once without writing explicit joining logic.
 
 ## Installation [![npm version](https://badge.fury.io/js/@quory%2Fcore.svg)](https://badge.fury.io/js/@quory%2Fcore)
 
@@ -14,9 +17,11 @@ npm install @quory/core @quory/mysql --save
 
 ## Usage
 
-### `getSchemas`
+### Schema introspection
 
-A basic use case involves simply extracting data about your database schema(s) and their foreign key relationships.
+#### `getSchemas`
+
+One use case involves simply extracting data about your database schema(s) and their foreign key relationships.
 
 ```ts
 import { PostgresDriver } from '@quory/postgres';
@@ -83,7 +88,7 @@ The returned schema could look like this for a database of books:
 }
 ```
 
-### `getRelationsForTable`
+####  `getRelationsForTable`
 
 This function will list all the tables that are related to the specified table, including through multiple layers of joins, up to an optionally specified maximum join path length.
 
@@ -117,7 +122,42 @@ In a the database imagined above, this may return something like:
 ]
 ```
 
-### `fetchRelatedRows`
+#### `getEntitiesAndJunctions`
+
+This function can be used to determine which tables are "entity" tables, used to represent an actual entity in the business logic, and which are "junction" or "linking" tables, used simply for maintaining a many-to-many relationship.
+
+For example:
+
+```ts
+import { getEntitiesAndJunctions } from '@quory/core';
+
+// load driver and get schemas...
+
+const {
+    entities,
+    junctions
+} = getEntitiesAndJunctions(schemasWithRelationships);
+```
+
+For our imaginary books database, this could return:
+
+```jsonc
+{
+    "entities": [
+        "public.authors",
+        "public.books",
+        "public.categories"
+    ],
+    "junctions": [
+        "public.book_categories"
+    ]
+}
+```
+
+
+### Fetching data
+
+####  `fetchRelatedRows`
 
 If you want to find the row(s) in table B that are associated with a given row in table A (possibly through multiple layers of relationship), Quory can do this for you using the `fetchRelatedRows` function.
 
@@ -167,36 +207,4 @@ This might return row data such as:
             }
         }
     ]
-```
-
-### `getEntitiesAndJunctions`
-
-This function can be used to determine which tables are "entity" tables, used to represent an actual entity in the business logic, and which are "junction" or "linking" tables, used simply for maintaining a many-to-many relationship.
-
-For example:
-
-```ts
-import { getEntitiesAndJunctions } from '@quory/core';
-
-// load driver and get schemas...
-
-const {
-    entities,
-    junctions
-} = getEntitiesAndJunctions(schemasWithRelationships);
-```
-
-For our imaginary books database, this could return:
-
-```jsonc
-{
-    "entities": [
-        "public.authors",
-        "public.books",
-        "public.categories"
-    ],
-    "junctions": [
-        "public.book_categories"
-    ]
-}
 ```
