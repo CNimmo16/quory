@@ -1,5 +1,11 @@
 # @quory/core
 
+## 5.1.2
+
+### Patch Changes
+
+- 046799a: Add group by to primary keys in base table
+
 ## 5.1.1
 
 ### Patch Changes
