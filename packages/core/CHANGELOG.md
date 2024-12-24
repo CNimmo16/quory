@@ -1,5 +1,11 @@
 # @quory/core
 
+## 5.1.1
+
+### Patch Changes
+
+- 942510d: allow specifying base table in joins
+
 ## 5.1.0
 
 ### Minor Changes
