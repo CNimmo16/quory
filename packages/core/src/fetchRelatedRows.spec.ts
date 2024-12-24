@@ -308,4 +308,56 @@ describe("fetchRelatedRows", () => {
       ],
     });
   });
+
+  it("supports user table in path twice", async () => {
+    const { sql, meta } = await fetchRelatedRows(
+      fakeDatabaseDriver,
+      mockRelationships,
+      {
+        base: {
+          tableRef: "customer_data.customers",
+          select: [],
+          where: {
+            id: {
+              operator: "=",
+              value: "3",
+            },
+          },
+        },
+        joins: [
+          {
+            tableRef: "order_data.orders",
+            select: [],
+            where: {
+              id: {
+                operator: "=",
+                value: "1",
+              },
+            },
+          },
+          {
+            tableRef: "customer_data.customers",
+            select: "*",
+            via: ["order_data.orders"],
+          },
+        ],
+      }
+    );
+
+    expect(formatSql(sql)).toEqual(
+      formatSql(`
+        SELECT sq1.customer_data__customers__1__id AS customer_data__customers__id
+        FROM customer_data.customers
+          INNER JOIN (
+            SELECT customer_data__customers__1.id AS customer_data__customers__1__id,
+              order_data__orders__1.customer_id AS order_data__orders__1__customer_id
+            FROM order_data.orders AS order_data__orders__1
+              INNER JOIN customer_data.customers AS customer_data__customers__1 ON customer_data__customers__1.id = order_data__orders__1.customer_id
+            WHERE order_data__orders__1.id = '1'
+            GROUP BY order_data__orders__1.id, customer_data__customers__1.id
+          ) AS sq1 ON customer_data.customers.id = sq1.order_data__orders__1__customer_id
+        WHERE customer_data.customers.id = '3'
+      `)
+    );
+  });
 });

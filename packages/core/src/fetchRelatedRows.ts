@@ -166,7 +166,7 @@ export default async function fetchRelatedRows(
         tableName
       );
       const prevCountOfThisTableInPath = path
-        .slice(0, index)
+        .slice(1, index)
         .filter((t) => t === tableRef).length;
       const thisJoinDef = joinDefsForPath.filter(
         (joinDef) => joinDef.tableRef === tableRef
@@ -183,7 +183,7 @@ export default async function fetchRelatedRows(
         nextTableName
       );
       const prevCountOfNextTableInPath = path
-        .slice(0, index + 1)
+        .slice(1, index + 1)
         .filter((t) => t === nextTableRef).length;
       const nextJoinDef = joinDefsForPath.filter(
         (joinDef) => joinDef.tableRef === nextTableRef
