@@ -161,7 +161,7 @@ For our imaginary books database, this could return:
 
 If you want to find the row(s) in table B that are associated with a given row in table A (possibly through multiple layers of relationship), Quory can do this for you using the `fetchRelatedRows` function.
 
-This function currently uses the [Dijkstra algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm) to find the shortest path between the tables and performs a join across those tables to extract the relevant row data. A future release may allow configuration of the join-path used by this function, to support cases where there are multiple ways to join the tables. If you'd like to see this supported please feel free to raise a PR!
+This function (by default) uses the [Dijkstra algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm) to find the shortest path between the tables and performs a join across those tables to extract the relevant row data.
 
 ```ts
 import { fetchRelatedRows } from '@quory/core';
@@ -169,27 +169,27 @@ import { fetchRelatedRows } from '@quory/core';
 // load driver and get schemas...
 
 const { sql, rowData } = await fetchRelatedRows(
-        driver,
-        schemasWithRelationships,
-        {
-            base: {
-                tableRef: "public.books",
-                select: [],
-                where: {
-                    id: {
-                        operator: "=",
-                        value: "1",
-                    },
+    driver,
+    schemasWithRelationships,
+    {
+        base: {
+            tableRef: "public.books",
+            select: [],
+            where: {
+                id: {
+                    operator: "=",
+                    value: "1",
                 },
             },
-            joins: [
+        },
+        joins: [
             {
                 tableRef: "public.categories",
                 select: "*",
             },
         ],
-      }
-    );
+    }
+);
 ```
 
 This might return row data such as:
@@ -204,6 +204,63 @@ This might return row data such as:
         {
             "categories": {
                 "slug": "horror"
+            }
+        }
+    ]
+```
+#### Controlling the join path
+
+You can optionally provide hints to Quory about the path it uses to join the tables using the "via" option.
+
+For example, we could modify the example above to find all the categories associated with the same author.
+
+```ts
+import { fetchRelatedRows } from '@quory/core';
+
+// load driver and get schemas...
+
+const { sql, rowData } = await fetchRelatedRows(
+    driver,
+    schemasWithRelationships,
+    {
+        base: {
+            tableRef: "public.books",
+            select: [],
+            where: {
+                id: {
+                    operator: "=",
+                    value: "1",
+                },
+            },
+        },
+        joins: [
+            {
+                tableRef: "public.categories",
+                select: "*",
+                via: ["public.authors", "public.books"]
+            },
+        ],
+    }
+);
+```
+
+If there was another book with the same `author_id` with the category "thriller", you would see the output change to:
+
+```jsonc
+    [
+        {
+            "categories": {
+                "slug": "fiction"
+            }
+        },
+        {
+            "categories": {
+                "slug": "horror"
+            }
+        },
+        {
+            "categories": {
+                "slug": "thriller"
             }
         }
     ]
