@@ -5,10 +5,14 @@ export default function getWhereClauseFromConditions(
   table: DatabaseTableInfo & {
     schemaName: string;
   },
+  tableAlias: string | null,
   where: {
     [column: string]: WhereCondition;
   }
 ) {
+  if (!tableAlias) {
+    tableAlias = `${table.schemaName}.${table.name}`;
+  }
   return Object.entries(where).map(function makeCondition([
     columnName,
     condition,
@@ -19,7 +23,7 @@ export default function getWhereClauseFromConditions(
       );
     }
     if (typeof condition === "string") {
-      return `${table.schemaName}.${table.name}.${columnName} = '${condition}'`;
+      return `${tableAlias}.${columnName} = '${condition}'`;
     } else {
       switch (condition.operator) {
         case "and":
@@ -30,9 +34,7 @@ export default function getWhereClauseFromConditions(
             })
             .join(` ${condition.operator.toUpperCase()} `)})`;
         default:
-          return `${table.schemaName}.${
-            table.name
-          }.${columnName} ${condition.operator.toUpperCase()} '${
+          return `${tableAlias}.${columnName} ${condition.operator.toUpperCase()} '${
             condition.value
           }'`;
       }

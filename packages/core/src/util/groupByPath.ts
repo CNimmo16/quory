@@ -1,14 +1,14 @@
-export default function dedupeJoinPaths(
+export default function groupByPath<T>(
   joinPaths: {
-    tableRef: string;
     path: string[];
+    item: T;
   }[]
 ) {
   const ret: {
+    items: T[];
     path: string[];
-    tableRefs: string[];
   }[] = [];
-  for (const { tableRef, path } of joinPaths) {
+  for (const { item, path } of joinPaths) {
     const supersets = joinPaths.filter(({ path: otherPath }) => {
       return path.every((node, i) => otherPath[i] === node);
     });
@@ -21,17 +21,17 @@ export default function dedupeJoinPaths(
         (r) => r.path.join(",") === longestSuperset.path.join(",")
       );
       if (inRet) {
-        inRet.tableRefs.push(tableRef);
+        inRet.items.push(item);
       } else {
         ret.push({
           path: longestSuperset.path,
-          tableRefs: [tableRef],
+          items: [item],
         });
       }
     } else {
       ret.push({
         path,
-        tableRefs: [tableRef],
+        items: [item],
       });
     }
   }

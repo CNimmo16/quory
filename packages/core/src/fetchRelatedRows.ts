@@ -3,9 +3,10 @@ import { DatabaseDriver, Row } from ".";
 import type { DatabaseSchema } from ".";
 import makeGraphForDatabase from "../util/makeGraphForDatabase";
 import findTableFromSchemas from "./util/findTableFromSchemas";
-import dedupeJoinPaths from "./util/dedupeJoinPaths";
+import groupByPath from "./util/groupByPath";
 import getWhereClauseFromConditions from "./util/getWhereClauseFromConditions";
 import splitTableRef from "./util/splitTableRef";
+import { DatabaseTableInfo } from "../dist";
 
 export type WhereCondition =
   | string
@@ -40,7 +41,6 @@ export default async function fetchRelatedRows(
     subQueries: {
       id: string;
       path: string[];
-      tableRefs: string[];
     }[];
   };
   rows: {
@@ -69,79 +69,87 @@ export default async function fetchRelatedRows(
 
   const graph = makeGraphForDatabase(databaseSchemas);
 
-  if (joins.some((join) => join.tableRef === base.tableRef)) {
-    throw new Error(
-      `Table ${base.tableRef} was specified as base table and also in joins. Can't join a table to itself.`
-    );
-  }
+  const joinsWithPaths = joins
+    .map((join, i, arr) => ({
+      ...join,
+      tableAlias: `${join.tableRef.replace(".", "__")}__${
+        arr.filter(({ tableRef }) => tableRef === join.tableRef).indexOf(join) +
+        1
+      }`,
+    }))
+    .map(({ via = [], ...join }) => {
+      const [joinedTableSchema, joinedTableName] = join.tableRef.split(".");
+      if (new Set(via).size !== via.length) {
+        throw new Error(
+          `Duplicate table refs in "via" path: ${via.join(", ")}`
+        );
+      }
+      if (via.includes(base.tableRef)) {
+        throw new Error(`Via path includes base table ref: ${base.tableRef}`);
+      }
+      if (via[via.length - 1] === join.tableRef) {
+        throw new Error(
+          `Via path ends with joined table ref: ${join.tableRef}`
+        );
+      }
 
-  const joinPaths = joins.map(({ tableRef: joinedTableRef, via = [] }) => {
-    const [joinedTableSchema, joinedTableName] = joinedTableRef.split(".");
-    if (new Set(via).size !== via.length) {
-      throw new Error(`Duplicate table refs in "via" path: ${via.join(", ")}`);
-    }
-    if (via.includes(base.tableRef)) {
-      throw new Error(`Via path includes base table ref: ${base.tableRef}`);
-    }
-    if (via.includes(joinedTableRef)) {
-      throw new Error(`Via path includes joined table ref: ${joinedTableRef}`);
-    }
-
-    const desiredRoute = [base.tableRef, ...via, joinedTableRef];
-    try {
-      return {
-        tableRef: joinedTableRef,
-        path: [
-          base.tableRef,
-          ...desiredRoute.flatMap((tableRef, i, arr) => {
-            const next = arr[i + 1];
-            if (!next) {
-              return [];
-            }
-            const { nodes } = shortestPath(graph, tableRef, next);
-            return nodes.slice(1);
-          }),
-        ],
-      };
-    } catch {
-      throw new Error(
-        `Couldn't find a path from ${baseSchemaName}.${baseTableName} to ${joinedTableSchema}.${joinedTableName}`
-      );
-    }
-  });
-
-  const dedupedJoinPaths = dedupeJoinPaths(joinPaths).map((x, idx) => {
-    return {
-      ...x,
-      id: `sq${idx + 1}`,
-    };
-  });
+      const desiredRoute = [base.tableRef, ...via, join.tableRef];
+      try {
+        return {
+          join,
+          path: [
+            base.tableRef,
+            ...desiredRoute.flatMap((thisTable, i, arr) => {
+              const nextTable = arr[i + 1];
+              if (!nextTable) {
+                return [];
+              }
+              const { nodes } = shortestPath(graph, thisTable, nextTable);
+              return nodes.slice(1);
+            }),
+          ],
+        };
+      } catch {
+        throw new Error(
+          `Couldn't find a path from ${baseSchemaName}.${baseTableName} to ${joinedTableSchema}.${joinedTableName}`
+        );
+      }
+    });
 
   const getSelectForColumn = (
-    table: typeof baseTable,
-    column: (typeof table.columns)[number]
+    table: DatabaseTableInfo & {
+      schemaName: string;
+    },
+    tableAlias: string,
+    column: DatabaseTableInfo["columns"][number]
   ) => ({
     name: column.name,
-    ref: `${table.schemaName}.${table.name}.${column.name}`,
-    alias: `${table.schemaName}__${table.name}__${column.name}`,
+    ref: `${tableAlias}.${column.name}`,
+    subQueryAlias: `${tableAlias}__${column.name}`,
+    outerAlias: `${table.schemaName}__${table.name}__${column.name}`,
     includeInOuter: true,
   });
 
-  const subQueries = dedupedJoinPaths.map(({ path, tableRefs, id }) => {
-    const primaryKeyRefs = path
-      .slice(1) // exclude base table as not being joined here
-      .flatMap((tableRef) => {
-        const { schemaName, tableName } = splitTableRef(tableRef);
-        const table = findTableFromSchemas(
-          databaseSchemas,
-          schemaName,
-          tableName
-        );
-        return table.columns
-          .filter((column) => column.includedInPrimaryKey)
-          .map((column) => `${schemaName}.${tableName}.${column.name}`);
-      });
+  const subQueries = groupByPath(
+    joinsWithPaths.map(({ join, path }) => {
+      return { path, item: join };
+    })
+  ).map(({ path, items: joinDefsForPath }, idx) => {
+    // const primaryKeyRefs = path
+    //   .slice(1) // exclude base table as not being joined here
+    //   .flatMap((tableRef) => {
+    //     const { schemaName, tableName } = splitTableRef(tableRef);
+    //     const table = findTableFromSchemas(
+    //       databaseSchemas,
+    //       schemaName,
+    //       tableName
+    //     );
+    //     return table.columns
+    //       .filter((column) => column.includedInPrimaryKey)
+    //       .map((column) => `${schemaName}.${tableName}.${column.name}`);
+    //   });
     let fromClause = "";
+    const primaryKeyRefs: string[] = [];
     let baseTableJoin: {
       baseTableColumn: string;
       subQuerySelect: ReturnType<typeof getSelectForColumn>;
@@ -153,17 +161,43 @@ export default async function fetchRelatedRows(
       if (!nextTableRef) {
         break;
       }
-      const { schemaName: nextSchemaName, tableName: nextTableName } =
-        splitTableRef(nextTableRef);
       const thisTable = findTableFromSchemas(
         databaseSchemas,
         schemaName,
         tableName
       );
+      const prevCountOfThisTableInPath = path
+        .slice(0, index)
+        .filter((t) => t === tableRef).length;
+      const thisJoinDef = joinDefsForPath.filter(
+        (joinDef) => joinDef.tableRef === tableRef
+      )[prevCountOfThisTableInPath];
+      const thisTableAlias =
+        thisJoinDef?.tableAlias ??
+        `${schemaName}__${tableName}__${prevCountOfThisTableInPath + 1}`;
+
+      const { schemaName: nextSchemaName, tableName: nextTableName } =
+        splitTableRef(nextTableRef);
       const nextTable = findTableFromSchemas(
         databaseSchemas,
         nextSchemaName,
         nextTableName
+      );
+      const prevCountOfNextTableInPath = path
+        .slice(0, index + 1)
+        .filter((t) => t === nextTableRef).length;
+      const nextJoinDef = joinDefsForPath.filter(
+        (joinDef) => joinDef.tableRef === nextTableRef
+      )[prevCountOfNextTableInPath];
+      const nextTableAlias =
+        nextJoinDef?.tableAlias ??
+        `${nextSchemaName}__${nextTableName}__${
+          prevCountOfNextTableInPath + 1
+        }`;
+      primaryKeyRefs.push(
+        ...nextTable.columns
+          .filter((column) => column.includedInPrimaryKey)
+          .map((column) => `${nextTableAlias}.${column.name}`)
       );
       const referenceFromThisTableToNextTable = thisTable.columns
         .flatMap((column) =>
@@ -179,7 +213,7 @@ export default async function fetchRelatedRows(
         );
       if (referenceFromThisTableToNextTable) {
         if (thisIsBaseTable) {
-          fromClause += nextTableRef;
+          fromClause += `${nextTableRef} AS ${nextTableAlias}`;
           const nextTableColumn = nextTable.columns.find(
             (column) =>
               column.name ===
@@ -192,11 +226,15 @@ export default async function fetchRelatedRows(
           }
           baseTableJoin = {
             baseTableColumn: referenceFromThisTableToNextTable.columnName,
-            subQuerySelect: getSelectForColumn(nextTable, nextTableColumn),
+            subQuerySelect: getSelectForColumn(
+              nextTable,
+              nextTableAlias,
+              nextTableColumn
+            ),
           };
           continue;
         }
-        fromClause += ` INNER JOIN ${nextSchemaName}.${nextTableName} ON ${nextSchemaName}.${nextTableName}.${referenceFromThisTableToNextTable.foreignColumnName} = ${schemaName}.${tableName}.${referenceFromThisTableToNextTable.columnName}`;
+        fromClause += ` INNER JOIN ${nextSchemaName}.${nextTableName} AS ${nextTableAlias} ON ${nextTableAlias}.${referenceFromThisTableToNextTable.foreignColumnName} = ${thisTableAlias}.${referenceFromThisTableToNextTable.columnName}`;
         continue;
       }
       const referenceFromNextTableToThisTable = nextTable.columns
@@ -213,7 +251,7 @@ export default async function fetchRelatedRows(
         );
       if (referenceFromNextTableToThisTable) {
         if (thisIsBaseTable) {
-          fromClause += nextTableRef;
+          fromClause += `${nextTableRef} AS ${nextTableAlias}`;
           const nextTableColumn = nextTable.columns.find(
             (column) =>
               column.name === referenceFromNextTableToThisTable.columnName
@@ -226,11 +264,15 @@ export default async function fetchRelatedRows(
           baseTableJoin = {
             baseTableColumn:
               referenceFromNextTableToThisTable.foreignColumnName,
-            subQuerySelect: getSelectForColumn(nextTable, nextTableColumn),
+            subQuerySelect: getSelectForColumn(
+              nextTable,
+              nextTableAlias,
+              nextTableColumn
+            ),
           };
           continue;
         }
-        fromClause += ` INNER JOIN ${nextSchemaName}.${nextTableName} ON ${nextSchemaName}.${nextTableName}.${referenceFromNextTableToThisTable.columnName} = ${schemaName}.${tableName}.${referenceFromNextTableToThisTable.foreignColumnName}`;
+        fromClause += ` INNER JOIN ${nextSchemaName}.${nextTableName} AS ${nextTableAlias} ON ${nextTableAlias}.${referenceFromNextTableToThisTable.columnName} = ${thisTableAlias}.${referenceFromNextTableToThisTable.foreignColumnName}`;
         continue;
       }
       throw new Error(
@@ -242,34 +284,36 @@ export default async function fetchRelatedRows(
         `Could not find base table join. This should never happen`
       );
     }
-    const selectsAndConditions = tableRefs.map((tableRef) => {
-      const joinDef = joins.find((join) => join.tableRef === tableRef)!;
-      const { schemaName, tableName } = splitTableRef(tableRef);
-      const table = findTableFromSchemas(
-        databaseSchemas,
-        schemaName,
-        tableName
-      );
-      const selects = table.columns
-        .map((column) => getSelectForColumn(table, column))
-        .filter((column) =>
-          joinDef.select === "*" ? true : joinDef.select.includes(column.name)
+    const selectsAndConditions = joinDefsForPath.map(
+      ({ tableRef, tableAlias, select, where }) => {
+        const { schemaName, tableName } = splitTableRef(tableRef);
+        const table = findTableFromSchemas(
+          databaseSchemas,
+          schemaName,
+          tableName
         );
-      const conditions = joinDef.where
-        ? getWhereClauseFromConditions(table, joinDef.where)
-        : [];
-      return {
-        selects,
-        conditions,
-      };
-    });
+        const selects = table.columns
+          .map((column) => getSelectForColumn(table, tableAlias, column))
+          .filter((column) =>
+            select === "*" ? true : select.includes(column.name)
+          );
+        const conditions = where
+          ? getWhereClauseFromConditions(table, tableAlias, where)
+          : [];
+        return {
+          selects,
+          conditions,
+        };
+      }
+    );
     const selects = selectsAndConditions.flatMap((x) => x.selects);
     const whereClause = selectsAndConditions
       .flatMap(({ conditions }) => conditions)
       .join(" AND ");
     if (
       !selects.some(
-        (select) => select.alias === baseTableJoin.subQuerySelect.alias
+        (select) =>
+          select.subQueryAlias === baseTableJoin.subQuerySelect.subQueryAlias
       )
     ) {
       selects.push({
@@ -278,14 +322,14 @@ export default async function fetchRelatedRows(
       });
     }
     return {
-      id,
+      id: `sq${idx + 1}`,
       path,
       fromClause,
       baseTableJoin,
       selects,
       whereClause,
       primaryKeyRefs,
-      tableRefs,
+      joinDefs: joinDefsForPath,
     };
   });
 
@@ -296,26 +340,33 @@ export default async function fetchRelatedRows(
         if (base.select.includes(column.name)) return true;
       })
       .map((column) => {
-        const { ref, alias } = getSelectForColumn(baseTable, column);
-        return `${ref} AS ${alias}`;
+        const { ref, outerAlias } = getSelectForColumn(
+          baseTable,
+          `${baseTable.schemaName}.${baseTable.name}`,
+          column
+        );
+        return `${ref} AS ${outerAlias}`;
       }),
     ...subQueries.flatMap(({ selects, id }) =>
       selects
         .filter(({ includeInOuter }) => includeInOuter)
-        .map(({ alias }) => `${id}.${alias}`)
+        .map(
+          ({ outerAlias, subQueryAlias }) =>
+            `${id}.${subQueryAlias} AS ${outerAlias}`
+        )
     ),
   ];
 
   let sql = `SELECT ${outerSelect.join(", ")} FROM ${base.tableRef}`;
   for (const subQuery of subQueries) {
     const subQuerySql = `SELECT ${subQuery.selects
-      .map((select) => `${select.ref} AS ${select.alias}`)
+      .map((select) => `${select.ref} AS ${select.subQueryAlias}`)
       .join(", ")} FROM ${subQuery.fromClause} ${
       subQuery.whereClause ? `WHERE ${subQuery.whereClause} ` : ""
     }GROUP BY ${subQuery.primaryKeyRefs.join(", ")}`;
-    sql += ` INNER JOIN (${subQuerySql}) AS ${subQuery.id} ON ${base.tableRef}.${subQuery.baseTableJoin.baseTableColumn} = ${subQuery.id}.${subQuery.baseTableJoin.subQuerySelect.alias}`;
+    sql += ` INNER JOIN (${subQuerySql}) AS ${subQuery.id} ON ${base.tableRef}.${subQuery.baseTableJoin.baseTableColumn} = ${subQuery.id}.${subQuery.baseTableJoin.subQuerySelect.subQueryAlias}`;
   }
-  sql += ` WHERE ${getWhereClauseFromConditions(baseTable, base.where)}`;
+  sql += ` WHERE ${getWhereClauseFromConditions(baseTable, null, base.where)}`;
 
   const execResult = await databaseDriver.exec(sql).catch((err) => {
     console.error(`Error while executing SQL: \n${sql}\n. Error below`);
@@ -324,10 +375,9 @@ export default async function fetchRelatedRows(
 
   return {
     meta: {
-      subQueries: subQueries.map(({ id, path, tableRefs }) => ({
+      subQueries: subQueries.map(({ id, path }) => ({
         id,
         path,
-        tableRefs,
       })),
     },
     sql,
@@ -348,7 +398,8 @@ export default async function fetchRelatedRows(
             )
             .map((column) => ({
               name: column.name,
-              alias: getSelectForColumn(table, column).alias,
+              alias: getSelectForColumn(table, "THIS_CAN_BE_ANYTHING", column)
+                .outerAlias,
             }));
           return [
             `${schemaName}.${tableName}`,
