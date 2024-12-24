@@ -310,7 +310,7 @@ describe("fetchRelatedRows", () => {
   });
 
   it("supports user table in path twice", async () => {
-    const { sql, meta } = await fetchRelatedRows(
+    const { sql } = await fetchRelatedRows(
       fakeDatabaseDriver,
       mockRelationships,
       {
