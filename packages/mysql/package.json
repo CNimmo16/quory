@@ -2,6 +2,7 @@
   "name": "@quory/mysql",
   "version": "1.0.1",
   "description": "MySQL driver for Quory",
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -11,8 +12,9 @@
     "test": "export DOCKER_HOST=unix:///home/cameron/.docker/desktop/docker.sock && jest --runInBand",
     "test:watch": "jest --watch",
     "test:debug": "DEBUG=testcontainers* jest --watch",
-    "build": "tsup src/index.ts --format cjs,esm --dts",
-    "build:watch": "tsup src/index.ts --format cjs,esm --dts --watch"
+    "build": "tsup src/index.ts --format cjs,esm --experimental-dts",
+    "build:watch": "tsup src/index.ts --format cjs,esm --experimental-dts --watch",
+    "lint": "eslint ."
   },
   "jest": {
     "moduleFileExtensions": [
@@ -32,13 +34,17 @@
     "testEnvironment": "node"
   },
   "devDependencies": {
-    "@quory/core": "*",
-    "tsup": "^8.3.5",
+    "@microsoft/api-extractor": "^7.48.1",
+    "@quory/config": "workspace:*",
+    "@quory/core": "workspace:*",
     "@types/jest": "^29.5.14",
     "knex": "^2.3.0",
-    "testcontainers": "^8.14.0"
+    "testcontainers": "^8.14.0",
+    "tsup": "^8.3.5"
   },
   "dependencies": {
+    "@types/lodash": "^4.17.14",
+    "lodash": "^4.17.21",
     "mysql2": "^3.2.0"
   }
 }

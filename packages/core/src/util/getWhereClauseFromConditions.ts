@@ -1,43 +1,40 @@
 import { DatabaseTableInfo } from "..";
-import { WhereCondition } from "../fetchRelatedRows";
+import { Condition, ConditionOperator } from "../prepareQuery";
 
 export default function getWhereClauseFromConditions(
   table: DatabaseTableInfo & {
     schemaName: string;
   },
   tableAlias: string | null,
-  where: {
-    [column: string]: WhereCondition;
-  }
+  where: Condition
 ) {
   if (!tableAlias) {
     tableAlias = `${table.schemaName}.${table.name}`;
   }
-  return Object.entries(where).map(function makeCondition([
-    columnName,
-    condition,
-  ]): string {
-    if (!table.columns.some((column) => column.name === columnName)) {
+  function makeCondition(condition: Condition): string {
+    if (
+      "column" in condition &&
+      !table.columns.some((column) => column.name === condition.column)
+    ) {
       throw new Error(
-        `Where clause references column ${table.schemaName}.${table.name}.${columnName} which does not exist`
+        `Where clause references column ${table.schemaName}.${table.name}.${condition.column} which does not exist`
       );
     }
-    if (typeof condition === "string") {
-      return `${tableAlias}.${columnName} = '${condition}'`;
-    } else {
-      switch (condition.operator) {
-        case "and":
-        case "or":
-          return `(${condition.conditions
-            .map((subCondition): string => {
-              return makeCondition([columnName, subCondition]);
-            })
-            .join(` ${condition.operator.toUpperCase()} `)})`;
-        default:
-          return `${tableAlias}.${columnName} ${condition.operator.toUpperCase()} '${
-            condition.value
-          }'`;
-      }
+    switch (condition.operator) {
+      case ConditionOperator.AND:
+      case ConditionOperator.OR:
+        return `(${condition.conditions
+          .map(makeCondition)
+          .join(` ${condition.operator.toUpperCase()} `)})`;
+      default:
+        return `${tableAlias}.${
+          condition.column
+        } ${condition.operator.toUpperCase()} ${
+          "value" in condition
+            ? `'${condition.value}'`
+            : `(${condition.values.map((value) => `'${value}'`).join(",")})`
+        }`;
     }
-  });
+  }
+  return makeCondition(where);
 }

@@ -13,50 +13,33 @@
     "Dijkstra",
     "graph"
   ],
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "author": "CNimmo16",
   "license": "MIT",
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "vitest",
     "build": "tsup src/index.ts --format cjs,esm --dts",
-    "build:watch": "tsup src/index.ts --format cjs,esm --dts --watch"
+    "build:watch": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint ."
   },
   "devDependencies": {
+    "@quory/config": "workspace:*",
     "@sqltools/formatter": "^1.2.5",
-    "@types/jest": "^29.5.14",
-    "@types/lodash": "^4.14.182",
+    "@types/lodash-es": "^4.17.12",
     "@types/pg": "^8.6.5",
     "@types/pluralize": "^0.0.29",
     "@types/string-similarity": "^4.0.2",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.2.5",
-    "tsconfig": "*",
-    "tsup": "^8.3.5"
+    "eslint": "^9.17.0",
+    "tsup": "^8.3.5",
+    "vitest": "^2.1.8"
   },
   "dependencies": {
     "graph-data-structure": "^4.3.0",
-    "lodash": "^4.17.21",
-    "pluralize": "^8.0.0",
-    "string-similarity": "^4.0.4"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "lodash-es": "^4.17.21",
+    "pluralize": "^8.0.0"
   }
 }

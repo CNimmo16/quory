@@ -3,8 +3,5 @@ export default function splitTableRef(tableRef: string) {
   if (!schemaName || !tableName) {
     throw new Error(`Invalid tableRef: ${tableRef}`);
   }
-  return {
-    schemaName,
-    tableName,
-  };
+  return [schemaName, tableName] as [string, string];
 }

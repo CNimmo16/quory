@@ -1,0 +1,22 @@
+{
+  "name": "@quory/config",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint/*": "./eslint/*.js",
+    "./typescript/*": "./typescript/*.json"
+  },
+  "version": "1.0.0",
+  "description": "tsconfig and eslint files for Quory",
+  "devDependencies": {},
+  "dependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react": "^7.37.3",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^14.0.0",
+    "typescript-eslint": "^8.18.2",
+    "@tsconfig/recommended": "^1.0.8",
+    "@tsconfig/strictest": "^2.0.5"
+  }
+}

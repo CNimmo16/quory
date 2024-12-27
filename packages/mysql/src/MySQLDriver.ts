@@ -19,7 +19,7 @@ export class MySQLDriver implements DatabaseDriver {
   }
 
   exec(sql: string): Promise<Row[]> {
-    return this.pool.query(sql).then((result) => {
+    return this.pool.query(sql).then(() => {
       return [{}];
     });
   }

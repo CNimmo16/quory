@@ -1,5 +1,5 @@
-import { snakeCase } from "lodash";
-import { plural } from "pluralize";
+import { snakeCase } from "lodash-es";
+import plural from "pluralize";
 import { DatabaseSchema } from ".";
 
 const getRef = (table: { schemaName: string; name: string }) =>
@@ -34,9 +34,7 @@ export default function getEntitiesAndJunctions(
 
       const tableNameResemblesJunction = columnsWithForeignKeys.every(
         (column) => {
-          const [assumedEntityName, assumedEntityColumnName] = snakeCase(
-            column.name
-          ).split("_");
+          const [assumedEntityName] = snakeCase(column.name).split("_");
 
           return (
             assumedEntityName &&

@@ -1,7 +1,7 @@
 import { MySqlContainer, type StartedMySqlContainer } from "testcontainers";
 import knex, { Knex } from "knex";
 import { MySQLDriver } from "./MySQLDriver";
-import type { Relationship, TableColumn } from "@quory/core";
+import type { GenericDataType, Relationship, TableColumn } from "@quory/core";
 
 describe("MySQLDriver", () => {
   let mysqlContainer: StartedMySqlContainer;
@@ -54,7 +54,7 @@ describe("MySQLDriver", () => {
           tableName: "makes",
           schemaName: "test",
           dataType: "bigint",
-          genericDataType: "number",
+          genericDataType: "number" as GenericDataType,
           isNullable: false,
           includedInPrimaryKey: true,
         },
@@ -63,7 +63,7 @@ describe("MySQLDriver", () => {
           tableName: "makes",
           schemaName: "test",
           dataType: "varchar",
-          genericDataType: "text",
+          genericDataType: "text" as GenericDataType,
           isNullable: true,
           includedInPrimaryKey: false,
         },
@@ -72,7 +72,7 @@ describe("MySQLDriver", () => {
           tableName: "models",
           schemaName: "test",
           dataType: "char",
-          genericDataType: "text",
+          genericDataType: "text" as GenericDataType,
           isNullable: false,
           includedInPrimaryKey: true,
         },
@@ -81,7 +81,7 @@ describe("MySQLDriver", () => {
           tableName: "models",
           schemaName: "test",
           dataType: "tinyint",
-          genericDataType: "boolean",
+          genericDataType: "boolean" as GenericDataType,
           isNullable: true,
           includedInPrimaryKey: false,
         },
@@ -90,7 +90,7 @@ describe("MySQLDriver", () => {
           tableName: "models",
           schemaName: "test",
           dataType: "datetime",
-          genericDataType: "datetime",
+          genericDataType: "datetime" as GenericDataType,
           isNullable: true,
           includedInPrimaryKey: false,
         },
@@ -99,7 +99,7 @@ describe("MySQLDriver", () => {
           tableName: "models",
           schemaName: "test",
           dataType: "bigint",
-          genericDataType: "number",
+          genericDataType: "number" as GenericDataType,
           isNullable: true,
           includedInPrimaryKey: false,
         },
@@ -108,7 +108,7 @@ describe("MySQLDriver", () => {
           tableName: "models",
           schemaName: "test",
           dataType: "int",
-          genericDataType: "number",
+          genericDataType: "number" as GenericDataType,
           isNullable: true,
           includedInPrimaryKey: false,
         },
@@ -117,11 +117,11 @@ describe("MySQLDriver", () => {
           tableName: "models",
           schemaName: "test",
           dataType: "enum",
-          genericDataType: "text",
+          genericDataType: "text" as GenericDataType,
           isNullable: true,
           includedInPrimaryKey: false,
         },
-      ].sort() as any
+      ].sort()
     );
   });
 

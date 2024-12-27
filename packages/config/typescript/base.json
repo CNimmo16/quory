@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig.json",
+  "extends": [
+    "@tsconfig/recommended/tsconfig",
+    "@tsconfig/strictest/tsconfig"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "checkJs": false,
+    "allowJs": false,
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noPropertyAccessFromIndexSignature": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  }
+}

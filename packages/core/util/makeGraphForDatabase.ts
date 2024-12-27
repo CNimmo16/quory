@@ -1,6 +1,5 @@
 import { DatabaseTableInfo } from "../src";
 import { Graph } from "graph-data-structure";
-import { compareTwoStrings } from "string-similarity";
 
 export default function makeGraphForDatabase(
   databaseSchemas: {
@@ -45,7 +44,7 @@ export default function makeGraphForDatabase(
       })
   );
   const nodes = databaseSchemas.flatMap(({ name: schemaName, tables }) =>
-    tables.map(({ name: tableName, columns }) => `${schemaName}.${tableName}`)
+    tables.map(({ name: tableName }) => `${schemaName}.${tableName}`)
   );
   const graph = new Graph();
   nodes.forEach((node) => graph.addNode(node));

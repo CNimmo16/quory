@@ -6,14 +6,39 @@ import type {
   Row,
 } from "./DatabaseDriver";
 import getSchemas from "./getSchemas";
-import fetchRelatedRows, { type WhereCondition } from "./fetchRelatedRows";
+import {
+  type Condition,
+  type ValueCondition,
+  type ValueConditionOperator,
+  valueConditionOperators,
+  type BooleanCondition,
+  type BooleanConditionOperator,
+  booleanConditionOperators,
+  type ListCondition,
+  type ListConditionOperator,
+  listConditionOperators,
+  ConditionOperator,
+  type JoinDef,
+  type Query,
+  type PreparedJoinDef,
+  type PreparedQuery,
+  isBooleanCondition,
+  isValueCondition,
+  isListCondition,
+} from "./prepareQuery";
+import runQuery from "./runQuery";
+import getCountForQuery from "./getCountForQuery";
 import getRelationsForTable from "./getRelationsForTable";
 import getEntitiesAndJunctions from "./getEntitiesAndJunctions";
 import findTableFromSchemas from "./util/findTableFromSchemas";
+import splitTableRef from "./util/splitTableRef";
+import isConditionComplete from "./util/isConditionComplete";
+import parseToCompleteCondition from "./util/parseToCompleteCondition";
 
 export {
   getSchemas,
-  fetchRelatedRows,
+  runQuery,
+  getCountForQuery,
   getRelationsForTable,
   getEntitiesAndJunctions,
   Relationship,
@@ -21,8 +46,28 @@ export {
   GenericDataType,
   Row,
   DatabaseDriver,
-  WhereCondition,
+  ValueCondition,
+  ValueConditionOperator,
+  valueConditionOperators,
+  isValueCondition,
+  BooleanCondition,
+  BooleanConditionOperator,
+  booleanConditionOperators,
+  isBooleanCondition,
+  ListCondition,
+  ListConditionOperator,
+  listConditionOperators,
+  isListCondition,
+  Condition,
+  ConditionOperator,
+  isConditionComplete,
+  parseToCompleteCondition,
+  JoinDef,
+  Query,
+  PreparedJoinDef,
+  PreparedQuery,
   findTableFromSchemas,
+  splitTableRef,
 };
 
 export type DatabaseTableInfo = {

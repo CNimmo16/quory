@@ -79,7 +79,7 @@ export default class FakeDatabaseDriver implements DatabaseDriver {
     );
   }
 
-  async exec(sql: string): Promise<Row[]> {
+  async exec(): Promise<Row[]> {
     if (!this.mockedExecResponse) {
       throw new Error(
         "Call mockExec() with a value to resolve with before calling exec() on FakeDatabaseDriver"

@@ -1,5 +1,4 @@
-import { Pool } from "pg";
-import type { PoolConfig } from "pg";
+import postgres from "postgres";
 import type {
   DatabaseDriver,
   Relationship,
@@ -9,23 +8,24 @@ import type {
 import postgresDatatypeToGenericDatatype from "./util/postgresDatatypeToGenericDatatype";
 
 export class PostgresDriver implements DatabaseDriver {
-  pool: Pool;
-  constructor(poolConfig: PoolConfig) {
-    this.pool = new Pool(poolConfig);
+  sql: postgres.Sql;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(config: postgres.Options<Record<string, any>>) {
+    this.sql = postgres(config);
   }
 
   async testConnection() {
-    await this.pool.query("SELECT 1");
+    await this.sql`SELECT 1`;
   }
 
   exec(sql: string): Promise<Row[]> {
-    return this.pool.query(sql).then((result) => {
-      return result.rows;
+    return this.sql.unsafe(sql).then((rows) => {
+      return rows;
     });
   }
 
   async getAllColumnsInDatabase(): Promise<TableColumn[]> {
-    const { rows: columns } = await this.pool.query(`
+    const columns = await this.sql`
     SELECT
     table_name,
     table_schema,
@@ -48,7 +48,7 @@ export class PostgresDriver implements DatabaseDriver {
     USING (table_schema, table_name, column_name)
 
     WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
-    `);
+    `;
 
     return columns.map((columnInfo) => ({
       name: columnInfo.column_name,
@@ -62,7 +62,7 @@ export class PostgresDriver implements DatabaseDriver {
   }
 
   async getAllForeignKeysInDatabase(): Promise<Relationship[]> {
-    const { rows: foreignKeys } = await this.pool.query(`
+    const foreignKeys = await this.sql`
     SELECT
     tc.table_schema, 
     tc.constraint_name, 
@@ -76,7 +76,7 @@ export class PostgresDriver implements DatabaseDriver {
 
     WHERE tc.table_schema NOT IN ('information_schema', 'pg_catalog')
     AND tc.constraint_type = 'FOREIGN KEY';
-    `);
+    `;
 
     return foreignKeys.map((constraintInfo) => ({
       localSchema: constraintInfo.table_schema,
@@ -89,6 +89,6 @@ export class PostgresDriver implements DatabaseDriver {
   }
 
   async teardown() {
-    await this.pool.end();
+    await this.sql.end();
   }
 }
