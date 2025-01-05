@@ -11,19 +11,19 @@ const extPlugin = externalizeDepsPlugin({
 export default defineConfig({
   main: {
     plugins: [extPlugin],
-    // build: {
-    //   rollupOptions: {
-    //     external: ["pg"],
-    //   },
-    // },
+    build: {
+      rollupOptions: {
+        external: ["pg"],
+      },
+    },
   },
   preload: {
     plugins: [extPlugin],
-    // build: {
-    //   rollupOptions: {
-    //     external: ["pg"],
-    //   },
-    // },
+    build: {
+      rollupOptions: {
+        external: ["pg"],
+      },
+    },
   },
   renderer: {
     resolve: {

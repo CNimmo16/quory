@@ -400,18 +400,16 @@ If there was another book with the same `author_id` with the category "thriller"
 
 ### Prerequisites
 
-We use Turborepo with pnpm. If you do not yet have pnpm installed, install it via NPM: `npm install -g pnpm`
-
 ### Setup
 
 1. Clone the repo
-2. Run `pnpm install`
+2. Run `npm install`
 
 #### Building packages
-Run `pnpm dev` to run the `build:watch` scripts from all packages in the /packages folder. Note: this script may error when first run, if so just run it a second time.
+Run `npm run dev` to run the `build:watch` scripts from all packages in the /packages folder. Note: this script may error when first run, if so just run it a second time.
 
 #### Running Electron client locally
-Run `pnpm run serve` to run the `serve` script from the `/packages/client/package.json`, which should launch the Electron app locally.
+Run `npx turbo serve` to run the `serve` script from the `/packages/client/package.json`, which should launch the Electron app locally.
 
 #### Testing
-Each of the packages has a suite of tests, these can be run simultaneously by running `pnpm run test` from the root directory, or run `pnpm run test --filter @quory/<package-name>` to run tests for a single package.
+Each of the packages has a suite of tests, these can be run simultaneously by running `npm run test` from the root directory, or run `npm run test --workspace @quory/<package-name>` to run tests for a single package.

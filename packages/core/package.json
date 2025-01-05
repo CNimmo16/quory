@@ -28,7 +28,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@quory/config": "workspace:*",
+    "@quory/config": "*",
     "@sqltools/formatter": "^1.2.5",
     "@types/lodash-es": "^4.17.12",
     "@types/pg": "^8.6.5",

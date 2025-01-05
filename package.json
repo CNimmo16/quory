@@ -2,10 +2,12 @@
   "name": "quory",
   "version": "0.0.0",
   "private": true,
+  "workspaces": [
+    "./packages/*"
+  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run build:watch",
-    "serve": "turbo run serve",
     "test": "turbo run test --parallel",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
@@ -21,7 +23,7 @@
     "npm": ">=7.0.0",
     "node": ">=14.0.0"
   },
-  "packageManager": "pnpm@8.3.1",
+  "packageManager": "npm@8.6.0",
   "dependencies": {
     "@changesets/cli": "^2.27.10"
   }

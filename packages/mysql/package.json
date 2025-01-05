@@ -34,8 +34,8 @@
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.48.1",
-    "@quory/config": "workspace:*",
-    "@quory/core": "workspace:*",
+    "@quory/config": "*",
+    "@quory/core": "*",
     "@types/jest": "^29.5.14",
     "jest": "^29.7.0",
     "knex": "^2.3.0",

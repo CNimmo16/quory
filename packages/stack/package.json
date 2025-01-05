@@ -43,7 +43,7 @@
     "testEnvironment": "node"
   },
   "devDependencies": {
-    "@quory/config": "workspace:*",
+    "@quory/config": "*",
     "@types/better-sqlite3": "^7.6.12",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -58,9 +58,9 @@
     "tsup": "^8.3.5"
   },
   "dependencies": {
-    "@quory/core": "workspace:*",
-    "@quory/postgres": "workspace:*",
-    "@quory/sqlite": "workspace:*",
+    "@quory/core": "*",
+    "@quory/postgres": "*",
+    "@quory/sqlite": "*",
     "@tanstack/react-query": "^5.62.10",
     "@trpc/client": "^11.0.0-rc.666",
     "@trpc/server": "^11.0.0-rc.666",
