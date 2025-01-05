@@ -34,11 +34,36 @@ jobs:
     outputs:
       publishedPackages: ${{ steps.changesets.outputs.publishedPackages }}
 
-    
-  electron:
+  determine-client-version:
     needs: npm
 
-    if: contains(needs.npm.outputs.publishedPackages.*.name, '@quory/client')
+    name: Determine client version
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          PUBLISHED_PACKAGES: ${{needs.npm.outputs.publishedPackages}}
+        with:
+          script: |
+            const publishedPackages = JSON.parse(process.env.PUBLISHED_PACKAGES);
+            console.log('publishedPackages', publishedPackages);
+            const clientPackage = publishedPackages.find((pkg) => pkg.name === '@quory/client');
+            console.log('clientPackage', clientPackage);
+            if (!clientPackage) {
+              return {
+                publishedClientVersion: null
+              };
+            }
+            return {
+              publishedClientVersion: clientPackage.version
+            };
+    
+  electron:
+    needs: determine-client-version
+
+    if: needs.determine-client-version.outputs.publishedClientVersion
 
     name: Build and distribute Electron packages for Mac, Windows and Linux
 
@@ -76,7 +101,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          tag_name: ''
+          tag_name: ${{ needs.determine-client-version.outputs.publishedClientVersion }}
           files: |
             dist/*.exe
             dist/*.zip
