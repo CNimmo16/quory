@@ -106,16 +106,16 @@ jobs:
       - name: Upload to release
         uses: softprops/action-gh-release@v1
         with:
-          draft: true
           tag_name: '@quory/client@${{ needs.determine-client-version.outputs.publishedClientVersion }}'
+          append_body: true
           files: |
-            dist/*.exe
-            dist/*.zip
-            dist/*.dmg
-            dist/*.AppImage
-            dist/*.snap
-            dist/*.deb
-            dist/*.rpm
-            dist/*.tar.gz
-            dist/*.yml
-            dist/*.blockmap
+            packages/client/dist/*.exe
+            packages/client/dist/*.zip
+            packages/client/dist/*.dmg
+            packages/client/dist/*.AppImage
+            packages/client/dist/*.snap
+            packages/client/dist/*.deb
+            packages/client/dist/*.rpm
+            packages/client/dist/*.tar.gz
+            packages/client/dist/*.yml
+            packages/client/dist/*.blockmap
