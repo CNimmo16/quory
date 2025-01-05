@@ -12,9 +12,8 @@ files:
   - '!README.md'
   - '!tailwind.config.js'
   - '!tsconfig.json'
-asar: false
-# asarUnpack:
-#   - resources/**
+asarUnpack:
+  - resources/**
 win:
   executableName: quory
 nsis:
