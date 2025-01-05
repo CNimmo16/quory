@@ -48,18 +48,17 @@ jobs:
         with:
           script: |
             const publishedPackages = JSON.parse(process.env.PUBLISHED_PACKAGES);
-            console.log('publishedPackages', publishedPackages);
             const clientPackage = publishedPackages.find((pkg) => pkg.name === '@quory/client');
-            console.log('clientPackage', clientPackage);
             if (!clientPackage) {
               return {
                 publishedClientVersion: null
               };
             }
+            console.info(`Found published client version: ${clientPackage.version}`);
             return {
               publishedClientVersion: clientPackage.version
             };
-    
+
   electron:
     needs: determine-client-version
 
