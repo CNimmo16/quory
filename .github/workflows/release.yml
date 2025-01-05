@@ -86,19 +86,22 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: build-linux
+      - name: Build JS packages
+        run: npm run build
+
+      - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: npm --workspace @quory/client run build:linux
 
-      - name: build-mac
+      - name: Build Mac
         if: matrix.os == 'macos-latest'
         run: npm --workspace @quory/client run build:mac
 
-      - name: build-win
+      - name: Build Windows
         if: matrix.os == 'windows-latest'
         run: npm --workspace @quory/client run build:win
 
-      - name: upload to release
+      - name: Upload to release
         uses: softprops/action-gh-release@v1
         with:
           draft: true
