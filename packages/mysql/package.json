@@ -11,8 +11,8 @@
   "scripts": {
     "test": "export DOCKER_HOST=unix:///home/cameron/.docker/desktop/docker.sock && jest --runInBand",
     "test:debug": "DEBUG=testcontainers* jest --watch",
-    "build": "tsup src/index.ts --format cjs,esm --experimental-dts",
-    "build:watch": "tsup src/index.ts --format cjs,esm --experimental-dts --watch",
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build:watch": "tsup src/index.ts --format cjs,esm --dts --watch",
     "lint": "eslint ."
   },
   "jest": {
