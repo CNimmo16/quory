@@ -1,4 +1,12 @@
-import { ActionIcon, Anchor, Group, Select, TagsInput, TextInput, Tooltip } from '@mantine/core'
+import {
+  ActionIcon,
+  Anchor,
+  Group,
+  Select,
+  TagsInput,
+  TextInput,
+  Tooltip,
+} from "@mantine/core";
 import {
   Condition,
   ConditionOperator,
@@ -12,11 +20,11 @@ import {
   listConditionOperators,
   ValueCondition,
   ValueConditionOperator,
-  valueConditionOperators
-} from '@quory/core'
-import { produce } from 'immer'
-import { Fragment, useEffect, useState } from 'react'
-import { AiOutlineDelete } from 'react-icons/ai'
+  valueConditionOperators,
+} from "@quory/core";
+import { produce } from "immer";
+import { Fragment, useEffect, useState } from "react";
+import { AiOutlineDelete } from "react-icons/ai";
 
 export default function ConditionEditor({
   columns,
@@ -26,37 +34,37 @@ export default function ConditionEditor({
   isGhost = false,
   onFocus,
   onBlur,
-  maxDropdownHeight
+  maxDropdownHeight,
 }: {
-  columns: DatabaseTableInfo['columns']
-  condition: Condition
-  onConditionChange: (condition: Condition) => void
-  onDelete?: () => void
-  isGhost?: boolean
-  onFocus?: () => void
-  onBlur?: () => void
-  maxDropdownHeight: number
+  columns: DatabaseTableInfo["columns"];
+  condition: Condition;
+  onConditionChange: (condition: Condition) => void;
+  onDelete?: () => void;
+  isGhost?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  maxDropdownHeight: number;
 }) {
-  const [ghostFocused, setGhostFocused] = useState(false)
+  const [ghostFocused, setGhostFocused] = useState(false);
 
-  const isBoolean = isBooleanCondition(condition)
+  const isBoolean = isBooleanCondition(condition);
 
   useEffect(() => {
     if (isBoolean && isConditionComplete(condition)) {
-      setGhostFocused(false)
+      setGhostFocused(false);
       onConditionChange({
         ...condition,
         conditions: [
           ...condition.conditions,
           {
-            column: '',
+            column: "",
             operator: ConditionOperator.EQUALS,
-            value: ''
-          }
-        ]
-      })
+            value: "",
+          },
+        ],
+      });
     }
-  }, [isBoolean, condition, onConditionChange])
+  }, [isBoolean, condition, onConditionChange]);
 
   if (isBoolean) {
     return (
@@ -67,7 +75,11 @@ export default function ConditionEditor({
               {index > 0 && (
                 <div>
                   <Tooltip
-                    label={`Click to switch to ${condition.operator === ConditionOperator.AND ? 'OR' : 'AND'}`}
+                    label={`Click to switch to ${
+                      condition.operator === ConditionOperator.AND
+                        ? "OR"
+                        : "AND"
+                    }`}
                     position="right"
                   >
                     <Anchor
@@ -78,8 +90,8 @@ export default function ConditionEditor({
                           operator:
                             condition.operator === ConditionOperator.AND
                               ? ConditionOperator.OR
-                              : ConditionOperator.AND
-                        })
+                              : ConditionOperator.AND,
+                        });
                       }}
                     >
                       {condition.operator}
@@ -93,7 +105,7 @@ export default function ConditionEditor({
                 onConditionChange={(changedSubCondition) =>
                   onConditionChange(
                     produce(condition, (draft) => {
-                      draft.conditions[index] = changedSubCondition
+                      draft.conditions[index] = changedSubCondition;
                     })
                   )
                 }
@@ -101,9 +113,9 @@ export default function ConditionEditor({
                 onDelete={() => {
                   onConditionChange(
                     produce(condition, (draft) => {
-                      draft.conditions.splice(index, 1)
+                      draft.conditions.splice(index, 1);
                     })
-                  )
+                  );
                 }}
                 isGhost={
                   index === condition.conditions.length - 1 &&
@@ -114,10 +126,10 @@ export default function ConditionEditor({
                 }
               />
             </Fragment>
-          )
+          );
         })}
       </div>
-    )
+    );
   }
 
   return (
@@ -125,22 +137,22 @@ export default function ConditionEditor({
       <Select
         data={columns.map((column) => ({
           label: column.name,
-          value: column.name
+          value: column.name,
         }))}
         value={condition.column}
         onChange={(value) => {
           if (value) {
             onConditionChange({
               ...condition,
-              column: value
-            })
+              column: value,
+            });
           }
         }}
-        placeholder={isGhost ? 'Add a filter' : ''}
+        placeholder={isGhost ? "Add a filter" : ""}
         onFocus={onFocus}
         onBlur={onBlur}
         comboboxProps={{ withinPortal: false }}
-        styles={isGhost ? { input: { border: '1px dashed #ccc' } } : {}}
+        styles={isGhost ? { input: { border: "1px dashed #ccc" } } : {}}
       />
       {!isGhost && (
         <>
@@ -148,34 +160,40 @@ export default function ConditionEditor({
             data={[...valueConditionOperators, ...listConditionOperators]}
             value={condition.operator}
             onChange={(_value) => {
-              const value = _value as ConditionOperator
+              const value = _value as ConditionOperator;
               if (value) {
-                if (valueConditionOperators.includes(value) && isListCondition(condition)) {
+                if (
+                  valueConditionOperators.includes(value) &&
+                  isListCondition(condition)
+                ) {
                   // changing from list to value
                   onConditionChange({
                     column: condition.column,
                     operator: value as ValueConditionOperator,
-                    value: ''
-                  } satisfies ValueCondition)
-                } else if (listConditionOperators.includes(value) && isValueCondition(condition)) {
+                    value: "",
+                  } satisfies ValueCondition);
+                } else if (
+                  listConditionOperators.includes(value) &&
+                  isValueCondition(condition)
+                ) {
                   // changing from value to list
                   onConditionChange({
                     column: condition.column,
                     operator: value as ListConditionOperator,
-                    values: [condition.value]
-                  } satisfies ListCondition)
+                    values: [condition.value],
+                  } satisfies ListCondition);
                 } else {
                   onConditionChange(
                     isValueCondition(condition)
                       ? {
                           ...condition,
-                          operator: value as ValueConditionOperator
+                          operator: value as ValueConditionOperator,
                         }
                       : {
                           ...condition,
-                          operator: value as ListConditionOperator
+                          operator: value as ListConditionOperator,
                         }
-                  )
+                  );
                 }
               }
             }}
@@ -184,7 +202,7 @@ export default function ConditionEditor({
             comboboxProps={{ withinPortal: false }}
             onFocus={onFocus}
             onBlur={onBlur}
-            styles={isGhost ? { input: { border: '1px dashed #ccc' } } : {}}
+            styles={isGhost ? { input: { border: "1px dashed #ccc" } } : {}}
           />
           {valueConditionOperators.includes(condition.operator) &&
             ((valueCondition) => {
@@ -194,14 +212,16 @@ export default function ConditionEditor({
                   onChange={(e) => {
                     onConditionChange({
                       ...valueCondition,
-                      value: e.target.value
-                    })
+                      value: e.target.value,
+                    });
                   }}
                   onFocus={onFocus}
                   onBlur={onBlur}
-                  styles={isGhost ? { input: { border: '1px dashed #ccc' } } : {}}
+                  styles={
+                    isGhost ? { input: { border: "1px dashed #ccc" } } : {}
+                  }
                 />
-              )
+              );
             })(condition as ValueCondition)}
           {listConditionOperators.includes(condition.operator) &&
             ((listCondition) => {
@@ -211,14 +231,16 @@ export default function ConditionEditor({
                   onChange={(values) => {
                     onConditionChange({
                       ...listCondition,
-                      values: values
-                    })
+                      values: values,
+                    });
                   }}
                   onFocus={onFocus}
                   onBlur={onBlur}
-                  styles={isGhost ? { input: { border: '1px dashed #ccc' } } : {}}
+                  styles={
+                    isGhost ? { input: { border: "1px dashed #ccc" } } : {}
+                  }
                 />
-              )
+              );
             })(condition as ListCondition)}
           <ActionIcon onClick={onDelete} color="red">
             <AiOutlineDelete />
@@ -226,5 +248,5 @@ export default function ConditionEditor({
         </>
       )}
     </Group>
-  )
+  );
 }

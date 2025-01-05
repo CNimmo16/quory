@@ -62,7 +62,10 @@ const queryRouter = router({
         _id: queryId,
         ...query,
         connectionId: activeConnectionId,
-        nickname: `${tableName} ${new Date().toISOString().substring(0, 16).replace("T", " ")}`,
+        nickname: `${tableName} ${new Date()
+          .toISOString()
+          .substring(0, 16)
+          .replace("T", " ")}`,
       });
       return {
         queryId,

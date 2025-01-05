@@ -28,8 +28,9 @@ export default function mysqlDatatypeToGenericDatatype(
     longblob: "binary",
     decimal: "number",
   };
-  if (!lookup[mysqlDatatype]) {
+  const ret = lookup[mysqlDatatype];
+  if (!ret) {
     throw new Error(`Datatype ${mysqlDatatype} not recognised`);
   }
-  return lookup[mysqlDatatype];
+  return ret;
 }

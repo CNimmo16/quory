@@ -16,6 +16,7 @@ export default [
         },
       ],
       "@typescript-eslint/no-shadow": "error",
+      "no-console": ["error", { allow: ["warn", "error", "info"] }],
     },
   },
 ];

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import trpc from "../../util/tprc";
 import { AppRouter } from "../../../../main/ipc";
 import { inferProcedureInput } from "@trpc/server";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,

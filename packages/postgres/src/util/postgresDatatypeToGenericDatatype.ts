@@ -50,8 +50,9 @@ export default function postgresDatatypeToGenericDatatype(
     "USER-DEFINED": "other",
     ARRAY: "other",
   };
-  if (!lookup[postgresDatatype]) {
+  const ret = lookup[postgresDatatype];
+  if (!ret) {
     throw new Error(`Datatype ${postgresDatatype} not recognised`);
   }
-  return lookup[postgresDatatype];
+  return ret;
 }

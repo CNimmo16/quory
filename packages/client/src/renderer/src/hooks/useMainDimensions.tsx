@@ -1,12 +1,12 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext } from "react";
 
 export const MainDimensionsContext = createContext<{
-  width: number
-  height: number
-} | null>(null)
+  width: number;
+  height: number;
+} | null>(null);
 
 export default function useMainDimensions() {
-  const size = useContext(MainDimensionsContext)
+  const size = useContext(MainDimensionsContext);
 
-  return size
+  return size;
 }

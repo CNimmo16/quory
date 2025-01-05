@@ -26,7 +26,6 @@ import {
 } from "@quory/core";
 import { hierarchy as makeHierarchy, tree as treeBuilder } from "d3-hierarchy";
 import { useQuery, useFetchSchema } from "@quory/stack/react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   createElement,
   CSSProperties,
@@ -44,7 +43,6 @@ import {
   AiOutlineLink,
   AiOutlinePlus,
 } from "react-icons/ai";
-import useMainDimensions from "../hooks/useMainDimensions";
 import {
   TbArrowsSort,
   TbCheck,
@@ -138,7 +136,9 @@ export default function QueryView({
                 .reduce((acc, { columns }) => acc + columns.length, 0) +
               colIndex;
             const maxLengthCell = tbody!.querySelector(
-              `tr:nth-child(${maxLengthRowIndex + 1}) td:nth-child(${flatColIndex + 1})`
+              `tr:nth-child(${maxLengthRowIndex + 1}) td:nth-child(${
+                flatColIndex + 1
+              })`
             );
             const headerCell = theadRef.current!.querySelector(
               `tr:nth-child(2) th:nth-child(${flatColIndex + 1})`
@@ -264,8 +264,6 @@ export default function QueryView({
       },
     ];
   };
-
-  console.log("render");
 
   const [otherTablesSearch, setOtherTablesSearch] = useState("");
 
@@ -624,7 +622,13 @@ export default function QueryView({
                                           );
                                         }
                                         return (
-                                          <span className="text-sm text-slate-900">{`${cond.column} ${cond.operator} ${isListCondition(cond) ? `(${cond.values.join(", ")})` : `"${cond.value}"`}`}</span>
+                                          <span className="text-sm text-slate-900">{`${
+                                            cond.column
+                                          } ${cond.operator} ${
+                                            isListCondition(cond)
+                                              ? `(${cond.values.join(", ")})`
+                                              : `"${cond.value}"`
+                                          }`}</span>
                                         );
                                       })(join.where)
                                     ) : (
@@ -696,7 +700,9 @@ export default function QueryView({
                                         !isBooleanCondition(condition)
                                       ) {
                                         throw new Error(
-                                          `Invalid condition, expected a boolean condition, received ${JSON.stringify(condition)}`
+                                          `Invalid condition, expected a boolean condition, received ${JSON.stringify(
+                                            condition
+                                          )}`
                                         );
                                       }
                                       joinActions(join.joinAlias).setCondition({
@@ -1139,7 +1145,10 @@ export default function QueryView({
                                       )}
                                     >
                                       {cellText.length > maxTextLength
-                                        ? `${cellText.slice(0, maxTextLength)}...`
+                                        ? `${cellText.slice(
+                                            0,
+                                            maxTextLength
+                                          )}...`
                                         : cellText}
                                       {selectedCell === cell && (
                                         <Tooltip label="Filter on this cell value">

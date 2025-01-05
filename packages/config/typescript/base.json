@@ -1,12 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig.json",
-  "extends": [
-    "@tsconfig/recommended/tsconfig",
-    "@tsconfig/strictest/tsconfig"
-  ],
-  "exclude": [
-    "node_modules"
-  ],
+  "extends": ["@tsconfig/recommended/tsconfig", "@tsconfig/strictest/tsconfig"],
+  "exclude": ["node_modules"],
   "compilerOptions": {
     "composite": false,
     "declaration": false,

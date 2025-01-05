@@ -20,7 +20,7 @@
   "author": "CNimmo16",
   "license": "MIT",
   "scripts": {
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --passWithNoTests",
     "build": "tsup --entry src/server/index.ts --entry src/react/index.ts --format cjs,esm --dts",
     "build:watch": "npm run build -- --watch --sourcemap",
     "lint": "eslint ."

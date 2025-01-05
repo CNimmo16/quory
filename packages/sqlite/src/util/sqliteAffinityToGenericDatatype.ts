@@ -10,8 +10,9 @@ export default function sqliteAffinityToGenericDatatype(
     REAL: "number",
     BLOB: "binary",
   };
-  if (!lookup[sqliteDataType]) {
+  const ret = lookup[sqliteDataType];
+  if (!ret) {
     throw new Error(`Datatype ${sqliteDataType} not recognised`);
   }
-  return lookup[sqliteDataType];
+  return ret;
 }

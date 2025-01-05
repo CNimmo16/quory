@@ -2,7 +2,6 @@ import {
   ActionIcon,
   Alert,
   AppShell,
-  Burger,
   Loader,
   LoadingOverlay,
   Menu,
@@ -18,26 +17,22 @@ import {
 } from "@tanstack/react-router";
 import {
   AiFillEdit,
-  AiFillGold,
   AiOutlineCheck,
   AiOutlinePlus,
   AiOutlinePoweroff,
-  AiOutlineSearch,
 } from "react-icons/ai";
 import { BsDatabaseFillGear } from "react-icons/bs";
 import NavLink from "../components/NavLink";
 import { MainDimensionsContext } from "../hooks/useMainDimensions";
 import trpc from "../util/tprc";
 import { Fragment, useEffect, useState } from "react";
-import { TbPlus, TbTrash } from "react-icons/tb";
+import { TbPlus } from "react-icons/tb";
 
 export const Route = createRootRoute({
   component: RootLayout,
 });
 
 function RootLayout() {
-  const [opened, { toggle }] = useDisclosure();
-
   const { ref, width, height } = useElementSize();
 
   const {
@@ -135,7 +130,7 @@ function RootLayout() {
         navbar={{
           width: 300,
           breakpoint: "xs",
-          collapsed: { mobile: !opened },
+          collapsed: {},
         }}
       >
         {activeConnection ? (
@@ -248,7 +243,7 @@ function RootLayout() {
               leftSection={<TbPlus />}
             />
             {savedConnectionsData.connections.map(
-              ({ id: connectionId, connection }, i) => (
+              ({ id: connectionId, connection }) => (
                 <NonNavLink
                   key={connectionId}
                   label={connection.nickname}

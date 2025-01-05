@@ -1,6 +1,7 @@
 import { DatabaseSchema } from ".";
 import getSchemas from "./getSchemas";
 import FakeDatabaseDriver from "./FakeDatabaseDriver";
+import { describe, expect, it } from "vitest";
 
 describe("getSchemas", () => {
   const fakeDatabaseDriver = new FakeDatabaseDriver();

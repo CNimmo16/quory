@@ -25,7 +25,7 @@ export default function GlobalProviders({
       <QueryClientProvider client={queryClient}>
         <QuoryProvider
           fetchFn={async (path, data) => {
-            console.log("FETCHING", path, data);
+            console.info("FETCHING", path, data);
             return api.quory({ path, data });
           }}
         >
