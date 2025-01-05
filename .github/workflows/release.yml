@@ -19,10 +19,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20.x
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
-        cache: 'npm'
 
       - name: Publish to npm
         id: changesets
