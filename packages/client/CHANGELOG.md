@@ -1,5 +1,11 @@
 # @quory/client
 
+## 1.0.2
+
+### Patch Changes
+
+- 8ef9530: another test release
+
 ## 1.0.1
 
 ### Patch Changes
