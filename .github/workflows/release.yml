@@ -50,19 +50,15 @@ jobs:
             const publishedPackages = JSON.parse(process.env.PUBLISHED_PACKAGES);
             const clientPackage = publishedPackages.find((pkg) => pkg.name === '@quory/client');
             if (!clientPackage) {
-              return {
-                publishedClientVersion: null
-              };
+              return null;
             }
             console.info(`Found published client version: ${clientPackage.version}`);
-            return {
-              publishedClientVersion: clientPackage.version
-            };
+            return clientPackage.version;
 
   electron:
     needs: determine-client-version
 
-    if: needs.determine-client-version.outputs.publishedClientVersion
+    if: needs.determine-client-version.outputs.result
 
     name: Build and distribute Electron packages for Mac, Windows and Linux
 
