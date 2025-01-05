@@ -1,5 +1,6 @@
 appId: com.electron.client
 productName: quory
+homepage: https://github.com/CNimmo16/quory
 directories:
   buildResources: build
 files:
@@ -17,7 +18,7 @@ asarUnpack:
 
 # windows targets:
 win:
-  executableName: ${productName}
+  executableName: quory
 nsis:
   artifactName: ${productName}-${version}-setup.${ext}
   shortcutName: ${productName}
