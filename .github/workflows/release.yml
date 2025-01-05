@@ -118,4 +118,3 @@ jobs:
             packages/client/dist/*.deb
             packages/client/dist/*.rpm
             packages/client/dist/*.tar.gz
-            packages/client/dist/*.yml
