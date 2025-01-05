@@ -1,6 +1,6 @@
 {
   "name": "@quory/sqlite",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "SQLite driver for Quory",
   "type": "module",
   "main": "./dist/index.cjs",

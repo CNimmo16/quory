@@ -1,6 +1,6 @@
 {
   "name": "@quory/stack",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Integrate Quory into your existing web app",
   "type": "module",
   "exports": {
