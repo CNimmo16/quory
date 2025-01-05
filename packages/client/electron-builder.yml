@@ -17,7 +17,7 @@ asarUnpack:
 
 # windows targets:
 win:
-  executableName: quory
+  executableName: ${productName}
 nsis:
   artifactName: ${productName}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -44,11 +44,7 @@ linux:
     - deb
   maintainer: electronjs.org
   category: Utility
-snap:
-  artifactName: ${productName}-${version}.${ext}
-appImage:
-  artifactName: ${productName}-${version}.${ext}
-deb:
+  executableName: ${productName}
   artifactName: ${productName}-${version}.${ext}
 npmRebuild: false
 publish:

@@ -108,6 +108,7 @@ jobs:
         with:
           tag_name: '@quory/client@${{ needs.determine-client-version.outputs.publishedClientVersion }}'
           append_body: true
+          make_latest: true
           files: |
             packages/client/dist/*.exe
             packages/client/dist/*.zip
@@ -118,4 +119,3 @@ jobs:
             packages/client/dist/*.rpm
             packages/client/dist/*.tar.gz
             packages/client/dist/*.yml
-            packages/client/dist/*.blockmap
