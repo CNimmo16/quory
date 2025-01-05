@@ -4,6 +4,7 @@
   "description": "Quory Electron client",
   "main": "./out/main/index.js",
   "author": "CNimmo16",
+  "homepage": "https://github.com/CNimmo16/quory",
   "scripts": {
     "lint": "eslint .",
     "start": "electron-vite preview",

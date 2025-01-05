@@ -1,6 +1,5 @@
 appId: com.electron.client
 productName: quory
-homepage: https://github.com/CNimmo16/quory
 directories:
   buildResources: build
 files:
