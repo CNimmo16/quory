@@ -24,9 +24,10 @@ Windows, Mac and Linux installers can be found here https://github.com/CNimmo16/
 
 If you're unsure which file to download from the release, here is some guidance:
 
-- On Mac OS, we recommend downloading the `quory-{version}.dmg` file and use it to install Quory to your Applications folder.
 - On Windows, download the `quory-{version}-setup.exe` and follow the installer instructions.
 - For Linux, download the `quory-{version}.AppImage` file, or a specific file for your distro if it isn't compatible with AppImage.
+- On Mac OS, download the `quory-{version}.app` file and use it to run Quory directly.
+> For Mac OS, you'll need to run `xattr -c <path/to/application.app>` from the terminal after downloading in order to open the app. This is because the app is unsigned (as I do not have an Apple developer account). If you'd prefer to build from source, [see here](#building-the-electron-client).
 
 ## Quory Cloud (coming soon!)
 
@@ -154,3 +155,24 @@ If you are building a data app, or want to interact with your own database direc
 It provides a set of functions to obtain information about your database's schema and relationships, as well as a query builder to instantly fetch data from across multiple tables via a single SQL query, without the need to specify how to join the tables.
 
 [Read the docs for Quory core](/packages/core/README.md)
+
+## Local development
+
+### Prerequisites
+
+### Setup
+
+1. Clone the repo
+2. Run `npm install`
+
+#### Building packages
+Run `npm run dev` to run the `build:watch` scripts from all packages in the /packages folder. Note: this script may error when first run, if so just run it a second time.
+
+#### Running Electron client locally
+Run `npx turbo serve` to run the `serve` script from the `/packages/client/package.json`, which should launch the Electron app locally.
+
+#### Building the Electron client
+Run `npx turbo build:<os>` replacing `<os>` with your operating system - `mac`, `linux` or `windows`. The resulting build files will be created in the `/packages/client/dist` folder.
+
+#### Testing
+Each of the packages has a suite of tests, these can be run simultaneously by running `npm run test` from the root directory, or run `npm run test --workspace @quory/<package-name>` to run tests for a single package.
