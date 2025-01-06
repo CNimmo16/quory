@@ -48,11 +48,12 @@ jobs:
         env:
           PUBLISHED_PACKAGES: ${{needs.npm.outputs.publishedPackages}}
         with:
+          result-encoding: string
           script: |
             const publishedPackages = JSON.parse(process.env.PUBLISHED_PACKAGES);
             const clientPackage = publishedPackages.find((pkg) => pkg.name === '@quory/client');
             if (!clientPackage) {
-              return null;
+              return '';
             }
             console.info(`Found published client version: ${clientPackage.version}`);
             return clientPackage.version;
@@ -63,7 +64,7 @@ jobs:
   electron:
     needs: determine-client-version
 
-    if: needs.determine-client-version.outputs.publishedClientVersion
+    if: needs.determine-client-version.outputs.publishedClientVersion != ''
 
     name: Build and distribute Electron packages for Mac, Windows and Linux
 
