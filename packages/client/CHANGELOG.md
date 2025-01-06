@@ -1,5 +1,11 @@
 # @quory/client
 
+## 1.0.4
+
+### Patch Changes
+
+- 7dece22: hopefully the last test!
+
 ## 1.0.3
 
 ### Patch Changes
