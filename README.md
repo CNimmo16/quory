@@ -12,7 +12,7 @@ In general, database clients are designed for two things: **managing databases**
 
 Quory is a database client focused on this use case, helping you to find the data you need to help your customers as quickly as possible.
 
-> At its core, Quory is also a collection of Typescript functions for joining tables without writing SQL. [Find out about using Quory to build data apps.](#building-your-own-data-app-quorycore-npm-version)
+> At its core, Quory is also a collection of Typescript functions for joining tables without writing SQL. [Find out about using Quory to build data apps.](#building-your-own-data-app-quorycore-)
 
 ## Getting started
 
@@ -27,7 +27,7 @@ If you're unsure which file to download from the release, here is some guidance:
 - On Windows, download the `quory-{version}-setup.exe` and follow the installer instructions.
 - For Linux, download the `quory-{version}.AppImage` file, or a specific file for your distro if it isn't compatible with AppImage.
 - On Mac OS, download the `quory-{version}.app` file and use it to run Quory directly.
-> For Mac OS, you'll need to run `xattr -c <path/to/application.app>` from the terminal after downloading in order to open the app. This is because the app is unsigned (as I do not have an Apple developer account). If you'd prefer to build from source, [see here](#building-the-electron-client).
+> For Mac OS, you'll need to run `xattr -c <path/to/application.app>` from the terminal after downloading in order to open the app. This is because the app is unsigned (as I do not have an Apple developer account). If you'd prefer to build from source, [see "Building the electron client"](#building-the-electron-client).
 
 ## Quory Cloud (coming soon!)
 
