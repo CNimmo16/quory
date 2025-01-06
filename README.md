@@ -18,7 +18,7 @@ Quory is a database client focused on this use case, helping you to find the dat
 
 Quory is distributed as an Electron app for all major operating systems.
 
-Windows, Mac and Linux installers can be found here https://github.com/CNimmo16/quory/releases.
+Windows, Mac and Linux installers can be found here https://github.com/CNimmo16/quory/releases/latest.
 
 ### Which installer to pick?
 
