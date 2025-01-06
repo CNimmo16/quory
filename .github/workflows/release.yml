@@ -58,8 +58,7 @@ jobs:
             return clientPackage.version;
 
     outputs:
-      # publishedClientVersion: ${{ steps.getPublishedPackages.outputs.result }}
-      publishedClientVersion: '1.0.3'
+      publishedClientVersion: ${{ steps.getPublishedPackages.outputs.result }}
 
   electron:
     needs: determine-client-version
