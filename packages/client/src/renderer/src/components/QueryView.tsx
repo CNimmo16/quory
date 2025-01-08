@@ -223,7 +223,6 @@ export default function QueryView({
   const makeHoverProps = useCallback(
     (joinAlias: string) => ({
       onMouseOver: () => setHighlightedJoinAlias(joinAlias),
-      onMouseOut: () => setHighlightedJoinAlias(null),
     }),
     []
   );
@@ -361,7 +360,7 @@ export default function QueryView({
                     <div
                       key={`new-button-${parentJoin.joinAlias}`}
                       style={positionStyle}
-                      className="flex items-center absolute"
+                      className="absolute flex items-center"
                     >
                       <Popover position="bottom" withArrow shadow="md">
                         <Popover.Target>
@@ -372,8 +371,8 @@ export default function QueryView({
                             Join another table
                           </Button>
                         </Popover.Target>
-                        <Popover.Dropdown className="h-[600px] overflow-auto !w-[400px]">
-                          <div className="flex flex-col gap-[8px] pt-[4px] pb-[8px]">
+                        <Popover.Dropdown className="h-[600px] !w-[400px] overflow-auto">
+                          <div className="flex flex-col gap-[8px] pb-[8px] pt-[4px]">
                             <div className="text-sm text-slate-600">
                               Adjacent tables
                             </div>
@@ -468,7 +467,7 @@ export default function QueryView({
                                 return (
                                   <div
                                     key={`${tableSchema}.${tableName}`}
-                                    className="cursor-default py-0 flex items-start"
+                                    className="flex cursor-default items-start py-0"
                                   >
                                     <Tooltip
                                       label="Records already joined"
@@ -477,7 +476,7 @@ export default function QueryView({
                                     >
                                       <button
                                         className={classNames(
-                                          "m-0 bg-slate-200 rounded-lg px-2 py-0 disabled:bg-neutral-200 disabled:text-neutral-600 [&:not(:disabled)]:hover:bg-slate-300 flex gap-1 items-center"
+                                          "m-0 flex items-center gap-1 rounded-lg bg-slate-200 px-2 py-0 disabled:bg-neutral-200 disabled:text-neutral-600 [&:not(:disabled)]:hover:bg-slate-300"
                                         )}
                                         disabled={!!existingJoin}
                                         onClick={() =>
@@ -530,7 +529,7 @@ export default function QueryView({
                   >
                     <div
                       className={classNames(
-                        "border-2 p-3 flex flex-col gap-3 justify-around absolute",
+                        "absolute flex flex-col justify-around gap-3 border-2 p-3",
                         highlightedJoinAlias === join.joinAlias && !isGhost
                           ? "border-blue-500"
                           : "border-slate-400",
@@ -538,11 +537,12 @@ export default function QueryView({
                           ? "bg-slate-200"
                           : "bg-slate-100",
                         {
-                          "border-dashed cursor-pointer": isGhost,
+                          "cursor-pointer border-dashed": isGhost,
                         }
                       )}
                       style={positionStyle}
                       {...makeHoverProps(join.joinAlias)}
+                      onMouseOut={() => setHighlightedJoinAlias(null)}
                       onClick={() => {
                         if (isGhost) {
                           joinActions(join.joinAlias).setSelectedColumns(
@@ -551,7 +551,7 @@ export default function QueryView({
                         }
                       }}
                     >
-                      <div className="flex justify-between gap-3 items-center">
+                      <div className="flex items-center justify-between gap-3">
                         <div className="flex flex-col gap-1">
                           <div
                             className={classNames({
@@ -580,7 +580,7 @@ export default function QueryView({
                             >
                               <Popover.Target>
                                 <button
-                                  className="group flex items-center gap-2 rounded-full bg-slate-300 pl-2 pr-1 transition-all hover:bg-slate-200 w-fit"
+                                  className="group flex w-fit items-center gap-2 rounded-full bg-slate-300 pl-2 pr-1 transition-all hover:bg-slate-200"
                                   onClick={() => {
                                     setCondition(join.where ?? null);
                                     setConditionDropdownOpenForJoinAlias(
@@ -797,7 +797,7 @@ export default function QueryView({
                                     >
                                       <Menu.Item
                                         className={classNames({
-                                          "text-neutral-500 cursor-not-allowed":
+                                          "cursor-not-allowed text-neutral-500":
                                             disabled,
                                         })}
                                         leftSection={
@@ -862,7 +862,7 @@ export default function QueryView({
                                     </ActionIcon>
                                   </Tooltip>
                                 </Menu.Target>
-                                <Menu.Dropdown className="px-2 bg-slate-900/90 text-white text-sm">
+                                <Menu.Dropdown className="bg-slate-900/90 px-2 text-sm text-white">
                                   {/* TODO: add this functionality */}
                                   Coming soon! See the roadmap on Github.
                                 </Menu.Dropdown>
@@ -872,7 +872,7 @@ export default function QueryView({
                               <Tooltip label="Remove table from query">
                                 <ActionIcon
                                   variant="light"
-                                  className="!bg-red-100 row-start-2"
+                                  className="row-start-2 !bg-red-100"
                                   onClick={() => {
                                     if (
                                       joinActions(join.joinAlias).getParent()
@@ -900,7 +900,7 @@ export default function QueryView({
       </div>
       <div>
         {error && (
-          <Alert variant="default" className="bg-red-100 mb-3">
+          <Alert variant="default" className="mb-3 bg-red-100">
             {error.message}
           </Alert>
         )}
@@ -920,19 +920,20 @@ export default function QueryView({
                   marginLeft: 15,
                   marginRight: 15,
                 }}
-                className={classNames("overflow-auto text-sm flex flex-col", {
+                className={classNames("flex flex-col overflow-auto text-sm", {
                   invisible: !colWidths[0],
                 })}
               >
                 <thead
                   ref={theadRef}
-                  className="block sticky top-0 text-left z-20"
+                  className="sticky top-0 z-20 block text-left"
+                  onMouseLeave={() => setHighlightedJoinAlias(null)}
                 >
                   <tr className="grid" style={{ gridTemplateColumns }}>
                     {data.visibleJoins.map(({ join, columns }) => (
                       <th
                         className={classNames(
-                          "flex gap-0 bg-slate-100 items-center justify-center border-t-2",
+                          "flex items-center justify-center gap-0 border-t-2 bg-slate-100",
                           ...makeCellBorderClassNames(
                             join.joinAlias,
                             true,
@@ -1050,8 +1051,11 @@ export default function QueryView({
                   </tr>
                 </thead>
                 <tbody
-                  className="grow w-fit bg-white shadow-[0_2px_0_2px_#94a3b8_inset]"
+                  className="w-fit grow bg-white shadow-[0_2px_0_2px_#94a3b8_inset]"
                   ref={setTbody}
+                  onMouseLeave={() => {
+                    setHighlightedJoinAlias(null);
+                  }}
                 >
                   {data.rows.map((joinsInRow, rowIndex) => (
                     <tr
@@ -1137,9 +1141,9 @@ export default function QueryView({
                                     )}
                                     <span
                                       className={classNames(
-                                        "h-full grow justify-between flex items-center pl-2 pr-0 w-auto",
+                                        "flex h-full w-auto grow items-center justify-between pl-2 pr-0",
                                         {
-                                          "bg-slate-100 border-[1px] border-slate-400":
+                                          "border-[1px] border-slate-400 bg-slate-100":
                                             selectedCell === cell,
                                         }
                                       )}
