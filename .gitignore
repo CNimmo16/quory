@@ -30,4 +30,4 @@ yarn-error.log*
 # build files
 **/dist
 
-.aider.*
+.aider*
