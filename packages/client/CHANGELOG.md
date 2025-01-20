@@ -1,5 +1,11 @@
 # @quory/client
 
+## 1.0.6
+
+### Patch Changes
+
+- 62cc614: Add react devtools in devonly
+
 ## 1.0.5
 
 ### Patch Changes
