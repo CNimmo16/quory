@@ -3,6 +3,10 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { attachIpcHandlers, detatchIpcHandlers } from "./ipc";
 import activeConnectionState from "./state/activeConnectionState";
+import {
+  installExtension,
+  REACT_DEVELOPER_TOOLS,
+} from "electron-devtools-installer";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -48,6 +52,8 @@ export async function recreateMainWindow(): Promise<void> {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+  installExtension(REACT_DEVELOPER_TOOLS);
+
   // Set app user model id for windows
   electronApp.setAppUserModelId("com.electron");
 
