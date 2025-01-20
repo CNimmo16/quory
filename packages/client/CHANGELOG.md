@@ -1,5 +1,11 @@
 # @quory/client
 
+## 1.0.5
+
+### Patch Changes
+
+- 8e105d4: Performance improvements
+
 ## 1.0.4
 
 ### Patch Changes
