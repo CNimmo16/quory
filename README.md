@@ -26,8 +26,10 @@ If you're unsure which file to download from the release, here is some guidance:
 
 - On Windows, download the `quory-{version}-setup.exe` and follow the installer instructions.
 - For Linux, download the `quory-{version}.AppImage` file, or a specific file for your distro if it isn't compatible with AppImage.
-- On Mac OS, download the `quory-{version}.app` file and use it to run Quory directly.
-> For Mac OS, you'll need to run `xattr -c <path/to/application.app>` from the terminal after downloading in order to open the app. This is because the app is unsigned (as I do not have an Apple developer account). If you'd prefer to build from source, [see "Building the electron client"](#building-the-electron-client).
+- On Mac OS, either:
+  - download the `quory-{version}.dmg` file to install Quory to the Applications folder
+  - download the `quory-{version}-arm64-mac.zip`, extract the zip file, and use it to run Quory directly
+> For Mac OS, you'll need to run `xattr -c <path/to/application.app>` from the terminal after installing the app. This is because the app is unsigned (as I do not have an Apple developer account). If you'd prefer to build from source, [see "Building the electron client"](#building-the-electron-client).
 
 ## Quory Cloud (coming soon!)
 
