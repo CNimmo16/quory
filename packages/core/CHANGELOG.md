@@ -1,5 +1,11 @@
 # @quory/core
 
+## 6.1.0
+
+### Minor Changes
+
+- 4474714: Add manual save button to query client, add areQueriesEqual util function to core
+
 ## 6.0.0
 
 ### Major Changes
