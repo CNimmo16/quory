@@ -1,5 +1,12 @@
 # @quory/client
 
+## 1.0.6
+
+### Patch Changes
+
+- 62cc614: Add react devtools in devonly
+- 4474714: Add manual save button to query client, add areQueriesEqual util function to core
+
 ## 1.0.5
 
 ### Patch Changes
