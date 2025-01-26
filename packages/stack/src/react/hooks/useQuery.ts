@@ -74,10 +74,15 @@ export default function useQuery(
       );
       const where = targetFilter
         ? ({
-            operator: ConditionOperator.EQUALS,
-            column: targetFilter.column,
-            value: targetFilter.value,
-          } as const)
+            operator: ConditionOperator.AND,
+            conditions: [
+              {
+                operator: ConditionOperator.EQUALS,
+                column: targetFilter.column,
+                value: targetFilter.value,
+              },
+            ],
+          } satisfies BooleanCondition)
         : undefined;
       if (sourceJoinParent?.tableRef === targetTableRef) {
         sourceJoinParent.select = targetTable.columns.map(({ name }) => name);

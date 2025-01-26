@@ -2,7 +2,6 @@ import { Alert, Loader, LoadingOverlay } from "@mantine/core";
 import { PreparedQuery, Query } from "@quory/core";
 import { useQuery, useFetchSchema } from "@quory/stack/react";
 import { useEffect, useMemo, useState } from "react";
-import { useDebouncedValue } from "@mantine/hooks";
 import DataTable from "./DataTable";
 import TableNavigator from "./TableNavigator";
 
@@ -10,14 +9,12 @@ export default function QueryView({
   initialQuery,
   onDeleteQuery,
   onQueryChange,
-  onChangeDebounceDelaySeconds = 10,
   width: viewWidth,
   height: viewHeight,
 }: {
   initialQuery: Query;
   onQueryChange: (query: PreparedQuery) => void;
   onDeleteQuery: () => void;
-  onChangeDebounceDelaySeconds?: number;
   width: number;
   height: number;
 }) {
@@ -30,14 +27,10 @@ export default function QueryView({
     setQuery
   );
 
-  const [debouncedQuery] = useDebouncedValue(
-    query,
-    onChangeDebounceDelaySeconds * 1000
-  );
   useEffect(() => {
-    if (!debouncedQuery) return;
-    onQueryChange(debouncedQuery);
-  }, [debouncedQuery, onQueryChange]);
+    if (!query) return;
+    onQueryChange(query);
+  }, [query, onQueryChange]);
 
   const treePadding = 20;
 

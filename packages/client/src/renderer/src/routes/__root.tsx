@@ -1,26 +1,19 @@
 import {
-  ActionIcon,
   Alert,
   AppShell,
   Loader,
   LoadingOverlay,
   Menu,
   NavLink as NonNavLink,
-  TextInput,
 } from "@mantine/core";
-import { useDisclosure, useElementSize } from "@mantine/hooks";
+import { useElementSize } from "@mantine/hooks";
 import {
   createRootRoute,
   Outlet,
   useMatchRoute,
   useNavigate,
 } from "@tanstack/react-router";
-import {
-  AiFillEdit,
-  AiOutlineCheck,
-  AiOutlinePlus,
-  AiOutlinePoweroff,
-} from "react-icons/ai";
+import { AiOutlinePlus, AiOutlinePoweroff } from "react-icons/ai";
 import { BsDatabaseFillGear } from "react-icons/bs";
 import NavLink from "../components/NavLink";
 import { MainDimensionsContext } from "../hooks/useMainDimensions";
@@ -45,13 +38,10 @@ function RootLayout() {
     ({ isActive }) => isActive
   );
 
-  const {
-    data: savedQueriesData,
-    error: savedQueriesError,
-    refetch: refetchSavedQueries,
-  } = trpc.queries.listSavedQueries.useQuery(undefined, {
-    enabled: !!activeConnection,
-  });
+  const { data: savedQueriesData, error: savedQueriesError } =
+    trpc.queries.listSavedQueries.useQuery(undefined, {
+      enabled: !!activeConnection,
+    });
 
   const [mainDimensions, setMainDimensions] = useState({
     width,
@@ -84,22 +74,6 @@ function RootLayout() {
       },
     });
 
-  const [editingNicknameForQueryId, setEditingNicknameForQueryId] = useState<
-    string | null
-  >(null);
-  const [nickname, setNickname] = useState("");
-  const { mutate: updateQueryNickname } =
-    trpc.queries.updateQueryNickname.useMutation({
-      onSuccess: () => {
-        setEditingNicknameForQueryId(null);
-        refetchSavedQueries();
-      },
-      onError: (e) => {
-        // TODO: nicer alert
-        alert(e.message);
-      },
-    });
-
   const { mutate: connectToDatabase } =
     trpc.connections.connectToDatabase.useMutation({
       onSuccess: () => {
@@ -111,7 +85,7 @@ function RootLayout() {
 
   if (savedConnectionsError || savedQueriesError) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex h-full items-center justify-center">
         <Alert color="red">
           {savedConnectionsError?.message || savedQueriesError?.message}
         </Alert>
@@ -149,57 +123,12 @@ function RootLayout() {
             {savedQueriesData ? (
               savedQueriesData.queries.map(({ id, query }) => (
                 <Fragment key={id}>
-                  {editingNicknameForQueryId === id ? (
-                    <NonNavLink
-                      active
-                      className="p-0"
-                      label={
-                        <form className="flex items-center gap-2 px-3 py-1">
-                          <TextInput
-                            value={nickname}
-                            onChange={(e) => setNickname(e.target.value)}
-                            className="grow"
-                          />
-                          <ActionIcon
-                            type="submit"
-                            onClick={() =>
-                              updateQueryNickname({
-                                nickname,
-                                queryId: id,
-                                revision: query._rev,
-                              })
-                            }
-                          >
-                            <AiOutlineCheck />
-                          </ActionIcon>
-                        </form>
-                      }
-                    />
-                  ) : (
-                    <NavLink
-                      className="px-3 py-2"
-                      label={query.nickname}
-                      to="/queries/$queryId"
-                      params={{ queryId: id }}
-                      rightSection={
-                        matchRoute({
-                          to: "/queries/$queryId",
-                          params: { queryId: id },
-                        }) && (
-                          <ActionIcon
-                            variant="filled"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setEditingNicknameForQueryId(id);
-                              setNickname(query.nickname);
-                            }}
-                          >
-                            <AiFillEdit />
-                          </ActionIcon>
-                        )
-                      }
-                    />
-                  )}
+                  <NavLink
+                    className="px-3 py-2"
+                    label={query.nickname}
+                    to="/queries/$queryId"
+                    params={{ queryId: id }}
+                  />
                 </Fragment>
               ))
             ) : (
@@ -214,7 +143,7 @@ function RootLayout() {
                         <span>{`${activeConnection.id.substring(0, 20)}${
                           activeConnection.id.length > 10 ? "..." : ""
                         }`}</span>
-                        <span className="text-slate-700 text-sm">
+                        <span className="text-sm text-slate-700">
                           ({activeConnection.connection?.type})
                         </span>
                       </span>

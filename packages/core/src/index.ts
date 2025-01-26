@@ -34,6 +34,7 @@ import findTableFromSchemas from "./util/findTableFromSchemas";
 import splitTableRef from "./util/splitTableRef";
 import isConditionComplete from "./util/isConditionComplete";
 import parseToCompleteCondition from "./util/parseToCompleteCondition";
+import areQueriesEqual from "./util/areQueriesEqual";
 
 export {
   getSchemas,
@@ -68,6 +69,7 @@ export {
   PreparedQuery,
   findTableFromSchemas,
   splitTableRef,
+  areQueriesEqual,
 };
 
 export type DatabaseTableInfo = {
