@@ -1,12 +1,14 @@
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import {
-  ActionIcon,
-  Anchor,
-  Group,
   Select,
-  TagsInput,
-  TextInput,
-  Tooltip,
-} from "@mantine/core";
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { TagsInput } from "./TagsInput";
+import { Hint } from "./Hint";
 import {
   Condition,
   ConditionOperator,
@@ -74,16 +76,18 @@ export default function ConditionEditor({
             <Fragment key={index}>
               {index > 0 && (
                 <div>
-                  <Tooltip
-                    label={`Click to switch to ${
+                  <Hint
+                    content={`Click to switch to ${
                       condition.operator === ConditionOperator.AND
                         ? "OR"
                         : "AND"
                     }`}
-                    position="right"
+                    side="right"
                   >
-                    <Anchor
-                      component="button"
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0"
                       onClick={() => {
                         onConditionChange({
                           ...condition,
@@ -95,8 +99,8 @@ export default function ConditionEditor({
                       }}
                     >
                       {condition.operator}
-                    </Anchor>
-                  </Tooltip>
+                    </Button>
+                  </Hint>
                 </div>
               )}
               <ConditionEditor
@@ -133,120 +137,121 @@ export default function ConditionEditor({
   }
 
   return (
-    <Group>
+    <div className="flex flex-wrap items-center gap-3">
       <Select
-        data={columns.map((column) => ({
-          label: column.name,
-          value: column.name,
-        }))}
         value={condition.column}
-        onChange={(value) => {
-          if (value) {
-            onConditionChange({
-              ...condition,
-              column: value,
-            });
-          }
-        }}
-        placeholder={isGhost ? "Add a filter" : ""}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        comboboxProps={{ withinPortal: false }}
-        styles={isGhost ? { input: { border: "1px dashed #ccc" } } : {}}
-      />
+        onValueChange={(column) => onConditionChange({ ...condition, column })}
+      >
+        <SelectTrigger
+          aria-label="Filter column"
+          className={`w-44 ${isGhost ? "border-dashed" : ""}`}
+          onFocus={onFocus}
+          onBlur={onBlur}
+        >
+          <SelectValue
+            placeholder={isGhost ? "Add a filter" : "Select column"}
+          />
+        </SelectTrigger>
+        <SelectContent
+          position="popper"
+          style={{ maxHeight: maxDropdownHeight }}
+        >
+          {columns.map((column) => (
+            <SelectItem key={column.name} value={column.name}>
+              {column.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {!isGhost && (
         <>
           <Select
-            data={[...valueConditionOperators, ...listConditionOperators]}
             value={condition.operator}
-            onChange={(_value) => {
+            onValueChange={(_value) => {
               const value = _value as ConditionOperator;
-              if (value) {
-                if (
-                  valueConditionOperators.includes(value) &&
-                  isListCondition(condition)
-                ) {
-                  // changing from list to value
-                  onConditionChange({
-                    column: condition.column,
-                    operator: value as ValueConditionOperator,
-                    value: "",
-                  } satisfies ValueCondition);
-                } else if (
-                  listConditionOperators.includes(value) &&
+              if (
+                valueConditionOperators.includes(value) &&
+                isListCondition(condition)
+              ) {
+                onConditionChange({
+                  column: condition.column,
+                  operator: value as ValueConditionOperator,
+                  value: "",
+                } satisfies ValueCondition);
+              } else if (
+                listConditionOperators.includes(value) &&
+                isValueCondition(condition)
+              ) {
+                onConditionChange({
+                  column: condition.column,
+                  operator: value as ListConditionOperator,
+                  values: condition.value ? [condition.value] : [],
+                } satisfies ListCondition);
+              } else {
+                onConditionChange(
                   isValueCondition(condition)
-                ) {
-                  // changing from value to list
-                  onConditionChange({
-                    column: condition.column,
-                    operator: value as ListConditionOperator,
-                    values: [condition.value],
-                  } satisfies ListCondition);
-                } else {
-                  onConditionChange(
-                    isValueCondition(condition)
-                      ? {
-                          ...condition,
-                          operator: value as ValueConditionOperator,
-                        }
-                      : {
-                          ...condition,
-                          operator: value as ListConditionOperator,
-                        }
-                  );
-                }
+                    ? {
+                        ...condition,
+                        operator: value as ValueConditionOperator,
+                      }
+                    : { ...condition, operator: value as ListConditionOperator }
+                );
               }
             }}
-            withCheckIcon={false}
-            maxDropdownHeight={maxDropdownHeight}
-            comboboxProps={{ withinPortal: false }}
-            onFocus={onFocus}
-            onBlur={onBlur}
-            styles={isGhost ? { input: { border: "1px dashed #ccc" } } : {}}
-          />
-          {valueConditionOperators.includes(condition.operator) &&
-            ((valueCondition) => {
-              return (
-                <TextInput
-                  value={valueCondition.value}
-                  onChange={(e) => {
-                    onConditionChange({
-                      ...valueCondition,
-                      value: e.target.value,
-                    });
-                  }}
-                  onFocus={onFocus}
-                  onBlur={onBlur}
-                  styles={
-                    isGhost ? { input: { border: "1px dashed #ccc" } } : {}
-                  }
-                />
-              );
-            })(condition as ValueCondition)}
-          {listConditionOperators.includes(condition.operator) &&
-            ((listCondition) => {
-              return (
-                <TagsInput
-                  value={listCondition.values}
-                  onChange={(values) => {
-                    onConditionChange({
-                      ...listCondition,
-                      values: values,
-                    });
-                  }}
-                  onFocus={onFocus}
-                  onBlur={onBlur}
-                  styles={
-                    isGhost ? { input: { border: "1px dashed #ccc" } } : {}
-                  }
-                />
-              );
-            })(condition as ListCondition)}
-          <ActionIcon onClick={onDelete} color="red">
+          >
+            <SelectTrigger
+              aria-label="Filter operator"
+              className="w-28"
+              onFocus={onFocus}
+              onBlur={onBlur}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent
+              position="popper"
+              style={{ maxHeight: maxDropdownHeight }}
+            >
+              {[...valueConditionOperators, ...listConditionOperators].map(
+                (operator) => (
+                  <SelectItem key={operator} value={operator}>
+                    {operator}
+                  </SelectItem>
+                )
+              )}
+            </SelectContent>
+          </Select>
+          {isValueCondition(condition) && (
+            <Input
+              aria-label="Filter value"
+              className="min-w-32 flex-1"
+              value={condition.value}
+              onChange={(event) =>
+                onConditionChange({ ...condition, value: event.target.value })
+              }
+              onFocus={onFocus}
+              onBlur={onBlur}
+            />
+          )}
+          {isListCondition(condition) && (
+            <TagsInput
+              value={condition.values}
+              onChange={(values) => onConditionChange({ ...condition, values })}
+              onFocus={onFocus}
+              onBlur={onBlur}
+            />
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Delete filter"
+            className="shrink-0 text-destructive hover:text-destructive"
+            onClick={onDelete}
+          >
             <AiOutlineDelete />
-          </ActionIcon>
+          </Button>
         </>
       )}
-    </Group>
+    </div>
   );
 }

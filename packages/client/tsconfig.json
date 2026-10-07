@@ -2,7 +2,8 @@
   "extends": ["@quory/config/typescript/base"],
   "compilerOptions": {
     "paths": {
-      "react": ["./node_modules/@types/react"]
+      "react": ["./node_modules/@types/react"],
+      "@renderer/*": ["./src/renderer/src/*"]
     }
   }
 }

@@ -5,7 +5,6 @@ import {
   createHashHistory,
   createRouter,
 } from "@tanstack/react-router";
-import "@mantine/core/styles.css";
 import "./index.css";
 
 // Import the generated route tree

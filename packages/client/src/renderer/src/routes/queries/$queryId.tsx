@@ -6,15 +6,12 @@ import {
 } from "@tanstack/react-router";
 import QueryView from "../../components/QueryView";
 import { useCallback, useState } from "react";
-import { areQueriesEqual, PreparedQuery, Query } from "@quory/core";
+import { areQueriesEqual, PreparedQuery } from "@quory/core";
 import trpc from "../../util/tprc";
-import {
-  ActionIcon,
-  Button,
-  LoadingOverlay,
-  TextInput,
-  Tooltip,
-} from "@mantine/core";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Hint } from "../../components/Hint";
+import { LoadingState, Spinner } from "../../components/LoadingState";
 import useMainDimensions from "../../hooks/useMainDimensions";
 import { trpcClient } from "../../GlobalProviders";
 import { TbTrash } from "react-icons/tb";
@@ -124,7 +121,7 @@ function RouteComponent() {
   const { width: mainWidth, height: mainHeight } = useMainDimensions()!;
 
   if (!data) {
-    return <LoadingOverlay />;
+    return <LoadingState />;
   }
 
   const topHeight = 50;
@@ -136,31 +133,36 @@ function RouteComponent() {
         className="flex items-center gap-2 bg-slate-300 px-3"
       >
         {editingNickname ? (
-          <form className="flex items-center gap-2 px-3 py-1">
-            <TextInput
+          <form
+            className="flex items-center gap-2 px-3 py-1"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateQueryNickname({
+                queryId,
+                nickname,
+                revision: data.query._rev,
+              });
+            }}
+          >
+            <Input
+              aria-label="Query nickname"
+              autoFocus
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               className="min-w-[250px] flex-grow"
             />
-            <ActionIcon
-              type="submit"
-              onClick={() =>
-                updateQueryNickname({
-                  queryId,
-                  nickname,
-                  revision: data.query._rev,
-                })
-              }
-            >
+            <Button type="submit" size="icon" aria-label="Save nickname">
               <AiOutlineCheck />
-            </ActionIcon>
+            </Button>
           </form>
         ) : (
           <>
             <h1>{data.query.nickname}</h1>
-            <Tooltip label="Edit nickname">
-              <ActionIcon
-                variant="light"
+            <Hint content="Edit nickname">
+              <Button
+                size="icon"
+                aria-label="Edit nickname"
+                variant="secondary"
                 onClick={(e) => {
                   e.preventDefault();
                   setEditingNickname(true);
@@ -168,26 +170,23 @@ function RouteComponent() {
                 }}
               >
                 <AiFillEdit />
-              </ActionIcon>
-            </Tooltip>
+              </Button>
+            </Hint>
           </>
         )}
-        <Tooltip disabled={unsavedChanges} label="No changes to save">
-          <Button
-            className="ml-auto"
-            disabled={!unsavedChanges}
-            onClick={saveChanges}
-            loading={isPending}
-          >
-            Save changes
-          </Button>
-        </Tooltip>
-        <Button
-          color="red"
-          rightSection={<TbTrash size={18} />}
-          onClick={handleDeleteQuery}
-        >
-          Delete query
+        <div className="ml-auto">
+          <Hint disabled={unsavedChanges} content="No changes to save">
+            <Button
+              disabled={!unsavedChanges || isPending}
+              onClick={saveChanges}
+              aria-busy={isPending}
+            >
+              {isPending && <Spinner />}Save changes
+            </Button>
+          </Hint>
+        </div>
+        <Button variant="destructive" onClick={handleDeleteQuery}>
+          Delete query <TbTrash aria-hidden="true" />
         </Button>
       </div>
       <QueryView

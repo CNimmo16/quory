@@ -1,11 +1,14 @@
+import { Button } from "./ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
-  ActionIcon,
-  Button,
-  Checkbox,
-  Menu,
-  Popover,
-  Tooltip,
-} from "@mantine/core";
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Hint } from "./Hint";
 import {
   Condition,
   ConditionOperator,
@@ -119,21 +122,12 @@ function TableNavigator({
     setConditionDropdownOpenForJoinAlias,
   ] = useState<string | null>(null);
   const [condition, setCondition] = useState<Condition | null>(null);
-  const handleConditionChange = useCallback(
-    (_condition: Condition) => {
-      if (!isBooleanCondition(_condition)) {
-        throw new Error("Expected boolean condition");
-      }
-      if (_condition.conditions.filter(isConditionComplete).length === 0) {
-        setCondition(null);
-        setConditionDropdownOpenForJoinAlias(null);
-        joinActions(conditionDropdownOpenForJoinAlias!).removeCondition();
-      } else {
-        setCondition(_condition);
-      }
-    },
-    [conditionDropdownOpenForJoinAlias, joinActions]
-  );
+  const handleConditionChange = useCallback((_condition: Condition) => {
+    if (!isBooleanCondition(_condition)) {
+      throw new Error("Expected boolean condition");
+    }
+    setCondition(_condition);
+  }, []);
 
   if (!tree) {
     return null;
@@ -213,8 +207,8 @@ function TableNavigator({
           ).getVisibleColumns();
           const isGhost = visibleColumns.length === 0;
           return (
-            <Tooltip
-              label="Click to add to query"
+            <Hint
+              content="Click to add to query"
               disabled={!isGhost}
               key={join.joinAlias}
             >
@@ -232,6 +226,16 @@ function TableNavigator({
                   }
                 )}
                 style={positionStyle}
+                role={isGhost ? "button" : undefined}
+                tabIndex={isGhost ? 0 : undefined}
+                onKeyDown={(event) => {
+                  if (isGhost && (event.key === "Enter" || event.key === " ")) {
+                    event.preventDefault();
+                    joinActions(join.joinAlias).setSelectedColumns(
+                      table.columns.map((column) => column.name)
+                    );
+                  }
+                }}
                 onMouseOver={() => onChangeHighlightedJoinAlias(join.joinAlias)}
                 onMouseOut={() => onChangeHighlightedJoinAlias(null)}
                 onClick={() => {
@@ -253,10 +257,10 @@ function TableNavigator({
                     </div>
                     {!isGhost && (
                       <Popover
-                        opened={
+                        open={
                           conditionDropdownOpenForJoinAlias === join.joinAlias
                         }
-                        onChange={(visible) => {
+                        onOpenChange={(visible) => {
                           if (visible) {
                             setCondition(join.where ?? null);
                             setConditionDropdownOpenForJoinAlias(
@@ -268,15 +272,10 @@ function TableNavigator({
                           }
                         }}
                       >
-                        <Popover.Target>
+                        <PopoverTrigger asChild>
                           <button
+                            type="button"
                             className="group flex w-fit items-center gap-2 rounded-full bg-slate-300 pl-2 pr-1 transition-all hover:bg-slate-200"
-                            onClick={() => {
-                              setCondition(join.where ?? null);
-                              setConditionDropdownOpenForJoinAlias(
-                                join.joinAlias
-                              );
-                            }}
                           >
                             <span>
                               {join.where ? (
@@ -339,8 +338,11 @@ function TableNavigator({
                               )}
                             </div>
                           </button>
-                        </Popover.Target>
-                        <Popover.Dropdown className="flex flex-col gap-2">
+                        </PopoverTrigger>
+                        <PopoverContent
+                          align="start"
+                          className="flex max-h-[var(--radix-popover-content-available-height)] w-[650px] max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-auto"
+                        >
                           <ConditionEditor
                             columns={table.columns}
                             condition={
@@ -363,7 +365,7 @@ function TableNavigator({
                           />
                           <div className="flex gap-2">
                             <Button
-                              variant="light"
+                              variant="secondary"
                               className="grow"
                               onClick={() => {
                                 setConditionDropdownOpenForJoinAlias(null);
@@ -385,20 +387,25 @@ function TableNavigator({
                                     )}`
                                   );
                                 }
-                                joinActions(join.joinAlias).setCondition({
-                                  ...condition,
-                                  conditions:
-                                    condition.conditions.filter(
-                                      isConditionComplete
-                                    ),
-                                });
+                                const conditions =
+                                  condition.conditions.filter(
+                                    isConditionComplete
+                                  );
+                                if (conditions.length) {
+                                  joinActions(join.joinAlias).setCondition({
+                                    ...condition,
+                                    conditions,
+                                  });
+                                } else {
+                                  joinActions(join.joinAlias).removeCondition();
+                                }
                                 setConditionDropdownOpenForJoinAlias(null);
                               }}
                             >
                               Apply
                             </Button>
                           </div>
-                        </Popover.Dropdown>
+                        </PopoverContent>
                       </Popover>
                     )}
                   </div>
@@ -407,11 +414,9 @@ function TableNavigator({
                       className="grid grid-cols-2 gap-2"
                       style={{ direction: "rtl" }}
                     >
-                      <Menu
-                        opened={
-                          columnDropdownOpenForJoinAlias === join.joinAlias
-                        }
-                        onChange={(visible) => {
+                      <DropdownMenu
+                        open={columnDropdownOpenForJoinAlias === join.joinAlias}
+                        onOpenChange={(visible) => {
                           if (visible) {
                             setColumnDropdownOpenForJoinAlias(join.joinAlias);
                             setSelectedColumns(visibleColumns);
@@ -419,130 +424,130 @@ function TableNavigator({
                             setColumnDropdownOpenForJoinAlias(null);
                           }
                         }}
-                        closeOnItemClick={false}
                       >
-                        <Menu.Target>
-                          <Tooltip label="Edit displayed columns">
-                            <ActionIcon variant="light">
-                              <BiColumns size={20} />
-                            </ActionIcon>
-                          </Tooltip>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                          <Menu.Item
-                            leftSection={
-                              <Checkbox
-                                checked={
-                                  selectedColumns.length ===
-                                  table.columns.length
-                                }
-                                indeterminate={
-                                  selectedColumns.length <
-                                    table.columns.length &&
-                                  selectedColumns.length > 0
-                                }
-                                readOnly
-                              />
+                        <Hint content="Edit displayed columns">
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="icon"
+                              className="size-7"
+                              aria-label={`Edit displayed columns for ${tableName}`}
+                            >
+                              <BiColumns />
+                            </Button>
+                          </DropdownMenuTrigger>
+                        </Hint>
+                        <DropdownMenuContent
+                          align="end"
+                          className="max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-48 overflow-auto"
+                        >
+                          <DropdownMenuCheckboxItem
+                            checked={
+                              selectedColumns.length === table.columns.length
+                                ? true
+                                : selectedColumns.length > 0
+                                ? "indeterminate"
+                                : false
                             }
-                            onClick={() => {
-                              if (
+                            onSelect={(event) => event.preventDefault()}
+                            onCheckedChange={() => {
+                              setSelectedColumns(
                                 selectedColumns.length === table.columns.length
-                              ) {
-                                setSelectedColumns([table.columns[0]!.name]);
-                              } else {
-                                setSelectedColumns(
-                                  table.columns.map((c) => c.name)
-                                );
-                              }
+                                  ? [table.columns[0]!.name]
+                                  : table.columns.map((column) => column.name)
+                              );
                             }}
                           >
                             Select all
-                          </Menu.Item>
-                          <Menu.Divider />
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuSeparator />
                           {table.columns.map((column) => {
                             const disabled =
                               selectedColumns.includes(column.name) &&
                               selectedColumns.length === 1;
                             return (
-                              <Tooltip
+                              <Hint
                                 key={column.name}
                                 disabled={!disabled}
-                                label="Cannot hide all columns from table. Try removing the table instead."
+                                content="Cannot hide all columns from table. Try removing the table instead."
+                                side="right"
                               >
-                                <Menu.Item
-                                  className={classNames({
-                                    "cursor-not-allowed text-neutral-500":
-                                      disabled,
-                                  })}
-                                  leftSection={
-                                    <Checkbox
-                                      checked={selectedColumns.includes(
-                                        column.name
-                                      )}
-                                      readOnly
-                                      disabled={disabled}
-                                    />
+                                <DropdownMenuCheckboxItem
+                                  checked={selectedColumns.includes(
+                                    column.name
+                                  )}
+                                  aria-disabled={disabled}
+                                  className={
+                                    disabled
+                                      ? "cursor-not-allowed text-muted-foreground"
+                                      : undefined
                                   }
-                                  onClick={() => {
-                                    if (disabled) {
-                                      return;
-                                    }
-                                    if (selectedColumns.includes(column.name)) {
-                                      setSelectedColumns(
-                                        selectedColumns.filter(
-                                          (c) => c !== column.name
-                                        )
-                                      );
-                                    } else {
-                                      setSelectedColumns([
-                                        ...selectedColumns,
-                                        column.name,
-                                      ]);
-                                    }
+                                  onSelect={(event) => event.preventDefault()}
+                                  onCheckedChange={(checked) => {
+                                    if (disabled) return;
+                                    setSelectedColumns(
+                                      checked
+                                        ? [...selectedColumns, column.name]
+                                        : selectedColumns.filter(
+                                            (name) => name !== column.name
+                                          )
+                                    );
                                   }}
                                 >
                                   {column.name}
-                                </Menu.Item>
-                              </Tooltip>
+                                </DropdownMenuCheckboxItem>
+                              </Hint>
                             );
                           })}
-                          <Menu.Item className="p-0">
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            asChild
+                            onSelect={() => {
+                              joinActions(join.joinAlias).setSelectedColumns(
+                                selectedColumns
+                              );
+                              setColumnDropdownOpenForJoinAlias(null);
+                            }}
+                          >
                             <Button
-                              rightSection={<TbCheck size={20} />}
-                              variant="light"
+                              type="button"
+                              variant="secondary"
                               className="w-full"
-                              onClick={() => {
-                                joinActions(join.joinAlias).setSelectedColumns(
-                                  selectedColumns
-                                );
-                                setColumnDropdownOpenForJoinAlias(null);
-                              }}
                             >
-                              Apply
+                              Apply <TbCheck />
                             </Button>
-                          </Menu.Item>
-                        </Menu.Dropdown>
-                      </Menu>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       {parentNode && (
-                        <Menu>
-                          <Menu.Target>
-                            <Tooltip label="Edit join path">
-                              <ActionIcon variant="light">
-                                <PiTreeStructure size={20} />
-                              </ActionIcon>
-                            </Tooltip>
-                          </Menu.Target>
-                          <Menu.Dropdown className="bg-slate-900/90 px-2 text-sm text-white">
-                            {/* TODO: add this functionality */}
+                        <Popover>
+                          <Hint content="Edit join path">
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="icon"
+                                className="size-7"
+                                aria-label={`Edit join path for ${tableName}`}
+                              >
+                                <PiTreeStructure />
+                              </Button>
+                            </PopoverTrigger>
+                          </Hint>
+                          <PopoverContent className="bg-slate-900/90 px-2 text-sm text-white">
                             Coming soon! See the roadmap on Github.
-                          </Menu.Dropdown>
-                        </Menu>
+                          </PopoverContent>
+                        </Popover>
                       )}
                       {parentNode && (
-                        <Tooltip label="Remove table from query">
-                          <ActionIcon
-                            variant="light"
-                            className="row-start-2 !bg-red-100"
+                        <Hint content="Remove table from query">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon"
+                            className="row-start-2 size-7 bg-red-100 text-red-600 hover:bg-red-200"
+                            aria-label={`Remove ${tableName} from query`}
                             onClick={() => {
                               if (joinActions(join.joinAlias).getParent()) {
                                 joinActions(join.joinAlias).removeJoin();
@@ -551,15 +556,15 @@ function TableNavigator({
                               }
                             }}
                           >
-                            <TbTrash className="text-red-600" size={20} />
-                          </ActionIcon>
-                        </Tooltip>
+                            <TbTrash />
+                          </Button>
+                        </Hint>
                       )}
                     </div>
                   )}
                 </div>
               </div>
-            </Tooltip>
+            </Hint>
           );
         })}
       </div>

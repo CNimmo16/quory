@@ -1,4 +1,5 @@
-import { ActionIcon, Tooltip } from "@mantine/core";
+import { Button } from "./ui/button";
+import { Hint } from "./Hint";
 import {
   ConditionOperator,
   isBooleanCondition,
@@ -14,7 +15,6 @@ import {
   TbSortDescending,
 } from "react-icons/tb";
 import classNames from "classnames";
-import { useClickOutside } from "@mantine/hooks";
 
 type UseQueryRet = ReturnType<typeof useQuery>;
 type QueryData = NonNullable<UseQueryRet["data"]>;
@@ -135,8 +135,19 @@ function DataTable({
 
   const [selectedCell, setSelectedCell] = useState<unknown | null>(null);
 
-  const allTds = [...document.getElementsByTagName("td")];
-  useClickOutside(() => setSelectedCell(null), null, allTds);
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (
+        !(target instanceof Element) ||
+        !tbody?.contains(target.closest("td"))
+      ) {
+        setSelectedCell(null);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [tbody]);
 
   return (
     <table
@@ -192,17 +203,20 @@ function DataTable({
                 >
                   <span className="mr-2">{column.readableName}</span>
                   <span className="flex flex-col -space-y-2">
-                    <Tooltip
-                      label={(() => {
+                    <Hint
+                      content={(() => {
                         if (isLastVisibleFromTable) {
                           return "Cannot hide all columns from table. Try removing the table instead.";
                         }
                         return "Hide column";
                       })()}
                     >
-                      <ActionIcon
-                        variant="transparent"
-                        className="group"
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        aria-label={`Hide column ${column.readableName}`}
+                        className="group size-7"
                         disabled={isLastVisibleFromTable}
                         onClick={() =>
                           joinActions(join.joinAlias).setSelectedColumns(
@@ -216,11 +230,14 @@ function DataTable({
                           size={18}
                           className="text-slate-800 group-hover:text-blue-500 group-disabled:!text-neutral-500"
                         />
-                      </ActionIcon>
-                    </Tooltip>
-                    <ActionIcon
-                      variant="transparent"
-                      className="group"
+                      </Button>
+                    </Hint>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      aria-label={`Sort by ${column.readableName}`}
+                      className="group size-7"
                       onClick={() => {
                         joinActions(join.joinAlias).orderBy(
                           [
@@ -256,7 +273,7 @@ function DataTable({
                           className="text-slate-800 group-hover:text-blue-500 group-disabled:!text-neutral-500"
                         />
                       )}
-                    </ActionIcon>
+                    </Button>
                   </span>
                 </th>
               );
@@ -360,11 +377,15 @@ function DataTable({
                               ? `${cellText.slice(0, maxTextLength)}...`
                               : cellText}
                             {selectedCell === cell && (
-                              <Tooltip label="Filter on this cell value">
-                                <ActionIcon
-                                  variant="transparent"
-                                  className="group/filter-icon ml-1"
-                                  onClick={() => {
+                              <Hint content="Filter on this cell value">
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  aria-label="Filter on this cell value"
+                                  className="group/filter-icon ml-1 size-7 shrink-0"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
                                     const existingCondition = join.where ?? {
                                       operator: ConditionOperator.AND,
                                       conditions: [],
@@ -394,8 +415,8 @@ function DataTable({
                                     size={18}
                                     className="text-slate-800 group-hover/filter-icon:text-blue-500 group-disabled/filter-icon:!text-neutral-500"
                                   />
-                                </ActionIcon>
-                              </Tooltip>
+                                </Button>
+                              </Hint>
                             )}
                           </span>
                         </>

@@ -1,11 +1,7 @@
-import {
-  ActionIcon,
-  Button,
-  Divider,
-  Popover,
-  TextInput,
-  Tooltip,
-} from "@mantine/core";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Hint } from "./Hint";
 import {
   findTableFromSchemas,
   getRelationsForTable,
@@ -69,40 +65,52 @@ function JoinAnotherTableButton({
 
   return (
     <div style={positionStyle} className="absolute flex items-center">
-      <Popover position="bottom" withArrow shadow="md">
-        <Popover.Target>
-          <Button rightSection={<TbTablePlus size={20} />} variant="light">
-            Join another table
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="secondary">
+            Join another table <TbTablePlus aria-hidden="true" />
           </Button>
-        </Popover.Target>
-        <Popover.Dropdown className="h-[600px] !w-[400px] overflow-auto">
+        </PopoverTrigger>
+        <PopoverContent
+          side="bottom"
+          align="start"
+          className="max-h-[min(600px,var(--radix-popover-content-available-height))] w-[400px] max-w-[calc(100vw-2rem)] overflow-auto"
+        >
           <div className="flex flex-col gap-[8px] pb-[8px] pt-[4px]">
             <div className="text-sm text-slate-600">Adjacent tables</div>
             {[...adjacentTables, null, ...otherTables].map((maybeTableRef) => {
               if (!maybeTableRef) {
                 return (
                   <div key="divider">
-                    <Divider />
-                    <TextInput
-                      className="mt-2"
-                      type="search"
-                      placeholder="Filter other tables"
-                      value={otherTablesSearch}
-                      onChange={(e) => {
-                        setOtherTablesSearch(e.target.value);
-                      }}
-                      leftSection={<TbSearch size={20} />}
-                      rightSection={
-                        otherTablesSearch && (
-                          <ActionIcon
-                            variant="transparent"
-                            onClick={() => setOtherTablesSearch("")}
-                          >
-                            <TbX size={20} />
-                          </ActionIcon>
-                        )
-                      }
-                    />
+                    <hr />
+                    <div className="relative mt-2">
+                      <TbSearch
+                        aria-hidden="true"
+                        className="absolute left-3 top-2.5 size-4 text-muted-foreground"
+                      />
+                      <Input
+                        type="search"
+                        aria-label="Filter other tables"
+                        placeholder="Filter other tables"
+                        value={otherTablesSearch}
+                        onChange={(event) =>
+                          setOtherTablesSearch(event.target.value)
+                        }
+                        className="pl-9 pr-9"
+                      />
+                      {otherTablesSearch && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0"
+                          aria-label="Clear table search"
+                          onClick={() => setOtherTablesSearch("")}
+                        >
+                          <TbX />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 );
               }
@@ -119,12 +127,13 @@ function JoinAnotherTableButton({
                   key={`${tableSchema}.${tableName}`}
                   className="flex cursor-default items-start py-0"
                 >
-                  <Tooltip
-                    label="Records already joined"
+                  <Hint
+                    content="Records already joined"
                     disabled={!existingJoin}
-                    position="right"
+                    side="right"
                   >
                     <button
+                      type="button"
                       className={classNames(
                         "m-0 flex items-center gap-1 rounded-lg bg-slate-200 px-2 py-0 disabled:bg-neutral-200 disabled:text-neutral-600 [&:not(:disabled)]:hover:bg-slate-300"
                       )}
@@ -142,12 +151,12 @@ function JoinAnotherTableButton({
                       )}
                       {tableName}
                     </button>
-                  </Tooltip>
+                  </Hint>
                 </div>
               );
             })}
           </div>
-        </Popover.Dropdown>
+        </PopoverContent>
       </Popover>
     </div>
   );

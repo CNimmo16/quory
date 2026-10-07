@@ -1,4 +1,5 @@
-import { Alert, Loader, LoadingOverlay } from "@mantine/core";
+import { Alert, AlertDescription } from "./ui/alert";
+import { LoadingState } from "./LoadingState";
 import { PreparedQuery, Query } from "@quory/core";
 import { useQuery, useFetchSchema } from "@quory/stack/react";
 import { useEffect, useMemo, useState } from "react";
@@ -48,7 +49,7 @@ export default function QueryView({
   >(null);
 
   if (!schemaData) {
-    return <LoadingOverlay />;
+    return <LoadingState />;
   }
   return (
     <div className="bg-slate-200">
@@ -67,13 +68,13 @@ export default function QueryView({
       )}
       <div>
         {error && (
-          <Alert variant="default" className="mb-3 bg-red-100">
-            {error.message}
+          <Alert variant="destructive" className="mb-3 bg-red-100">
+            <AlertDescription>{error.message}</AlertDescription>
           </Alert>
         )}
         {isLoading && (
           <div className="bg-white p-5">
-            <Loader />
+            <LoadingState label="Running query…" />
           </div>
         )}
         {query && data && !isLoading && (

@@ -1,12 +1,8 @@
-import {
-  Alert,
-  Button,
-  Container,
-  InputLabel,
-  LoadingOverlay,
-  Select,
-  Stack,
-} from "@mantine/core";
+import { Alert, AlertDescription } from "../../components/ui/alert";
+import { Button } from "../../components/ui/button";
+import { Label } from "../../components/ui/label";
+import { LoadingState, Spinner } from "../../components/LoadingState";
+import { TablePicker } from "../../components/TablePicker";
 import { useFetchSchema } from "@quory/stack/react";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import useMainDimensions from "../../hooks/useMainDimensions";
@@ -48,19 +44,17 @@ function RouteComponent() {
     },
   });
 
-  const dropdownOpen = !baseTableRef;
-
   if (!schemaData) {
-    return <LoadingOverlay />;
+    return <LoadingState />;
   }
 
   return (
     <form
       onSubmit={(e) => {
+        e.preventDefault();
         if (!baseTableRef) {
           return;
         }
-        e.preventDefault();
         createQuery({
           query: {
             base: {
@@ -73,34 +67,36 @@ function RouteComponent() {
         });
       }}
     >
-      <Container h={mainHeight - 200} w={Math.min(mainWidth, 1000)} pt={70}>
-        <Stack>
-          <InputLabel>Choose a table to start from</InputLabel>
-          <Select
-            data={schemaData.schemas.map((schema) => {
-              return {
-                group: schema.name,
-                items: schema.tables.map((table) => ({
-                  label: table.name,
-                  value: `${schema.name}.${table.name}`,
-                })),
-              };
-            })}
-            dropdownOpened={dropdownOpen}
-            className="w-full"
-            maxDropdownHeight={mainHeight - 300}
+      <div
+        className="mx-auto px-4 pt-[70px]"
+        style={{
+          minHeight: Math.max(0, mainHeight - 200),
+          width: Math.min(mainWidth, 1000),
+        }}
+      >
+        <div className="flex flex-col gap-4">
+          <Label htmlFor="base-table">Choose a table to start from</Label>
+          <TablePicker
+            id="base-table"
+            groups={schemaData.schemas}
             value={baseTableRef}
             onChange={setBaseTableRef}
-            multiple={false}
-            searchable
-            placeholder="Select a table"
+            maxHeight={mainHeight - 300}
           />
-          {error && <Alert color="red">{error.message}</Alert>}
-          <Button type="submit" loading={isPending} disabled={!baseTableRef}>
-            Go
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error.message}</AlertDescription>
+            </Alert>
+          )}
+          <Button
+            type="submit"
+            aria-busy={isPending}
+            disabled={!baseTableRef || isPending}
+          >
+            {isPending && <Spinner />}Go
           </Button>
-        </Stack>
-      </Container>
+        </div>
+      </div>
     </form>
   );
 }

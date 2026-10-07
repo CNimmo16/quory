@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppRouter } from "../../../../main/ipc";
 import { inferProcedureInput } from "@trpc/server";
-import { ConnectionForm } from "./$connectionId";
+import { ConnectionForm } from "../../components/ConnectionForm";
 import trpc from "../../util/tprc";
 
 export const Route = createFileRoute("/connections/")({
@@ -39,8 +39,8 @@ function RouteComponent() {
   const error = saveConnectionError;
 
   return (
-    <div className="p-5 max-w-[600px] mx-auto">
-      <h1 className="text-2xl mb-5">New connection</h1>
+    <div className="mx-auto max-w-[600px] p-5">
+      <h1 className="mb-5 text-2xl">New connection</h1>
       <ConnectionForm
         config={config}
         setConfig={setConfig}

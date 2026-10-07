@@ -37,7 +37,7 @@
     "eslint": "catalog:",
     "jest": "catalog:",
     "tsup": "catalog:",
-    "vitest": "^2.1.8"
+    "vitest": "catalog:"
   },
   "dependencies": {
     "graph-data-structure": "^4.3.0",

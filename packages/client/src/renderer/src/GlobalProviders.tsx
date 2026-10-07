@@ -1,13 +1,8 @@
 import { QuoryProvider } from "@quory/stack/react";
-import { createTheme, MantineProvider } from "@mantine/core";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ipcLink } from "trpc-electron/renderer";
 import trpc from "./util/tprc";
-
-const mantineTheme = createTheme({
-  fontFamily: "Montserrat, sans-serif",
-  defaultRadius: "md",
-});
 
 export const trpcClient = trpc.createClient({
   links: [ipcLink()],
@@ -29,7 +24,7 @@ export default function GlobalProviders({
             return api.quory({ path, data });
           }}
         >
-          <MantineProvider theme={mantineTheme}>{children}</MantineProvider>
+          <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
         </QuoryProvider>
       </QueryClientProvider>
     </trpc.Provider>
