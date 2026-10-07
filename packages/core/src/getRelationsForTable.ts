@@ -21,9 +21,7 @@ export default function getRelationsForTable(
         column.foreignKeyReferences.length === 0
     )
   ) {
-    throw new Error(
-      `No relationships found for table ${schemaName}.${tableName}`
-    );
+    return [];
   }
 
   const graph = makeGraphForDatabase(databaseSchemas);

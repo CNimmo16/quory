@@ -11,6 +11,7 @@ export default function getWhereClauseFromConditions(
   if (!tableAlias) {
     tableAlias = `${table.schemaName}.${table.name}`;
   }
+  const quoteValue = (value: string) => `'${value.replace(/'/g, "''")}'`;
   function makeCondition(condition: Condition): string {
     if (
       "column" in condition &&
@@ -31,8 +32,8 @@ export default function getWhereClauseFromConditions(
           condition.column
         } ${condition.operator.toUpperCase()} ${
           "value" in condition
-            ? `'${condition.value}'`
-            : `(${condition.values.map((value) => `'${value}'`).join(",")})`
+            ? quoteValue(condition.value)
+            : `(${condition.values.map(quoteValue).join(",")})`
         }`;
     }
   }

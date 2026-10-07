@@ -3,12 +3,15 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { attachIpcHandlers, detatchIpcHandlers } from "./ipc";
 import activeConnectionState from "./state/activeConnectionState";
+import { loadAIEnvironment } from "./ai/environment";
 import {
   installExtension,
   REACT_DEVELOPER_TOOLS,
 } from "electron-devtools-installer";
 
 let mainWindow: BrowserWindow | null = null;
+
+if (!app.isPackaged) loadAIEnvironment();
 
 export async function recreateMainWindow(): Promise<void> {
   if (mainWindow && !mainWindow.isDestroyed()) {

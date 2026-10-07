@@ -67,6 +67,17 @@ const connectionsRouter = router({
           username: z.string().optional(),
           password: z.string().optional(),
           database: z.string().optional(),
+          ssl: z
+            .object({
+              mode: z.enum(["require", "verify-full"]),
+              ca: z.string().trim().optional(),
+              cert: z.string().trim().optional(),
+              key: z.string().trim().optional(),
+            })
+            .refine((ssl) => Boolean(ssl.cert) === Boolean(ssl.key), {
+              message: "Provide both a client certificate and its private key.",
+            })
+            .optional(),
         }),
       })
     )
@@ -79,10 +90,10 @@ const connectionsRouter = router({
         if (e instanceof DatabaseConnectionFailedError)
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message:
-              "Unable to connect to database. Please check your connection details.",
+            message: `Unable to connect to database: ${e.message}. Please check your connection details and SSL settings.`,
             cause: e,
           });
+        throw e;
       }
       if (!connectionId) {
         connectionId = randomUUID();
@@ -126,10 +137,10 @@ const connectionsRouter = router({
         if (e instanceof DatabaseConnectionFailedError)
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message:
-              "Unable to connect to database. Please check your connection details.",
+            message: `Unable to connect to database: ${e.message}. Please check your connection details and SSL settings.`,
             cause: e,
           });
+        throw e;
       }
       activeConnectionState.setActiveConnection(connectionId);
       // recreate window to reattach the quory IPC handler with the new database config

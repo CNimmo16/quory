@@ -153,21 +153,11 @@ export default async function prepareQuery(
   const { base } = query;
 
   const [baseSchemaName, baseTableName] = splitTableRef(base.tableRef);
-  const baseTable = findTableFromSchemas(
+  findTableFromSchemas(
     databaseSchemas,
     baseSchemaName,
     baseTableName
   );
-
-  if (
-    baseTable.columns.every(
-      (column) =>
-        column.foreignKeys.length === 0 &&
-        column.foreignKeyReferences.length === 0
-    )
-  ) {
-    throw new Error(`No relationships found for table ${baseTableName}`);
-  }
 
   const tableSeenCounts: {
     [key: string]: number;

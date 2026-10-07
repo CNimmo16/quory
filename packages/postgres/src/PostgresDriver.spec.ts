@@ -129,6 +129,30 @@ describe("PostgresDriver", () => {
     ]);
   });
 
+  it("reads schemas containing internal PostgreSQL types without failing", async () => {
+    await db.schema.createTable("metadata", (table) => {
+      table.specificType("object_name", "name");
+      table.specificType("object_id", "oid");
+    });
+
+    const columns = await driver.getAllColumnsInDatabase();
+
+    expect(columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "object_name",
+          dataType: "name",
+          genericDataType: "text",
+        }),
+        expect.objectContaining({
+          name: "object_id",
+          dataType: "oid",
+          genericDataType: "other",
+        }),
+      ])
+    );
+  });
+
   it("Finds all relationships from foreign keys", async () => {
     await db.schema.createTable("customers", (table) => {
       table.bigIncrements("id").primary();

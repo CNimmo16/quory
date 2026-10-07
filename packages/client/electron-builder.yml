@@ -3,6 +3,7 @@ productName: quory
 directories:
   buildResources: build
 files:
+  - '!**/.env*'
   - '!**/.vscode/*'
   - '!src/*'
   - '!dev-app-update.yml'

@@ -1,4 +1,3 @@
-import { useEffect, useMemo } from "react";
 import type { AppRouter } from "../../../main/ipc";
 import type { inferProcedureInput } from "@trpc/server";
 import { Alert, AlertDescription } from "./ui/alert";
@@ -14,6 +13,24 @@ import { Label } from "./ui/label";
 import { TextField } from "./TextField";
 import { Hint } from "./Hint";
 import { Spinner } from "./LoadingState";
+import { ConnectionSslFields } from "./ConnectionSslFields";
+
+const databaseDefaults = {
+  postgres: {
+    hostOrFilePath: "localhost",
+    port: 5432,
+    username: "postgres",
+    password: "",
+    database: "postgres",
+  },
+  mysql: {
+    hostOrFilePath: "localhost",
+    port: 3306,
+    username: "root",
+    password: "",
+    database: "mysql",
+  },
+};
 
 export function ConnectionForm({
   config,
@@ -44,39 +61,10 @@ export function ConnectionForm({
   isConnecting?: boolean;
   saveText: string;
 }) {
-  const typeSpecificFieldsWithDefaults = useMemo((): typeof config | null => {
-    if (!config.type) {
-      return null;
-    }
-    if (config.type === "postgres") {
-      return {
-        hostOrFilePath: "localhost",
-        port: 5432,
-        username: "postgres",
-        password: "",
-        database: "postgres",
-      };
-    }
-    if (config.type === "mysql") {
-      return {
-        hostOrFilePath: "localhost",
-        port: 3306,
-        username: "root",
-        password: "",
-        database: "mysql",
-      };
-    }
-    return null;
-  }, [config.type]);
-
-  useEffect(() => {
-    if (typeSpecificFieldsWithDefaults) {
-      setConfig((prev) => ({
-        ...prev,
-        ...typeSpecificFieldsWithDefaults,
-      }));
-    }
-  }, [typeSpecificFieldsWithDefaults, setConfig]);
+  const typeSpecificFieldsWithDefaults =
+    config.type === "postgres" || config.type === "mysql"
+      ? databaseDefaults[config.type]
+      : null;
 
   return (
     <div className="flex h-full w-full items-center justify-center">
@@ -96,9 +84,10 @@ export function ConnectionForm({
           </Label>
           <Select
             value={config.type ?? ""}
-            onValueChange={(value) =>
-              setConfig({ ...config, type: value as "postgres" | "mysql" })
-            }
+            onValueChange={(value) => {
+              const type = value as keyof typeof databaseDefaults;
+              setConfig({ ...config, ...databaseDefaults[type], type });
+            }}
             required
           >
             <SelectTrigger id="database-type">
@@ -177,6 +166,10 @@ export function ConnectionForm({
                 setConfig({ ...config, nickname: event.target.value })
               }
               required
+            />
+            <ConnectionSslFields
+              value={config.ssl}
+              onChange={(ssl) => setConfig({ ...config, ssl })}
             />
           </>
         )}

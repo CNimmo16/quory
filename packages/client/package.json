@@ -8,7 +8,7 @@
   "scripts": {
     "lint": "eslint .",
     "start": "electron-vite preview",
-    "serve": "electron-vite dev",
+    "serve": "electron-vite dev --watch",
     "build": "electron-vite build",
     "build:unpack": "electron-vite build && electron-builder --dir",
     "build:win": "electron-vite build && electron-builder --win",
@@ -19,6 +19,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.127",
+    "@ai-sdk/google": "^3.0.130",
+    "@ai-sdk/openai": "^3.0.124",
     "@radix-ui/react-dialog": "^1.2.0",
     "@radix-ui/react-dropdown-menu": "^2.1.25",
     "@radix-ui/react-label": "^2.1.16",
@@ -31,11 +34,13 @@
     "@trpc/client": "catalog:",
     "@trpc/react-query": "^11.0.0-rc.682",
     "@trpc/server": "catalog:",
+    "ai": "^6.0.301",
     "class-variance-authority": "^0.7.1",
     "classnames": "catalog:",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "d3-hierarchy": "^3.1.2",
+    "dotenv": "^16.6.1",
     "immer": "catalog:",
     "lucide-react": "^1.52.0",
     "pouchdb": "^9.0.0",

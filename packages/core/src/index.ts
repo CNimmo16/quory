@@ -27,6 +27,7 @@ import {
   isListCondition,
 } from "./prepareQuery";
 import runQuery from "./runQuery";
+import prepareQuery from "./prepareQuery";
 import getCountForQuery from "./getCountForQuery";
 import getRelationsForTable from "./getRelationsForTable";
 import getEntitiesAndJunctions from "./getEntitiesAndJunctions";
@@ -39,6 +40,7 @@ import areQueriesEqual from "./util/areQueriesEqual";
 export {
   getSchemas,
   runQuery,
+  prepareQuery,
   getCountForQuery,
   getRelationsForTable,
   getEntitiesAndJunctions,

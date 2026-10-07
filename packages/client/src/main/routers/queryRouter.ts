@@ -1,19 +1,15 @@
 import { randomUUID } from "crypto";
-import makeRepo from "../util/makeRepo";
 import { publicProcedure, router } from "../util/trpc";
 import { z } from "zod";
 import { validators } from "@quory/stack/server";
-import { Query, splitTableRef } from "@quory/core";
+import { splitTableRef } from "@quory/core";
 import activeConnectionState from "../state/activeConnectionState";
 
-const queryRepo = makeRepo<
-  Query & {
-    connectionId: string;
-    nickname: string;
-  }
->("queries");
+import { queryRepo } from "../repositories/queryRepo";
+import { queryChatProcedure } from "../ai/queryChat";
 
 const queryRouter = router({
+  chat: queryChatProcedure,
   listSavedQueries: publicProcedure.query(async () => {
     const activeConnectionId =
       await activeConnectionState.getActiveConnectionId();
@@ -84,7 +80,7 @@ const queryRouter = router({
         await activeConnectionState.getActiveConnectionIdOrThrow();
       const existingDoc = await queryRepo.get(queryId);
       const doc = await queryRepo.put({
-        _id: queryId,
+        ...existingDoc,
         _rev: revision,
         ...query,
         connectionId: activeConnectionId,

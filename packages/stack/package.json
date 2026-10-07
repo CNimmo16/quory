@@ -59,6 +59,7 @@
   },
   "dependencies": {
     "@quory/core": "workspace:*",
+    "@quory/mysql": "workspace:*",
     "@quory/postgres": "workspace:*",
     "@quory/sqlite": "workspace:*",
     "@tanstack/react-query": "catalog:",

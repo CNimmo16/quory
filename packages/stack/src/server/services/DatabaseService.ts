@@ -1,6 +1,7 @@
 import { DatabaseDriver, DatabaseSchema, getSchemas } from "@quory/core";
 import { SqliteDriver } from "@quory/sqlite";
 import { PostgresDriver } from "@quory/postgres";
+import { MySQLDriver } from "@quory/mysql";
 import sqlite from "better-sqlite3";
 import { QuoryRequestHandlerConfig } from "../types";
 import { DatabaseConnectionFailedError } from "../errors";
@@ -33,6 +34,17 @@ export interface ClientDatabase {
 export async function makeClientDatabase(
   config: QuoryRequestHandlerConfig
 ): Promise<ClientDatabase> {
+  const ca = config.database.ssl?.ca?.trim();
+  const cert = config.database.ssl?.cert?.trim();
+  const key = config.database.ssl?.key?.trim();
+  const ssl = config.database.ssl
+    ? {
+        rejectUnauthorized: config.database.ssl.mode !== "require",
+        ...(ca && { ca }),
+        ...(cert && { cert }),
+        ...(key && { key }),
+      }
+    : undefined;
   const driver = await (async () => {
     switch (config.database.type) {
       case "sqlite": {
@@ -40,6 +52,7 @@ export async function makeClientDatabase(
         return new SqliteDriver(client);
       }
       case "postgres":
+      case "mysql": {
         if (!config.database.port) {
           throw new Error("Missing port");
         }
@@ -52,13 +65,26 @@ export async function makeClientDatabase(
         if (!config.database.password) {
           throw new Error("Missing password");
         }
-        return new PostgresDriver({
+        const connection = {
           host: config.database.hostOrFilePath,
           port: config.database.port,
           database: config.database.database,
-          username: config.database.username,
           password: config.database.password,
-        });
+        };
+        return config.database.type === "postgres"
+          ? new PostgresDriver({
+              ...connection,
+              username: config.database.username,
+              ssl: ssl ?? false,
+            })
+          : new MySQLDriver({
+              ...connection,
+              user: config.database.username,
+              ...(ssl && {
+                ssl: { ...ssl, verifyIdentity: ssl.rejectUnauthorized },
+              }),
+            });
+      }
       default:
         throw new Error(`Unsupported database type ${config.database.type}`);
     }

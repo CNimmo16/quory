@@ -27,6 +27,7 @@ export default function postgresDatatypeToGenericDatatype(
     macaddr: "other",
     macaddr8: "other",
     money: "money",
+    name: "text",
     numeric: "number",
     path: "geometric",
     pg_lsn: "other",
@@ -50,9 +51,9 @@ export default function postgresDatatypeToGenericDatatype(
     "USER-DEFINED": "other",
     ARRAY: "other",
   };
-  const ret = lookup[postgresDatatype];
-  if (!ret) {
-    throw new Error(`Datatype ${postgresDatatype} not recognised`);
-  }
-  return ret;
+  // Keep provider and extension types browsable even without a dedicated
+  // category. The column still retains its original PostgreSQL dataType.
+  return Object.prototype.hasOwnProperty.call(lookup, postgresDatatype)
+    ? lookup[postgresDatatype]!
+    : "other";
 }

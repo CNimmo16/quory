@@ -13,8 +13,10 @@ vi.stubGlobal(
     disconnect() {}
   }
 );
-vi.stubGlobal("PointerEvent", MouseEvent);
-Element.prototype.scrollIntoView = vi.fn();
-Element.prototype.hasPointerCapture = vi.fn(() => false);
-Element.prototype.setPointerCapture = vi.fn();
-Element.prototype.releasePointerCapture = vi.fn();
+if (typeof Element !== "undefined") {
+  vi.stubGlobal("PointerEvent", MouseEvent);
+  Element.prototype.scrollIntoView = vi.fn();
+  Element.prototype.hasPointerCapture = vi.fn(() => false);
+  Element.prototype.setPointerCapture = vi.fn();
+  Element.prototype.releasePointerCapture = vi.fn();
+}
