@@ -1,0 +1,3 @@
+# Include compiled entry points in packages even though Git ignores them.
+!dist/
+!dist/**

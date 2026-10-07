@@ -1,0 +1,66 @@
+packages:
+  - packages/*
+
+# Versions shared by multiple workspace packages.
+catalog:
+  '@tanstack/react-query': ^5.62.10
+  '@trpc/client': ^11.0.0-rc.682
+  '@trpc/server': ^11.0.0-rc.666
+  '@types/better-sqlite3': ^7.6.12
+  '@types/jest': ^29.5.14
+  '@types/string-similarity': ^4.0.2
+  better-sqlite3: ^11.7.0
+  classnames: ^2.5.1
+  eslint: ^9.17.0
+  eslint-plugin-react: ^7.37.3
+  immer: ^10.1.1
+  jest: ^29.7.0
+  knex: ^2.3.0
+  react-icons: ^5.4.0
+  testcontainers: ^8.14.0
+  ts-jest: ^29.2.5
+  tsup: ^8.3.5
+  zod: ^3.24.1
+
+# The Electron client uses React 18; the web stack uses React 19.
+catalogs:
+  react18:
+    '@types/react': ^18.3.18
+    '@types/react-dom': ^18.3.5
+    react: ^18.3.1
+    react-dom: ^18.3.1
+  react19:
+    '@types/react': ^19.0.2
+    '@types/react-dom': ^19.0.2
+    react: ^19.0.0
+    react-dom: ^19.0.0
+
+# electron-builder 24 requires a flat node_modules layout for packaging.
+nodeLinker: hoisted
+
+# Preserve the native modules and Electron installation steps used by the app.
+allowBuilds:
+  better-sqlite3: true
+  cpu-features: true
+  electron: true
+  esbuild: true
+  fsevents: true
+  leveldown: true
+  ssh2: true
+
+minimumReleaseAgeExclude:
+  - '@pnpm/exe.android-arm64@12.10.1'
+  - '@pnpm/exe.android-x64@12.10.1'
+  - '@pnpm/exe.darwin-arm64@12.10.1'
+  - '@pnpm/exe.darwin-x64@12.10.1'
+  - '@pnpm/exe.freebsd-x64@12.10.1'
+  - '@pnpm/exe.linux-arm64-musl@12.10.1'
+  - '@pnpm/exe.linux-arm64@12.10.1'
+  - '@pnpm/exe.linux-ppc64@12.10.1'
+  - '@pnpm/exe.linux-riscv64@12.10.1'
+  - '@pnpm/exe.linux-s390x@12.10.1'
+  - '@pnpm/exe.linux-x64-musl@12.10.1'
+  - '@pnpm/exe.linux-x64@12.10.1'
+  - '@pnpm/exe.win32-arm64@12.10.1'
+  - '@pnpm/exe.win32-x64@12.10.1'
+  - pnpm@12.10.1

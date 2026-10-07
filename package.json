@@ -2,29 +2,34 @@
   "name": "quory",
   "version": "0.0.0",
   "private": true,
-  "workspaces": [
-    "./packages/*"
-  ],
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run build:watch",
-    "test": "turbo run test --parallel",
-    "lint": "turbo run lint",
+    "build": "pnpm -r run build",
+    "dev": "pnpm -r --parallel run build:watch",
+    "serve": "pnpm --filter @quory/client run serve",
+    "test": "pnpm -r --parallel run test",
+    "lint": "pnpm -r run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
-    "changeset": "turbo run build && changeset",
-    "ci:release": "turbo run build lint test && changeset version && changeset publish"
+    "changeset": "pnpm build && changeset",
+    "ci:release": "pnpm build && pnpm lint && pnpm test && changeset version && changeset publish"
   },
   "devDependencies": {
+    "node-gyp": "^10.3.1",
     "prettier": "2.8.4",
-    "prettier-plugin-tailwindcss": "^0.2.4",
-    "turbo": "latest"
+    "prettier-plugin-tailwindcss": "^0.2.4"
   },
   "engines": {
-    "npm": ">=7.0.0",
-    "node": ">=14.0.0"
+    "pnpm": ">=12.0.0 <13",
+    "node": ">=18.18.0"
   },
-  "packageManager": "npm@8.6.0",
+  "packageManager": "pnpm@12.10.1",
   "dependencies": {
     "@changesets/cli": "^2.27.10"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "20.20.2",
+      "onFail": "download"
+    }
   }
 }

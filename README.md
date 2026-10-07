@@ -162,19 +162,27 @@ It provides a set of functions to obtain information about your database's schem
 
 ### Prerequisites
 
+- pnpm 12.10.1 (the version pinned in `package.json`). Install pnpm using the [official installation instructions](https://pnpm.io/installation).
+- `pnpm install` automatically downloads and uses the Node.js 20.20.2 runtime pinned in `package.json`, including for native dependency builds. Run project commands through pnpm so they use this runtime even if your shell has another Node.js version.
+- Docker for the MySQL and PostgreSQL integration tests.
+
 ### Setup
 
 1. Clone the repo
-2. Run `npm install`
+2. Run `pnpm install`
+3. Run `pnpm build` to build all packages in dependency order.
 
 #### Building packages
-Run `npm run dev` to run the `build:watch` scripts from all packages in the /packages folder. Note: this script may error when first run, if so just run it a second time.
+Run `pnpm build` for a one-off build, or `pnpm dev` to run the `build:watch` scripts concurrently from all packages in the `/packages` folder. Build once before starting watch mode so dependent packages can resolve their dependencies.
 
 #### Running Electron client locally
-Run `npx turbo serve` to run the `serve` script from the `/packages/client/package.json`, which should launch the Electron app locally.
+Run `pnpm serve` to launch the Electron app locally. Keep `pnpm dev` running in a separate terminal to rebuild the library packages as you edit them.
 
 #### Building the Electron client
-Run `npx turbo build:<os>` replacing `<os>` with your operating system - `mac`, `linux` or `windows`. The resulting build files will be created in the `/packages/client/dist` folder.
+Run `pnpm build`, then `pnpm --filter @quory/client build:<os>` replacing `<os>` with your operating system - `mac`, `linux` or `win`. The resulting build files will be created in the `/packages/client/dist` folder. Use `pnpm --filter @quory/client build:unpack` to create an unpacked application.
 
 #### Testing
-Each of the packages has a suite of tests, these can be run simultaneously by running `npm run test` from the root directory, or run `npm run test --workspace @quory/<package-name>` to run tests for a single package.
+After building the packages, run `pnpm test` from the root directory to run package tests concurrently, or `pnpm --filter @quory/<package-name> test` to run tests for a single package. Run `pnpm lint` to lint all packages.
+
+#### Releases
+Run `pnpm changeset` to build the packages and record a change for release. CI installs dependencies with `pnpm install --frozen-lockfile` and runs `pnpm ci:release` to build, lint, test, version, and publish through Changesets.
