@@ -25,7 +25,12 @@ export class SqliteDriver implements DatabaseDriver {
     } else {
       this.db = filenameOrClient;
     }
-    this.db.pragma("journal_mode = WAL");
+    try {
+      this.db.pragma("journal_mode = WAL");
+    } catch (error) {
+      this.db.close();
+      throw error;
+    }
   }
 
   async testConnection() {
@@ -157,7 +162,11 @@ export class SqliteDriver implements DatabaseDriver {
     return foreignKeys;
   }
 
-  async teardown() {
-    await this.db.close();
+  private teardownPromise?: Promise<void>;
+
+  teardown(): Promise<void> {
+    return (this.teardownPromise ??= Promise.resolve().then(async () => {
+      await this.db.close();
+    }));
   }
 }

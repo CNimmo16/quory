@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow } from "electron";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { attachIpcHandlers, detatchIpcHandlers } from "./ipc";
-import activeConnectionState from "./state/activeConnectionState";
+import { shutdownQuorySessions } from "./state/quorySession";
 import { loadAIEnvironment } from "./ai/environment";
 import {
   installExtension,
@@ -82,8 +82,23 @@ app.whenReady().then(async () => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on("window-all-closed", async () => {
-  await activeConnectionState.deleteActiveConnection();
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+// Electron does not await event listeners; delay quit until owned resources close.
+let shutdownComplete = false;
+let shutdownStarted = false;
+app.on("before-quit", (event) => {
+  if (shutdownComplete) return;
+  event.preventDefault();
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+  void shutdownQuorySessions()
+    .catch(console.error)
+    .finally(() => {
+      shutdownComplete = true;
+      app.quit();
+    });
 });

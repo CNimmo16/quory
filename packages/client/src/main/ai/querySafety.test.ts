@@ -18,6 +18,7 @@ function database() {
     getAllColumnsInDatabase: vi.fn(),
     getAllForeignKeysInDatabase: vi.fn(),
     testConnection: vi.fn(),
+    teardown: vi.fn(),
   };
   return { driver, schemas };
 }

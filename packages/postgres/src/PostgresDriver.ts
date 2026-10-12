@@ -101,7 +101,11 @@ export class PostgresDriver implements DatabaseDriver {
     }));
   }
 
-  async teardown() {
-    await this.sql.end();
+  private teardownPromise?: Promise<void>;
+
+  teardown(): Promise<void> {
+    return (this.teardownPromise ??= Promise.resolve().then(async () => {
+      await this.sql.end();
+    }));
   }
 }

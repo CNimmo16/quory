@@ -13,3 +13,11 @@ it("passes values separately to postgres.js and returns query rows", async () =>
     [rows[0]!.name]
   );
 });
+
+it("ends its client once across concurrent teardown calls", async () => {
+  const driver = Object.create(PostgresDriver.prototype) as PostgresDriver;
+  const end = jest.fn().mockResolvedValue(undefined);
+  driver.sql = { end } as unknown as PostgresDriver["sql"];
+  await Promise.all([driver.teardown(), driver.teardown()]);
+  expect(end).toHaveBeenCalledTimes(1);
+});

@@ -33,6 +33,8 @@ function RouteComponent() {
     error: saveConnectionERror,
   } = trpc.connections.saveConnection.useMutation({
     onSuccess: () => {
+      utils.connections.fetchActiveConnection.invalidate();
+      utils.connections.listSavedConnections.invalidate();
       navigate({
         to: "/connections/$connectionId",
         params: { connectionId: connection._id },
@@ -73,6 +75,7 @@ function RouteComponent() {
     trpc.connections.deleteConnection.useMutation({
       onSuccess: () => {
         utils.connections.listSavedConnections.invalidate();
+        utils.connections.fetchActiveConnection.invalidate();
         navigate({ to: "/connections" });
       },
     });

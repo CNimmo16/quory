@@ -1,21 +1,16 @@
-import makeRepo from "../util/makeRepo";
 import { publicProcedure, router } from "../util/trpc";
 import { z } from "zod";
 import {
   DatabaseConnectionFailedError,
   makeQuoryRequestHandler,
-  QuoryRequestHandlerConfig,
 } from "@quory/stack/server";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "crypto";
-import { recreateMainWindow } from "..";
 import activeConnectionState from "../state/activeConnectionState";
 
-export const connectionRepo = makeRepo<
-  QuoryRequestHandlerConfig["database"] & {
-    nickname: string;
-  }
->("connections");
+export { connectionRepo } from "../state/connectionRepo";
+import { connectionRepo } from "../state/connectionRepo";
+import { refreshQuorySchema } from "../state/quorySession";
 
 const connectionsRouter = router({
   listSavedConnections: publicProcedure.query(async () => {
@@ -83,9 +78,8 @@ const connectionsRouter = router({
     )
     .mutation(async ({ input: { revision, connectionId, config } }) => {
       try {
-        await makeQuoryRequestHandler({
-          database: config,
-        });
+        const test = await makeQuoryRequestHandler({ database: config });
+        await test.dispose();
       } catch (e) {
         if (e instanceof DatabaseConnectionFailedError)
           throw new TRPCError({
@@ -117,6 +111,7 @@ const connectionsRouter = router({
         _rev: revision,
         ...config,
       });
+      await activeConnectionState.deleteActiveConnection(connectionId);
       return {
         connectionId: connectionId,
       };
@@ -128,11 +123,8 @@ const connectionsRouter = router({
       })
     )
     .mutation(async ({ input: { connectionId } }) => {
-      const config = await connectionRepo.get(connectionId);
       try {
-        await makeQuoryRequestHandler({
-          database: config,
-        });
+        await activeConnectionState.setActiveConnection(connectionId);
       } catch (e) {
         if (e instanceof DatabaseConnectionFailedError)
           throw new TRPCError({
@@ -142,12 +134,10 @@ const connectionsRouter = router({
           });
         throw e;
       }
-      activeConnectionState.setActiveConnection(connectionId);
-      // recreate window to reattach the quory IPC handler with the new database config
-      recreateMainWindow();
     }),
+  refreshSchema: publicProcedure.mutation(async () => refreshQuorySchema()),
   disconnectFromDatabase: publicProcedure.mutation(async () => {
-    activeConnectionState.deleteActiveConnection();
+    await activeConnectionState.deleteActiveConnection();
   }),
   deleteConnection: publicProcedure
     .input(
@@ -159,6 +149,7 @@ const connectionsRouter = router({
       const connection = await connectionRepo.get(connectionId);
 
       await connectionRepo.remove(connection);
+      await activeConnectionState.deleteActiveConnection(connectionId);
     }),
 });
 

@@ -55,4 +55,7 @@ export interface DatabaseDriver {
   exec(sql: string, parameters?: SqlParameter[]): Promise<Row[]>;
 
   testConnection(): Promise<void>;
+
+  /** Release owned resources. Safe to call more than once. */
+  teardown(): Promise<void>;
 }

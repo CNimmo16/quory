@@ -1,33 +1,30 @@
-import { connectionRepo } from "../routers/connectionsRouter";
-
-let activeConnectionId: string | null = null;
+import { connectionRepo } from "./connectionRepo";
+import { connectQuorySession, quorySessions } from "./quorySession";
 
 const activeConnectionState = {
   async getActiveConnectionId() {
-    return activeConnectionId;
+    return quorySessions.connectionId ?? null;
   },
   async getActiveConnectionIdOrThrow() {
-    if (!activeConnectionId) {
-      throw new Error("No active connection");
-    }
-    return activeConnectionId;
+    const id = quorySessions.connectionId;
+    if (!id) throw new Error("No active connection");
+    return id;
   },
   async getActiveConnection() {
-    if (!activeConnectionId) return null;
+    const id = quorySessions.connectionId;
+    if (!id) return null;
     try {
-      const connection = await connectionRepo.get(activeConnectionId);
-      return connection;
+      return await connectionRepo.get(id);
     } catch {
-      // if connection has disappeared remove it from active state
-      await this.deleteActiveConnection();
+      await quorySessions.disconnect(id);
       return null;
     }
   },
   async setActiveConnection(connectionId: string) {
-    activeConnectionId = connectionId;
+    await connectQuorySession(connectionId);
   },
-  async deleteActiveConnection() {
-    activeConnectionId = null;
+  async deleteActiveConnection(connectionId?: string) {
+    await quorySessions.disconnect(connectionId);
   },
 };
 

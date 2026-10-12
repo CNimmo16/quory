@@ -13,3 +13,11 @@ it("uses server-side binding and returns the actual query rows", async () => {
     [rows[0]!.name]
   );
 });
+
+it("ends its pool once across concurrent teardown calls", async () => {
+  const driver = Object.create(MySQLDriver.prototype) as MySQLDriver;
+  const end = jest.fn().mockResolvedValue(undefined);
+  driver.pool = { end } as unknown as MySQLDriver["pool"];
+  await Promise.all([driver.teardown(), driver.teardown()]);
+  expect(end).toHaveBeenCalledTimes(1);
+});

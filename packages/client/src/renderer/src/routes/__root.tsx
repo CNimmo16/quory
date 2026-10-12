@@ -63,6 +63,8 @@ function RootLayout() {
   const { mutate: connectToDatabase } =
     trpc.connections.connectToDatabase.useMutation({
       onSuccess: () => {
+        utils.connections.fetchActiveConnection.invalidate();
+        utils.connections.listSavedConnections.invalidate();
         navigate({ to: "/queries" });
       },
     });
