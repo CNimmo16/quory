@@ -91,17 +91,16 @@ export async function makeClientDatabase(
   })();
 
   try {
-    await driver.testConnection();
-  } catch (e) {
-    throw new DatabaseConnectionFailedError((e as Error).message);
+    try {
+      await driver.testConnection();
+    } catch (e) {
+      throw new DatabaseConnectionFailedError((e as Error).message);
+    }
+    const schemas = await getSchemas(driver);
+    return { driver, schemas };
+  } catch (error) {
+    // Preserve the initialization error even if cleanup also fails.
+    await driver.teardown().catch(() => undefined);
+    throw error;
   }
-
-  const schemas = await getSchemas(driver);
-
-  const ret: ClientDatabase = {
-    driver,
-    schemas,
-  };
-
-  return ret;
 }

@@ -7,9 +7,17 @@ const mocks = vi.hoisted(() => ({
   requestHandler: vi.fn(),
   activate: vi.fn(),
   recreateMainWindow: vi.fn(),
+  dispose: vi.fn(),
+  deactivate: vi.fn(),
+  remove: vi.fn(),
 }));
 vi.mock("../util/makeRepo", () => ({
-  default: () => ({ get: mocks.get, put: mocks.put, allDocs: mocks.allDocs }),
+  default: () => ({
+    get: mocks.get,
+    put: mocks.put,
+    allDocs: mocks.allDocs,
+    remove: mocks.remove,
+  }),
 }));
 vi.mock("@quory/stack/server", () => ({
   makeQuoryRequestHandler: mocks.requestHandler,
@@ -17,8 +25,12 @@ vi.mock("@quory/stack/server", () => ({
 }));
 vi.mock("..", () => ({ recreateMainWindow: mocks.recreateMainWindow }));
 vi.mock("../state/activeConnectionState", () => ({
-  default: { setActiveConnection: mocks.activate },
+  default: {
+    setActiveConnection: mocks.activate,
+    deleteActiveConnection: mocks.deactivate,
+  },
 }));
+vi.mock("../state/quorySession", () => ({ refreshQuorySchema: vi.fn() }));
 import connectionsRouter from "./connectionsRouter";
 import { DatabaseConnectionFailedError } from "@quory/stack/server";
 
@@ -35,6 +47,7 @@ const config = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.requestHandler.mockResolvedValue({ dispose: mocks.dispose });
   mocks.allDocs.mockResolvedValue({ rows: [] });
 });
 
@@ -62,7 +75,7 @@ describe("SSL connection persistence", () => {
       await caller.fetchConnectionById({ connectionId: result.connectionId })
     ).toEqual({ connection: saved });
     await caller.connectToDatabase({ connectionId: result.connectionId });
-    expect(mocks.requestHandler).toHaveBeenLastCalledWith({ database: saved });
+    expect(mocks.dispose).toHaveBeenCalledTimes(1);
     expect(mocks.activate).toHaveBeenCalledWith(result.connectionId);
   });
 
@@ -109,11 +122,36 @@ describe("SSL connection persistence", () => {
       );
       expect(mocks.put).not.toHaveBeenCalled();
       mocks.get.mockResolvedValue(database);
+      mocks.activate.mockRejectedValue(error);
       await expect(
         caller.connectToDatabase({ connectionId: "existing" })
       ).rejects.toThrow(error.message);
-      expect(mocks.activate).not.toHaveBeenCalled();
+      expect(mocks.activate).toHaveBeenCalledWith("existing");
       expect(mocks.recreateMainWindow).not.toHaveBeenCalled();
     }
   );
+});
+
+it("disposes temporary validation before rejecting a duplicate nickname", async () => {
+  mocks.allDocs.mockResolvedValue({ rows: [{ id: "other", doc: config }] });
+  await expect(caller.saveConnection({ config })).rejects.toThrow(
+    "already exists"
+  );
+  expect(mocks.dispose).toHaveBeenCalledTimes(1);
+  expect(mocks.put).not.toHaveBeenCalled();
+});
+
+it("disposes temporary validation even when persistence fails", async () => {
+  mocks.put.mockRejectedValue(new Error("write failed"));
+  await expect(caller.saveConnection({ config })).rejects.toThrow(
+    "write failed"
+  );
+  expect(mocks.dispose).toHaveBeenCalledTimes(1);
+});
+
+it("disconnects only the deleted connection", async () => {
+  mocks.get.mockResolvedValue({ ...config, _id: "a" });
+  await caller.deleteConnection({ connectionId: "a" });
+  expect(mocks.remove).toHaveBeenCalledTimes(1);
+  expect(mocks.deactivate).toHaveBeenCalledWith("a");
 });

@@ -18,15 +18,23 @@ export default function GlobalProviders({
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <QuoryProvider
-          fetchFn={async (path, data) => {
-            console.info("FETCHING", path, data);
-            return api.quory({ path, data });
-          }}
-        >
-          <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
-        </QuoryProvider>
+        <ConnectedQuoryProvider>{children}</ConnectedQuoryProvider>
       </QueryClientProvider>
     </trpc.Provider>
+  );
+}
+
+function ConnectedQuoryProvider({ children }: { children: React.ReactNode }) {
+  const { data } = trpc.connections.fetchActiveConnection.useQuery();
+  const connection = data?.connection;
+  return (
+    <QuoryProvider
+      key={connection ? `${connection._id}:${connection._rev}` : "disconnected"}
+      fetchFn={async (path, requestData) =>
+        api.quory({ path, data: requestData })
+      }
+    >
+      <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+    </QuoryProvider>
   );
 }

@@ -90,6 +90,8 @@ export default class FakeDatabaseDriver implements DatabaseDriver {
     return this.mockedExecResponse;
   }
 
+  async teardown(): Promise<void> {}
+
   async testConnection(): Promise<void> {
     return;
   }

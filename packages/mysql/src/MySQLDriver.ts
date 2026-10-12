@@ -100,7 +100,11 @@ export class MySQLDriver implements DatabaseDriver {
     }));
   }
 
-  async teardown() {
-    await this.pool.end();
+  private teardownPromise?: Promise<void>;
+
+  teardown(): Promise<void> {
+    return (this.teardownPromise ??= Promise.resolve().then(async () => {
+      await this.pool.end();
+    }));
   }
 }

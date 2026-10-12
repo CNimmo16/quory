@@ -11,6 +11,7 @@ jest.mock("@quory/sqlite", () => ({ SqliteDriver: jest.fn() }));
 jest.mock("better-sqlite3", () => jest.fn());
 
 const testConnection = jest.fn();
+const teardown = jest.fn();
 const database: QuoryRequestHandlerConfig["database"] = {
   type: "postgres",
   hostOrFilePath: "db.example.com",
@@ -22,16 +23,19 @@ const database: QuoryRequestHandlerConfig["database"] = {
 
 beforeEach(() => {
   jest.resetAllMocks();
+  teardown.mockResolvedValue(undefined);
   testConnection.mockResolvedValue(undefined);
   jest.mocked(getSchemas).mockResolvedValue([]);
   jest
     .mocked(PostgresDriver)
     .mockImplementation(
-      () => ({ testConnection } as unknown as PostgresDriver)
+      () => ({ testConnection, teardown } as unknown as PostgresDriver)
     );
   jest
     .mocked(MySQLDriver)
-    .mockImplementation(() => ({ testConnection } as unknown as MySQLDriver));
+    .mockImplementation(
+      () => ({ testConnection, teardown } as unknown as MySQLDriver)
+    );
 });
 
 describe.each(["postgres", "mysql"] as const)("%s SSL connections", (type) => {
@@ -108,5 +112,15 @@ describe.each(["postgres", "mysql"] as const)("%s SSL connections", (type) => {
     ).rejects.toMatchObject({ name: "DatabaseConnectionFailedError" });
     expect(Driver).toHaveBeenCalledTimes(1);
     expect(getSchemas).not.toHaveBeenCalled();
+    expect(teardown).toHaveBeenCalledTimes(1);
   });
+});
+
+it("disposes after metadata initialization failure and preserves the error", async () => {
+  jest.mocked(getSchemas).mockRejectedValue(new Error("metadata failed"));
+  teardown.mockRejectedValue(new Error("cleanup failed"));
+  await expect(makeClientDatabase({ database })).rejects.toThrow(
+    "metadata failed"
+  );
+  expect(teardown).toHaveBeenCalledTimes(1);
 });
