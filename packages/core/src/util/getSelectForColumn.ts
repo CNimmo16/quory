@@ -5,13 +5,14 @@ export default function getSelectForColumn(
     schemaName: string;
   },
   tableAlias: string,
-  column: DatabaseTableInfo["columns"][number]
+  column: DatabaseTableInfo["columns"][number],
+  resultAlias?: string
 ) {
   return {
     name: column.name,
     ref: `${tableAlias}.${column.name}`,
     subQueryAlias: `${tableAlias}__${column.name}`,
-    outerAlias: `${table.schemaName}__${table.name}__${column.name}`,
+    outerAlias: resultAlias ?? `${tableAlias}__${column.name}`,
     includeInOuter: true,
   };
 }

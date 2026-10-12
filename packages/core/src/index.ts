@@ -2,6 +2,7 @@ import type {
   DatabaseDriver,
   GenericDataType,
   Relationship,
+  RelationshipConstraint,
   TableColumn,
   Row,
 } from "./DatabaseDriver";
@@ -30,12 +31,17 @@ import runQuery from "./runQuery";
 import prepareQuery from "./prepareQuery";
 import getCountForQuery from "./getCountForQuery";
 import getRelationsForTable from "./getRelationsForTable";
+import getTableRelationships from "./util/getTableRelationships";
 import getEntitiesAndJunctions from "./getEntitiesAndJunctions";
 import findTableFromSchemas from "./util/findTableFromSchemas";
 import splitTableRef from "./util/splitTableRef";
 import isConditionComplete from "./util/isConditionComplete";
 import parseToCompleteCondition from "./util/parseToCompleteCondition";
 import areQueriesEqual from "./util/areQueriesEqual";
+import normalizeVia, {
+  type ViaStep,
+  type ViaTableStep,
+} from "./util/normalizeVia";
 
 export {
   getSchemas,
@@ -43,8 +49,10 @@ export {
   prepareQuery,
   getCountForQuery,
   getRelationsForTable,
+  getTableRelationships,
   getEntitiesAndJunctions,
   Relationship,
+  RelationshipConstraint,
   TableColumn,
   GenericDataType,
   Row,
@@ -72,6 +80,9 @@ export {
   findTableFromSchemas,
   splitTableRef,
   areQueriesEqual,
+  normalizeVia,
+  ViaStep,
+  ViaTableStep,
 };
 
 export type DatabaseTableInfo = {
@@ -84,6 +95,8 @@ export type DatabaseTableInfo = {
     isNullable: boolean;
     includedInPrimaryKey: boolean;
     foreignKeys: {
+      constraintId?: string;
+      columnPosition?: number;
       foreignSchemaName: string;
       foreignTableName: string;
       foreignColumnName: string;
@@ -91,6 +104,8 @@ export type DatabaseTableInfo = {
       confidence: number;
     }[];
     foreignKeyReferences: {
+      constraintId?: string;
+      columnPosition?: number;
       localSchemaName: string;
       localTableName: string;
       localColumnName: string;

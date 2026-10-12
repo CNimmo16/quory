@@ -516,6 +516,9 @@ importers:
       '@sqltools/formatter':
         specifier: ^1.2.5
         version: 1.2.5
+      '@types/better-sqlite3':
+        specifier: 'catalog:'
+        version: 7.6.12
       '@types/lodash-es':
         specifier: ^4.17.12
         version: 4.17.12
@@ -528,6 +531,9 @@ importers:
       '@types/string-similarity':
         specifier: 'catalog:'
         version: 4.0.2
+      better-sqlite3:
+        specifier: 'catalog:'
+        version: 11.7.2
       eslint:
         specifier: 'catalog:'
         version: 9.17.0(jiti@1.21.7)(supports-color@8.1.1)

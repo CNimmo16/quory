@@ -74,18 +74,21 @@ export class MySQLDriver implements DatabaseDriver {
     kcu.table_schema AS table_schema,
     kcu.table_name AS table_name,
     kcu.column_name AS column_name,
+    kcu.ordinal_position AS ordinal_position,
     kcu.referenced_table_schema AS foreign_table_schema,
     kcu.referenced_table_name AS foreign_table_name,
     kcu.referenced_column_name AS foreign_column_name
 
     FROM information_schema.table_constraints AS tc
-    JOIN information_schema.key_column_usage AS kcu USING (constraint_schema, constraint_name)
+    JOIN information_schema.key_column_usage AS kcu USING (constraint_schema, constraint_name, table_name)
 
     WHERE kcu.table_schema NOT IN ('information_schema', 'pg_catalog')
     AND tc.constraint_type = 'FOREIGN KEY';
     `);
 
     return foreignKeys.map((constraintInfo) => ({
+      constraintId: constraintInfo.constraint_name,
+      columnPosition: Number(constraintInfo.ordinal_position),
       localSchema: constraintInfo.table_schema,
       localTable: constraintInfo.table_name,
       localColumn: constraintInfo.column_name,

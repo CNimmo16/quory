@@ -1,4 +1,5 @@
 import { DatabaseSchema, findTableFromSchemas, splitTableRef } from "..";
+import normalizeVia from "./normalizeVia";
 import { JoinDef, Query } from "../prepareQuery";
 
 export default function areQueriesEqual(
@@ -22,7 +23,8 @@ export default function areQueriesEqual(
     return (
       joinA.tableRef === joinB.tableRef &&
       convertSelect(joinA).join(",") === convertSelect(joinB).join(",") &&
-      JSON.stringify(joinA.via || []) === JSON.stringify(joinB.via || []) &&
+      JSON.stringify(normalizeVia(joinA.via)) ===
+        JSON.stringify(normalizeVia(joinB.via)) &&
       JSON.stringify(joinA.where || {}) === JSON.stringify(joinB.where || {}) &&
       JSON.stringify(joinA.orderBy || []) ===
         JSON.stringify(joinB.orderBy || []) &&

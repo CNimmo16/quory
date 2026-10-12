@@ -66,6 +66,7 @@ const query: PreparedQuery = {
   base: {
     tableRef: "public.customers",
     joinAlias: "customers",
+    resultAliases: {},
     select: ["id", "name"],
     joins: [],
   },

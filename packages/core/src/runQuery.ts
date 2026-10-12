@@ -56,13 +56,15 @@ export default async function runQuery(
           tableName
         );
         const columns = table.columns
-          .filter((column) =>
-            join.select === "*" ? true : join.select.includes(column.name)
-          )
+          .filter((column) => join.select.includes(column.name))
           .map((column) => ({
             name: column.name,
-            alias: getSelectForColumn(table, "THIS_CAN_BE_ANYTHING", column)
-              .outerAlias,
+            alias: getSelectForColumn(
+              table,
+              join.joinAlias,
+              column,
+              join.resultAliases[column.name]
+            ).outerAlias,
           }));
         return {
           joinAlias: join.joinAlias,

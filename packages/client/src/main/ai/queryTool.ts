@@ -4,6 +4,7 @@ import {
   isBooleanCondition,
   isListCondition,
   prepareQuery,
+  normalizeVia,
   type Condition,
   type DatabaseSchema,
   type DatabaseTableInfo,
@@ -13,6 +14,20 @@ import {
 
 // Flat arrays avoid recursive JSON schemas, which are not supported by every
 // provider. Parent/child indexes preserve the app's full join and filter trees.
+const viaStep = z.union([
+  z.string(),
+  z
+    .object({
+      tableRef: z.string(),
+      fromColumnName: z.string().min(1).optional(),
+      toColumnName: z.string().min(1).optional(),
+    })
+    .strict(),
+  z
+    .object({ tableRef: z.string(), usingConstraintId: z.string().min(1) })
+    .strict(),
+]);
+
 const filterNode = z
   .object({
     operator: z.nativeEnum(ConditionOperator),
@@ -62,9 +77,9 @@ export const upsertQuerySchema = z
                 "['*'] for all columns; [] for a relationship used only to filter; otherwise exact column names."
               ),
             via: z
-              .array(z.string())
+              .array(viaStep)
               .describe(
-                "Intermediate schema.table references in order; excludes parent and destination; [] for the default relationship path."
+                "Ordered table waypoints: strings or objects with tableRef and optional fromColumnName/toColumnName or usingConstraintId (never both). Either column name alone is allowed if unambiguous. Include destination as the final step to select its incoming relationship; [] for the default path."
               ),
             conditions: z
               .array(filterNode)
@@ -208,7 +223,7 @@ export async function validateAssistantQuery(
     else join.select.forEach(checkColumn);
     selected ||= join.select.length > 0;
     (join.orderBy ?? []).forEach((order) => checkColumn(order.column));
-    (join.via ?? []).forEach((ref) => {
+    normalizeVia(join.via).forEach(({ tableRef: ref }) => {
       if (!tables.has(ref))
         throw new Error(`Unknown intermediate table ${ref}.`);
     });
@@ -243,27 +258,7 @@ export async function validateAssistantQuery(
   )
     throw new Error("Choose a row limit between 1 and 1000.");
   // Compiles only; verifies the existing engine can resolve the relationship paths.
-  const { preparedQuery, joinsList } = await prepareQuery(schemas, query);
+  const { preparedQuery } = await prepareQuery(schemas, query);
   count = 0;
   checkJoin(preparedQuery.base);
-  for (const join of joinsList) {
-    if (!join.parent) continue;
-    const refsBetween = (from: string, to: string) =>
-      tables
-        .get(from)!
-        .columns.flatMap((column) =>
-          column.foreignKeys.filter(
-            (key) => `${key.foreignSchemaName}.${key.foreignTableName}` === to
-          )
-        );
-    if (
-      refsBetween(join.tableRef, join.parent.tableRef).length +
-        refsBetween(join.parent.tableRef, join.tableRef).length >
-      1
-    ) {
-      throw new Error(
-        `Multiple relationships connect ${join.parent.tableRef} and ${join.tableRef}. The visual builder cannot choose a specific foreign key; do not silently select one.`
-      );
-    }
-  }
 }

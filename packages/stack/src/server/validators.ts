@@ -36,9 +36,23 @@ export const condition: z.ZodType<Condition> = z.union([
   }),
 ]);
 
+export const viaStep = z.union([
+  z.string(),
+  z
+    .object({
+      tableRef: z.string(),
+      fromColumnName: z.string().min(1).optional(),
+      toColumnName: z.string().min(1).optional(),
+    })
+    .strict(),
+  z
+    .object({ tableRef: z.string(), usingConstraintId: z.string().min(1) })
+    .strict(),
+]);
+
 export const joinDef: z.ZodType<JoinDef> = z.object({
   tableRef: z.string(),
-  via: z.array(z.string()).optional(),
+  via: z.array(viaStep).optional(),
   select: z.union([z.array(z.string()), z.literal("*")]),
   where: condition.optional(),
   joins: z.lazy(() => z.array(joinDef)).optional(),

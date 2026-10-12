@@ -153,6 +153,49 @@ describe("PostgresDriver", () => {
     );
   });
 
+  it("preserves ordered composite pairs and parallel constraint identity", async () => {
+    await db.raw(`
+      CREATE TABLE parents (tenant_id INTEGER, id INTEGER, PRIMARY KEY (tenant_id, id));
+    `);
+    await db.raw(`
+      CREATE TABLE children (tenant_id INTEGER, parent_id INTEGER, other_parent_id INTEGER,
+        CONSTRAINT primary_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES parents(tenant_id, id),
+        CONSTRAINT other_parent FOREIGN KEY (tenant_id, other_parent_id) REFERENCES parents(tenant_id, id));
+    `);
+    const relationships = await driver.getAllForeignKeysInDatabase();
+    for (const [constraintId, localColumn] of [
+      ["primary_parent", "parent_id"],
+      ["other_parent", "other_parent_id"],
+    ]) {
+      expect(
+        relationships
+          .filter((ref) => ref.constraintId === constraintId)
+          .sort((a, b) => a.columnPosition! - b.columnPosition!)
+      ).toEqual([
+        {
+          constraintId,
+          columnPosition: 1,
+          localSchema: "public",
+          localTable: "children",
+          localColumn: "tenant_id",
+          foreignSchema: "public",
+          foreignTable: "parents",
+          foreignColumn: "tenant_id",
+        },
+        {
+          constraintId,
+          columnPosition: 2,
+          localSchema: "public",
+          localTable: "children",
+          localColumn,
+          foreignSchema: "public",
+          foreignTable: "parents",
+          foreignColumn: "id",
+        },
+      ]);
+    }
+  });
+
   it("Finds all relationships from foreign keys", async () => {
     await db.schema.createTable("customers", (table) => {
       table.bigIncrements("id").primary();
@@ -173,9 +216,13 @@ describe("PostgresDriver", () => {
 
     const relationships = await driver.getAllForeignKeysInDatabase();
 
-    expect(relationships).toEqual<Relationship[]>([
+    expect(
+      relationships.sort((a, b) => b.localTable.localeCompare(a.localTable))
+    ).toEqual<Relationship[]>([
       {
         localSchema: "public",
+        constraintId: "orders_customer_id_foreign",
+        columnPosition: 1,
         localTable: "orders",
         localColumn: "customer_id",
         foreignSchema: "public",
@@ -184,6 +231,8 @@ describe("PostgresDriver", () => {
       },
       {
         localSchema: "public",
+        constraintId: "order_fulfilment_order_id_foreign",
+        columnPosition: 1,
         localTable: "order_fulfilment",
         localColumn: "order_id",
         foreignSchema: "public",

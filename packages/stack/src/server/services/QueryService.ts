@@ -90,7 +90,10 @@ export async function fetchDataForQuery(
               readableValue: lexiconEntry?.mapping
                 ? lexiconEntry.mapping[value.toString()]
                 : renderDataValue(value, column.genericDataType),
-              foreignKey: column.foreignKeys[0],
+              foreignKey:
+                column.foreignKeys.length === 1
+                  ? column.foreignKeys[0]
+                  : undefined,
             };
           });
         });
