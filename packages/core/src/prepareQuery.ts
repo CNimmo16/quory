@@ -11,6 +11,13 @@ import getWhereClauseFromConditions from "./util/getWhereClauseFromConditions";
 import splitTableRef from "./util/splitTableRef";
 import getSelectForColumn from "./util/getSelectForColumn";
 import getShortestPath from "./util/getShortestPath";
+import normalizeVia, {
+  type ViaStep,
+  type ViaTableStep,
+} from "./util/normalizeVia";
+import resolveRelationship, {
+  type ResolvedRelationship,
+} from "./util/resolveRelationship";
 
 export enum ConditionOperator {
   AND = "and",
@@ -102,7 +109,7 @@ export type Condition = BooleanCondition | ValueCondition | ListCondition;
 
 export type JoinDef = {
   tableRef: string;
-  via?: string[] | undefined;
+  via?: ViaStep[] | undefined;
   select: string[] | "*";
   where?: Condition | undefined;
   joins?: JoinDef[] | undefined;
@@ -125,14 +132,10 @@ type JoinDefWithAlias = Omit<JoinDef, "joins"> & {
   joins: JoinDefWithAlias[];
 };
 
-type JoinDefWithPath = JoinDefWithAlias & {
-  pathFromBase: string[];
-};
-
-type FlattenedJoinDef = Omit<JoinDefWithPath, "joins">;
-
-export type PreparedJoinDef = Omit<FlattenedJoinDef, "pathFromBase"> & {
+export type PreparedJoinDef = Omit<JoinDefWithAlias, "select" | "joins"> & {
   select: string[];
+  /** Maps selected column names to unique SQL result aliases. */
+  resultAliases: Record<string, string>;
   joins: PreparedJoinDef[];
 };
 
@@ -168,22 +171,17 @@ export default async function prepareQuery(
   const [baseSchemaName, baseTableName] = splitTableRef(base.tableRef);
   findTableFromSchemas(databaseSchemas, baseSchemaName, baseTableName);
 
-  const tableSeenCounts: {
-    [key: string]: number;
-  } = {};
-
-  const getAlias = (tableRef: string) => {
-    tableSeenCounts[tableRef] = tableSeenCounts[tableRef] ?? 0;
-    tableSeenCounts[tableRef]! += 1;
-    const [tableSchema, tableName] = splitTableRef(tableRef);
-    return `${tableSchema}__${tableName}__${tableSeenCounts[tableRef]}`;
-  };
+  // Short opaque aliases stay unique even after database identifier-length
+  // limits, regardless of table name length, punctuation, or shared prefixes.
+  let joinAliasCount = 0;
+  const getAlias = (_tableRef: string) => `quory__join__${++joinAliasCount}`;
 
   const joinDefsWithAliases = (function addAlias(
     join: JoinDef
   ): JoinDefWithAlias {
     return {
       ...join,
+      via: normalizeVia(join.via),
       joinAlias: getAlias(join.tableRef),
       joins: join.joins?.map((childJoin) => addAlias(childJoin)) ?? [],
     };
@@ -191,102 +189,139 @@ export default async function prepareQuery(
 
   const graph = makeGraphForDatabase(databaseSchemas);
 
-  const flattenedJoinDefs = (function flattenJoinDef(
-    join: JoinDefWithAlias,
-    parent?: JoinDefWithPath
-  ): FlattenedJoinDef[] {
-    if (join.via && join.via[join.via.length - 1] === join.tableRef) {
+  if (joinDefsWithAliases.via?.length)
+    throw new Error("The base table cannot specify a via route.");
+  const incomingRelationships = new WeakMap<
+    PreparedJoinDef,
+    ResolvedRelationship
+  >();
+  function planPath(sourceRef: string, child: JoinDefWithAlias) {
+    const steps = normalizeVia(child.via);
+    const refs = steps.map((step) => step.tableRef);
+    if (new Set(refs).size !== refs.length)
+      throw new Error(`Duplicate table refs in via path: ${refs.join(", ")}`);
+    if (refs.includes(sourceRef))
+      throw new Error(`Via path includes source table ref: ${sourceRef}`);
+    if (
+      refs.includes(child.tableRef) &&
+      refs[refs.length - 1] !== child.tableRef
+    ) {
       throw new Error(
-        `Via path (${join.via.join(", ")}) for join ${
-          join.tableRef
-        } ends with table ref ${join.tableRef}`
+        `Destination ${child.tableRef} must be the final via step.`
       );
     }
-    const pathFromBase = parent
-      ? [
-          ...parent.pathFromBase.slice(0, parent.pathFromBase.length - 1),
-          ...getShortestPath(
-            graph,
-            parent.tableRef,
-            join.tableRef,
-            join.via ?? []
+    if (refs[refs.length - 1] !== child.tableRef)
+      steps.push({ tableRef: child.tableRef });
+    const edges: { tableRef: string; incoming: ResolvedRelationship }[] = [];
+    let previousRef = sourceRef;
+    for (const step of steps) {
+      const hasSelector =
+        step.fromColumnName !== undefined ||
+        step.toColumnName !== undefined ||
+        step.usingConstraintId !== undefined;
+      // A selector describes the edge from the preceding waypoint, so it must
+      // be adjacent; do not silently apply it to a different inferred table.
+      const route = hasSelector
+        ? [previousRef, step.tableRef]
+        : getShortestPath(graph, previousRef, step.tableRef, []);
+      if (route.length < 2)
+        throw new Error(`Join path must contain an edge: ${step.tableRef}`);
+      for (let i = 1; i < route.length; i++) {
+        const tableRef = route[i]!;
+        const selector: ViaTableStep =
+          i === route.length - 1 ? step : { tableRef };
+        edges.push({
+          tableRef,
+          incoming: resolveRelationship(
+            databaseSchemas,
+            route[i - 1]!,
+            selector
           ),
-        ]
-      : [join.tableRef];
-    const ret: JoinDefWithPath = {
-      ...join,
-      pathFromBase,
-    };
-    const { joins: _, ...rest } = ret;
-    if (join.joins) {
-      for (const [index, childJoin] of join.joins.entries()) {
-        const match = join.joins.some(
-          ({ tableRef }, i) => index !== i && tableRef === childJoin.tableRef
-        );
-        if (match) {
-          throw new Error(
-            `Duplicate table ref ${
-              childJoin.tableRef
-            }. Path: ${pathFromBase.join(" > ")} > ${childJoin.tableRef}`
-          );
-        }
-      }
-      return [
-        rest,
-        ...(join.joins ?? []).flatMap((childJoin) =>
-          flattenJoinDef(childJoin, ret)
-        ),
-      ];
-    } else {
-      return [rest];
-    }
-  })(joinDefsWithAliases);
-
-  const joinTree = (function buildTree(
-    join: FlattenedJoinDef
-  ): PreparedJoinDef {
-    const joinsInSubTreeOfThisJoin = flattenedJoinDefs
-      .filter(({ joinAlias }) => joinAlias !== join.joinAlias)
-      .filter((otherJoin) => {
-        // return joins where path is same up to current join
-        return join.pathFromBase.every(
-          (tableRef, i) => otherJoin.pathFromBase[i] === tableRef
-        );
-      });
-    const childJoins = joinsInSubTreeOfThisJoin.filter(
-      ({ pathFromBase }) => pathFromBase.length === join.pathFromBase.length + 1
-    );
-    for (const joinInSubTree of joinsInSubTreeOfThisJoin) {
-      const childNodeWithConnection = childJoins.find(({ pathFromBase }) =>
-        joinInSubTree.pathFromBase.join().includes(pathFromBase.join())
-      );
-      if (!childNodeWithConnection) {
-        const childNodeTableRef =
-          joinInSubTree.pathFromBase[join.pathFromBase.length]!;
-        childJoins.push({
-          tableRef: childNodeTableRef,
-          select: [],
-          joinAlias: getAlias(childNodeTableRef),
-          pathFromBase: [...join.pathFromBase, childNodeTableRef],
         });
       }
+      previousRef = step.tableRef;
     }
-    let select = join.select;
-    if (select === "*") {
-      const [schemaName, tableName] = splitTableRef(join.tableRef);
-      const table = findTableFromSchemas(
-        databaseSchemas,
-        schemaName,
-        tableName
-      );
-      select = table.columns.map(({ name }) => name);
-    }
-    return {
+    return edges;
+  }
+
+  // Build each requested branch under its actual parent instance. Shared table
+  // names elsewhere in the tree must never identify a join instance.
+  let resultAliasCount = 0;
+  function buildTree(
+    join: JoinDefWithAlias,
+    incoming?: ResolvedRelationship
+  ): PreparedJoinDef {
+    const [schemaName, tableName] = splitTableRef(join.tableRef);
+    const table = findTableFromSchemas(databaseSchemas, schemaName, tableName);
+    const result: PreparedJoinDef = {
       ...join,
-      select,
-      joins: childJoins.map(buildTree),
+      via: incoming ? [incoming.step] : [],
+      select:
+        join.select === "*"
+          ? table.columns.map(({ name }) => name)
+          : join.select,
+      resultAliases: Object.create(null) as Record<string, string>,
+      joins: [],
     };
-  })(flattenedJoinDefs[0]!);
+    for (const column of table.columns.filter((candidateColumn) =>
+      result.select.includes(candidateColumn.name)
+    )) {
+      result.resultAliases[
+        column.name
+      ] = `quory__result__${++resultAliasCount}`;
+    }
+    if (incoming) incomingRelationships.set(result, incoming);
+    const paths = join.joins.map((child) => ({
+      child,
+      path: planPath(join.tableRef, child),
+    }));
+    // Direct, explicitly requested children are reusable intermediate nodes.
+    for (const { child, path } of paths.filter(
+      ({ path: route }) => route.length === 1
+    )) {
+      result.joins.push(buildTree(child, path[0]!.incoming));
+    }
+    for (const { child, path } of paths.filter(
+      ({ path: route }) => route.length !== 1
+    )) {
+      if (path.length < 1)
+        throw new Error(`Join path must contain an edge: ${child.tableRef}`);
+      let parent = result;
+      for (const { tableRef, incoming: edgeRelationship } of path.slice(
+        0,
+        -1
+      )) {
+        const matches = parent.joins.filter(
+          (candidate) =>
+            candidate.tableRef === tableRef &&
+            incomingRelationships.get(candidate)?.identity ===
+              edgeRelationship.identity
+        );
+        if (matches.length > 1) {
+          throw new Error(
+            `Ambiguous intermediate join instance for ${tableRef}`
+          );
+        }
+        let intermediate = matches[0];
+        if (!intermediate) {
+          intermediate = {
+            tableRef,
+            via: [edgeRelationship.step],
+            select: [],
+            resultAliases: Object.create(null) as Record<string, string>,
+            joinAlias: getAlias(tableRef),
+            joins: [],
+          };
+          incomingRelationships.set(intermediate, edgeRelationship);
+          parent.joins.push(intermediate);
+        }
+        parent = intermediate;
+      }
+      parent.joins.push(buildTree(child, path[path.length - 1]!.incoming));
+    }
+    return result;
+  }
+  const joinTree = buildTree(joinDefsWithAliases);
 
   const select = (function extractSelects(
     join: PreparedJoinDef
@@ -296,7 +331,13 @@ export default async function prepareQuery(
     return [
       ...table.columns
         .map((column) =>
-          getSelectForColumn(table, join.joinAlias, column, dialect)
+          getSelectForColumn(
+            table,
+            join.joinAlias,
+            column,
+            join.resultAliases[column.name],
+            dialect
+          )
         )
         .filter((column) => join.select.includes(column.name)),
       ...join.joins.flatMap(extractSelects),
@@ -381,57 +422,22 @@ export default async function prepareQuery(
       const [childSchemaName, childTableName] = splitTableRef(
         childJoin.tableRef
       );
-      const childTable = findTableFromSchemas(
-        databaseSchemas,
-        childSchemaName,
-        childTableName
+      const { relationship, forward } = incomingRelationships.get(childJoin)!;
+      const localAlias = forward ? thisJoin.joinAlias : childJoin.joinAlias;
+      const foreignAlias = forward ? childJoin.joinAlias : thisJoin.joinAlias;
+      const predicates = relationship.columnPairs.map(
+        ({ localColumn, foreignColumn }) =>
+          localAlias === thisJoin.joinAlias
+            ? `${q(foreignAlias)}.${q(foreignColumn)} = ${q(localAlias)}.${q(
+                localColumn
+              )}`
+            : `${q(localAlias)}.${q(localColumn)} = ${q(foreignAlias)}.${q(
+                foreignColumn
+              )}`
       );
-      const referenceFromThisTableToChildTable = thisTable.columns
-        .flatMap((column) =>
-          column.foreignKeys.map((ref) => ({
-            ...ref,
-            columnName: column.name,
-          }))
-        )
-        .find(
-          (reference) =>
-            reference.foreignSchemaName === childSchemaName &&
-            reference.foreignTableName === childTableName
-        );
-      if (referenceFromThisTableToChildTable) {
-        fromClause += ` INNER JOIN ${q(childSchemaName)}.${q(
-          childTableName
-        )} AS ${q(childJoin.joinAlias)} ON ${q(childJoin.joinAlias)}.${q(
-          referenceFromThisTableToChildTable.foreignColumnName
-        )} = ${q(thisJoin.joinAlias)}.${q(
-          referenceFromThisTableToChildTable.columnName
-        )}`;
-      } else {
-        const referenceFromChildTableToThisTable = childTable.columns
-          .flatMap((column) =>
-            column.foreignKeys.map((ref) => ({
-              ...ref,
-              columnName: column.name,
-            }))
-          )
-          .find(
-            (reference) =>
-              reference.foreignSchemaName === schemaName &&
-              reference.foreignTableName === tableName
-          );
-        if (!referenceFromChildTableToThisTable) {
-          throw new Error(
-            `Could not find reference from ${childSchemaName}.${childTableName} to ${schemaName}.${tableName}. This should never happen.`
-          );
-        }
-        fromClause += ` INNER JOIN ${q(childSchemaName)}.${q(
-          childTableName
-        )} AS ${q(childJoin.joinAlias)} ON ${q(childJoin.joinAlias)}.${q(
-          referenceFromChildTableToThisTable.columnName
-        )} = ${q(thisJoin.joinAlias)}.${q(
-          referenceFromChildTableToThisTable.foreignColumnName
-        )}`;
-      }
+      fromClause += ` INNER JOIN ${q(childSchemaName)}.${q(
+        childTableName
+      )} AS ${q(childJoin.joinAlias)} ON ${predicates.join(" AND ")}`;
       traverseTree(childJoin);
     }
   }

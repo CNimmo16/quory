@@ -1,3 +1,4 @@
+import normalizeVia, { type ViaStep } from "./util/normalizeVia";
 import type { DatabaseSchema } from ".";
 import {
   booleanConditionOperators,
@@ -63,7 +64,21 @@ export default function validateQuery(
       columns.forEach(checkColumn);
       selected ||= columns.length > 0;
     }
-    if (join.via !== undefined) strings(join.via).forEach(tableFor);
+    if (join.via !== undefined) {
+      if (!Array.isArray(join.via)) throw new Error("Invalid via route.");
+      for (const step of join.via) {
+        if (typeof step !== "string")
+          fields(object(step), [
+            "tableRef",
+            "fromColumnName",
+            "toColumnName",
+            "usingConstraintId",
+          ]);
+      }
+      normalizeVia(join.via as ViaStep[]).forEach((step) =>
+        tableFor(step.tableRef)
+      );
+    }
     if (join.orderBy !== undefined) {
       if (!Array.isArray(join.orderBy)) throw new Error("Invalid ordering.");
       join.orderBy.forEach((value) => {

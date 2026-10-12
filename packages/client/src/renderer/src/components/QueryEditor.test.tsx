@@ -86,6 +86,7 @@ vi.mock("./QueryView", async () => {
                   ...initialQuery.base,
                   select: ["id", "user_id", "created_at", "status"],
                   joinAlias: "public__orders__1",
+                  resultAliases: {},
                   where: {
                     column: "status",
                     operator: ConditionOperator.EQUALS,

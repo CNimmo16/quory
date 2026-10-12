@@ -62,7 +62,7 @@ export class SqliteDriver implements DatabaseDriver {
             .all() as {
             name: string;
             type: string;
-            pk: 1 | 0;
+            pk: number;
             notnull: 1 | 0;
             dflt_value: string | null;
           }[]
@@ -89,7 +89,7 @@ export class SqliteDriver implements DatabaseDriver {
             dataType,
             genericDataType: sqliteAffinityToGenericDatatype(affinity),
             isNullable: column.notnull === 0,
-            includedInPrimaryKey: column.pk === 1,
+            includedInPrimaryKey: column.pk > 0,
           };
         });
       });
@@ -122,21 +122,34 @@ export class SqliteDriver implements DatabaseDriver {
             )
             .all() as {
             id: number;
-            sq: number;
+            seq: number;
             table: string;
             from: string;
-            to: string;
+            to: string | null;
             on_update: string;
             on_delete: string;
           }[]
         ).map(
           (fk): Relationship => ({
+            constraintId: String(fk.id),
+            columnPosition: fk.seq + 1,
             localSchema: schema.name,
             localTable: table.name,
             localColumn: fk.from,
             foreignSchema: schema.name,
             foreignTable: fk.table,
-            foreignColumn: fk.to,
+            foreignColumn:
+              fk.to ??
+              (
+                this.db
+                  .prepare(
+                    `PRAGMA ${quoteIdentifier(
+                      schema.name,
+                      "sqlite"
+                    )}.table_info(${quoteIdentifier(fk.table, "sqlite")});`
+                  )
+                  .all() as { name: string; pk: number }[]
+              ).find((column) => column.pk === fk.seq + 1)!.name,
           })
         );
       });

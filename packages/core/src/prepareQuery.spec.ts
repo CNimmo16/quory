@@ -98,18 +98,18 @@ describe("prepareQuery", () => {
     expect(parameters).toEqual(["3"]);
     expect(formatSql(sql)).toEqual(
       formatSql(`
-        SELECT "public__customer__1"."id" AS "public__customer__id",
-          "public__order__1"."id" AS "public__order__id",
-          "public__order__1"."customer_id" AS "public__order__customer_id",
-          "public__order_fulfilment__1"."id" AS "public__order_fulfilment__id",
-          "public__order_fulfilment__1"."customer_id" AS "public__order_fulfilment__customer_id"
-        FROM "public"."customer" AS "public__customer__1"
-          INNER JOIN "public"."order" AS "public__order__1" ON "public__order__1"."customer_id" = "public__customer__1"."id"
-          INNER JOIN "public"."order_fulfilment" AS "public__order_fulfilment__1" ON "public__order_fulfilment__1"."customer_id" = "public__order__1"."id"
-        WHERE "public__customer__1"."id" = ?
-        GROUP BY "public__customer__1"."id",
-          "public__order__1"."id",
-          "public__order_fulfilment__1"."id"
+        SELECT "quory__join__1"."id" AS "quory__result__1",
+          "quory__join__2"."id" AS "quory__result__2",
+          "quory__join__2"."customer_id" AS "quory__result__3",
+          "quory__join__3"."id" AS "quory__result__4",
+          "quory__join__3"."customer_id" AS "quory__result__5"
+        FROM "public"."customer" AS "quory__join__1"
+          INNER JOIN "public"."order" AS "quory__join__2" ON "quory__join__2"."customer_id" = "quory__join__1"."id"
+          INNER JOIN "public"."order_fulfilment" AS "quory__join__3" ON "quory__join__3"."customer_id" = "quory__join__2"."id"
+        WHERE "quory__join__1"."id" = ?
+        GROUP BY "quory__join__1"."id",
+          "quory__join__2"."id",
+          "quory__join__3"."id"
       `)
     );
   });
@@ -136,16 +136,16 @@ describe("prepareQuery", () => {
     expect(parameters).toEqual(["1"]);
     expect(formatSql(sql)).toEqual(
       formatSql(`
-        SELECT "public__order_fulfilment__1"."id" AS "public__order_fulfilment__id",
-          "public__order_fulfilment__1"."customer_id" AS "public__order_fulfilment__customer_id",
-          "public__customer__1"."id" AS "public__customer__id"
-        FROM "public"."order_fulfilment" AS "public__order_fulfilment__1"
-          INNER JOIN "public"."order" AS "public__order__1" ON "public__order__1"."id" = "public__order_fulfilment__1"."customer_id"
-          INNER JOIN "public"."customer" AS "public__customer__1" ON "public__customer__1"."id" = "public__order__1"."customer_id"
-        WHERE "public__order_fulfilment__1"."id" = ?
-        GROUP BY "public__order_fulfilment__1"."id",
-          "public__order__1"."id",
-          "public__customer__1"."id"
+        SELECT "quory__join__1"."id" AS "quory__result__1",
+          "quory__join__1"."customer_id" AS "quory__result__2",
+          "quory__join__2"."id" AS "quory__result__3"
+        FROM "public"."order_fulfilment" AS "quory__join__1"
+          INNER JOIN "public"."order" AS "quory__join__3" ON "quory__join__3"."id" = "quory__join__1"."customer_id"
+          INNER JOIN "public"."customer" AS "quory__join__2" ON "quory__join__2"."id" = "quory__join__3"."customer_id"
+        WHERE "quory__join__1"."id" = ?
+        GROUP BY "quory__join__1"."id",
+          "quory__join__3"."id",
+          "quory__join__2"."id"
       `)
     );
   });
@@ -198,22 +198,22 @@ describe("prepareQuery", () => {
     expect(parameters).toEqual(["3", "1", "2"]);
     expect(formatSql(sql)).toEqual(
       formatSql(`
-        SELECT "public__customer__1"."id" AS "public__customer__id"
-        FROM "public"."customer" AS "public__customer__1"
-          INNER JOIN "public"."phone_number" AS "public__phone_number__1" ON "public__phone_number__1"."customer_id" = "public__customer__1"."id"
-          INNER JOIN "public"."order" AS "public__order__1" ON "public__order__1"."customer_id" = "public__customer__1"."id"
-          INNER JOIN "public"."phone_number" AS "public__phone_number__2" ON "public__phone_number__2"."customer_id" = "public__order__1"."id"
-          INNER JOIN "public"."order" AS "public__order__2" ON "public__order__2"."id" = "public__phone_number__2"."customer_id"
-          INNER JOIN "public"."order_fulfilment" AS "public__order_fulfilment__1" ON "public__order_fulfilment__1"."customer_id" = "public__order__2"."id"
-        WHERE "public__customer__1"."id" = ?
-          AND "public__order__1"."id" = ?
-          AND "public__order_fulfilment__1"."id" > ?
-        GROUP BY "public__customer__1"."id",
-          "public__phone_number__1"."id",
-          "public__order__1"."id",
-          "public__phone_number__2"."id",
-          "public__order__2"."id",
-          "public__order_fulfilment__1"."id"
+        SELECT "quory__join__1"."id" AS "quory__result__1"
+        FROM "public"."customer" AS "quory__join__1"
+          INNER JOIN "public"."phone_number" AS "quory__join__2" ON "quory__join__2"."customer_id" = "quory__join__1"."id"
+          INNER JOIN "public"."order" AS "quory__join__3" ON "quory__join__3"."customer_id" = "quory__join__1"."id"
+          INNER JOIN "public"."phone_number" AS "quory__join__4" ON "quory__join__4"."customer_id" = "quory__join__3"."id"
+          INNER JOIN "public"."order" AS "quory__join__6" ON "quory__join__6"."id" = "quory__join__4"."customer_id"
+          INNER JOIN "public"."order_fulfilment" AS "quory__join__5" ON "quory__join__5"."customer_id" = "quory__join__6"."id"
+        WHERE "quory__join__1"."id" = ?
+          AND "quory__join__3"."id" = ?
+          AND "quory__join__5"."id" > ?
+        GROUP BY "quory__join__1"."id",
+          "quory__join__2"."id",
+          "quory__join__3"."id",
+          "quory__join__4"."id",
+          "quory__join__6"."id",
+          "quory__join__5"."id"
       `)
     );
   });

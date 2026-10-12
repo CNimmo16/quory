@@ -37,7 +37,9 @@
     "eslint": "catalog:",
     "jest": "catalog:",
     "tsup": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "better-sqlite3": "catalog:",
+    "@types/better-sqlite3": "catalog:"
   },
   "dependencies": {
     "graph-data-structure": "^4.3.0",

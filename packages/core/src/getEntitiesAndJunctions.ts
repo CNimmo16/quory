@@ -1,6 +1,7 @@
 import { snakeCase } from "lodash-es";
 import plural from "pluralize";
 import { DatabaseSchema } from ".";
+import getTableRelationships from "./util/getTableRelationships";
 
 const getRef = (table: { schemaName: string; name: string }) =>
   `${table.schemaName}.${table.name}`;
@@ -28,7 +29,15 @@ export default function getEntitiesAndJunctions(
         return foreignKeysPointingAtOtherTables.length > 0;
       });
 
-      if (columnsWithForeignKeys.length < 2) {
+      const relationships = getTableRelationships(
+        table,
+        table.schemaName
+      ).filter(
+        (ref) =>
+          ref.foreignSchema !== table.schemaName ||
+          ref.foreignTable !== table.name
+      );
+      if (relationships.length < 2) {
         return false;
       }
 

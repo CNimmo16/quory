@@ -79,13 +79,13 @@ describe.each(["postgres", "mysql", "sqlite"] as const)(
       });
       if (dialect === "mysql") {
         expect(sql).toContain(
-          'FROM `pub"lic```.`Order.Items` AS `pub"lic``__Order.Items__1`'
+          'FROM `pub"lic```.`Order.Items` AS `quory__join__1`'
         );
         expect(sql).toContain('`select"``` DESC');
         expect(sql).toContain("IN (?,?,?)");
       } else {
         expect(sql).toContain(
-          'FROM "pub""lic`"."Order.Items" AS "pub""lic`__Order.Items__1"'
+          'FROM "pub""lic`"."Order.Items" AS "quory__join__1"'
         );
         expect(sql).toContain('"select""`" DESC');
         expect(sql).toContain(

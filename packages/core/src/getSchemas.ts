@@ -37,6 +37,12 @@ export default async function getSchemas(
             key.localColumn === column.name
         )
         .map((key) => ({
+          ...(key.constraintId !== undefined
+            ? {
+                constraintId: key.constraintId,
+                columnPosition: key.columnPosition,
+              }
+            : {}),
           foreignColumnName: key.foreignColumn,
           foreignSchemaName: key.foreignSchema,
           foreignTableName: key.foreignTable,
@@ -51,6 +57,12 @@ export default async function getSchemas(
             key.foreignColumn === column.name
         )
         .map((key) => ({
+          ...(key.constraintId !== undefined
+            ? {
+                constraintId: key.constraintId,
+                columnPosition: key.columnPosition,
+              }
+            : {}),
           localColumnName: key.localColumn,
           localSchemaName: key.localSchema,
           localTableName: key.localTable,

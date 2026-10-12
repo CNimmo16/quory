@@ -3,7 +3,12 @@ import { MockLanguageModelV3 } from "ai/test";
 import { ConditionOperator, prepareQuery } from "@quory/core";
 import { schemas, orderQuery } from "../../../test/queryFixtures";
 import { runQueryAssistant } from "./queryAssistant";
-import { queryFromTool, validateAssistantQuery } from "./queryTool";
+import {
+  queryFromTool,
+  validateAssistantQuery,
+  upsertQuerySchema,
+} from "./queryTool";
+import { validators } from "@quory/stack/server";
 import { getQueryModel } from "./model";
 
 type Generation = Awaited<ReturnType<MockLanguageModelV3["doGenerate"]>>;
@@ -200,6 +205,81 @@ describe("query validation", () => {
     const { sql, parameters } = await prepareQuery(schemas, query);
     expect(sql).not.toContain(query.base.where.value);
     expect(parameters).toContain(query.base.where.value);
+  });
+  it("accepts one composite constraint rather than counting its pairs as parallel keys", async () => {
+    const composite = structuredClone(schemas);
+    const users = composite[0]!.tables.find((table) => table.name === "users")!;
+    const orders = composite[0]!.tables.find(
+      (table) => table.name === "orders"
+    )!;
+    const key = orders.columns.find((column) => column.name === "user_id")!
+      .foreignKeys[0]!;
+    key.constraintId = "user_fk";
+    key.columnPosition = 2;
+    orders.columns.push({
+      ...orders.columns[0]!,
+      name: "tenant_id",
+      includedInPrimaryKey: false,
+      foreignKeyReferences: [],
+      foreignKeys: [
+        { ...key, columnPosition: 1, foreignColumnName: "tenant_id" },
+      ],
+    });
+    users.columns.push({
+      ...users.columns[0]!,
+      name: "tenant_id",
+      foreignKeys: [],
+      foreignKeyReferences: [],
+    });
+    await expect(
+      validateAssistantQuery(composite, queryFromTool(orderQuery))
+    ).resolves.toBeUndefined();
+  });
+  it("preserves partial via selectors through assistant and web validators", async () => {
+    const ambiguous = structuredClone(schemas);
+    const orders = ambiguous[0]!.tables.find(
+      (table) => table.name === "orders"
+    )!;
+    orders.columns
+      .find((column) => column.name === "status")!
+      .foreignKeys.push({
+        ...orders.columns.find((column) => column.name === "user_id")!
+          .foreignKeys[0]!,
+      });
+    const input = structuredClone(orderQuery);
+    input.tables[1]!.via = [
+      { tableRef: "public.users", fromColumnName: "user_id" },
+    ];
+    const compiled = queryFromTool(upsertQuerySchema.parse(input));
+    expect(validators.query.parse(compiled).base.joins![0]!.via).toEqual(
+      input.tables[1]!.via
+    );
+    await expect(
+      validateAssistantQuery(ambiguous, compiled)
+    ).resolves.toBeUndefined();
+    const invalid = {
+      ...input,
+      tables: input.tables.map((table, i) =>
+        i === 1
+          ? {
+              ...table,
+              via: [
+                {
+                  tableRef: "public.users",
+                  fromColumnName: "user_id",
+                  usingConstraintId: "fk",
+                },
+              ],
+            }
+          : table
+      ),
+    };
+    expect(upsertQuerySchema.safeParse(invalid).success).toBe(false);
+    const invalidQuery = structuredClone(compiled);
+    Object.assign(invalidQuery.base.joins![0]!.via![0] as object, {
+      usingConstraintId: "fk",
+    });
+    expect(validators.query.safeParse(invalidQuery).success).toBe(false);
   });
   it("rejects ambiguous foreign keys rather than silently choosing one", async () => {
     const ambiguous = structuredClone(schemas);

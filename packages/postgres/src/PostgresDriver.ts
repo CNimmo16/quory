@@ -66,21 +66,32 @@ export class PostgresDriver implements DatabaseDriver {
   async getAllForeignKeysInDatabase(): Promise<Relationship[]> {
     const foreignKeys = await this.sql`
     SELECT
-    tc.table_schema, 
-    tc.constraint_name, 
-    tc.table_name, 
-    kcu.column_name, 
-    ccu.table_schema AS foreign_table_schema,
-    ccu.table_name AS foreign_table_name,
-    ccu.column_name AS foreign_column_name 
-
-    FROM information_schema.table_constraints AS tc JOIN information_schema.key_column_usage AS kcu USING (constraint_schema, constraint_name) JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_name)
-
-    WHERE tc.table_schema NOT IN ('information_schema', 'pg_catalog')
-    AND tc.constraint_type = 'FOREIGN KEY';
+      ns.nspname AS table_schema,
+      con.conname AS constraint_name,
+      local_table.relname AS table_name,
+      local_column.attname AS column_name,
+      pair.ordinality AS ordinal_position,
+      foreign_ns.nspname AS foreign_table_schema,
+      foreign_table.relname AS foreign_table_name,
+      foreign_column.attname AS foreign_column_name
+    FROM pg_catalog.pg_constraint AS con
+    JOIN pg_catalog.pg_class AS local_table ON local_table.oid = con.conrelid
+    JOIN pg_catalog.pg_namespace AS ns ON ns.oid = local_table.relnamespace
+    JOIN pg_catalog.pg_class AS foreign_table ON foreign_table.oid = con.confrelid
+    JOIN pg_catalog.pg_namespace AS foreign_ns ON foreign_ns.oid = foreign_table.relnamespace
+    CROSS JOIN LATERAL unnest(con.conkey, con.confkey) WITH ORDINALITY
+      AS pair(local_attnum, foreign_attnum, ordinality)
+    JOIN pg_catalog.pg_attribute AS local_column
+      ON local_column.attrelid = con.conrelid AND local_column.attnum = pair.local_attnum
+    JOIN pg_catalog.pg_attribute AS foreign_column
+      ON foreign_column.attrelid = con.confrelid AND foreign_column.attnum = pair.foreign_attnum
+    WHERE con.contype = 'f' AND ns.nspname NOT IN ('information_schema', 'pg_catalog')
+    ORDER BY ns.nspname, local_table.relname, con.conname, pair.ordinality;
     `;
 
     return foreignKeys.map((constraintInfo) => ({
+      constraintId: constraintInfo.constraint_name,
+      columnPosition: Number(constraintInfo.ordinal_position),
       localSchema: constraintInfo.table_schema,
       localTable: constraintInfo.table_name,
       localColumn: constraintInfo.column_name,

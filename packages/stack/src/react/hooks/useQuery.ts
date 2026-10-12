@@ -88,9 +88,13 @@ export default function useQuery(
         sourceJoinParent.select = targetTable.columns.map(({ name }) => name);
         sourceJoinParent.where = where;
       } else {
-        const matchingChildJoin = sourceJoin.joins.find(
+        const matchingChildJoins = sourceJoin.joins.filter(
           (join) => join.tableRef === targetTableRef
         );
+        if (matchingChildJoins.length > 1) {
+          throw new Error(`Multiple join instances select ${targetTableRef}`);
+        }
+        const matchingChildJoin = matchingChildJoins[0];
         if (matchingChildJoin) {
           matchingChildJoin.select = targetTable.columns.map(
             ({ name }) => name
@@ -103,6 +107,7 @@ export default function useQuery(
             where,
             joins: [],
             joinAlias: "TEMP",
+            resultAliases: {},
           });
         }
       }
@@ -317,6 +322,11 @@ export default function useQuery(
               );
               if (!sourceColumn) {
                 throw new Error(`Column ${sourceColumnName} not found`);
+              }
+              if (sourceColumn.foreignKeys.length > 1) {
+                throw new Error(
+                  `Multiple relationships use column ${sourceColumnName}`
+                );
               }
               const fk = sourceColumn.foreignKeys[0];
               if (!fk) {

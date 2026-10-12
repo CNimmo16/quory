@@ -7,6 +7,7 @@ export default function getSelectForColumn(
   },
   tableAlias: string,
   column: DatabaseTableInfo["columns"][number],
+  resultAlias?: string,
   dialect: SqlDialect = "sqlite"
 ) {
   return {
@@ -16,7 +17,7 @@ export default function getSelectForColumn(
       dialect
     )}`,
     subQueryAlias: `${tableAlias}__${column.name}`,
-    outerAlias: `${table.schemaName}__${table.name}__${column.name}`,
+    outerAlias: resultAlias ?? `${tableAlias}__${column.name}`,
     includeInOuter: true,
   };
 }

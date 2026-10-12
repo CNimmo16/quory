@@ -5,6 +5,7 @@ Quory is the open source database client for support engineers.
 This is the low-level Quory core package. For the database client, see [the main README](/README.md).
 
 ### Key features
+
 - Introspect your database and quickly extract a graph of its relationships
 - Fetch data from many tables in a single query without writing joins manually
 
@@ -267,3 +268,114 @@ If there was another book with the same `author_id` with the category "thriller"
   }
 ]
 ```
+
+### Constraint-aware joins and migration
+
+Foreign key introspection still returns one `Relationship` record per column pair.
+Drivers now provide `constraintId` (unique within the local schema/table) and
+`columnPosition` (one-based position in the constraint). `getSchemas` preserves
+these fields on both `foreignKeys` and `foreignKeyReferences`. Use the exported
+`getTableRelationships(table, schemaName)` to obtain `RelationshipConstraint`
+objects with ordered `columnPairs`. For example, a composite foreign key emits:
+
+```ts
+[
+  {
+    constraintId: "parent_fk",
+    columnPosition: 1,
+    localSchema: "public",
+    localTable: "children",
+    localColumn: "tenant_id",
+    foreignSchema: "public",
+    foreignTable: "parents",
+    foreignColumn: "tenant_id",
+  },
+  {
+    constraintId: "parent_fk",
+    columnPosition: 2,
+    localSchema: "public",
+    localTable: "children",
+    localColumn: "parent_id",
+    foreignSchema: "public",
+    foreignTable: "parents",
+    foreignColumn: "id",
+  },
+];
+```
+
+Custom drivers and stored schema metadata without these fields remain supported
+for single-column keys. Each legacy column relationship is treated independently;
+composite keys cannot be reconstructed safely from legacy metadata. Refresh
+cached schemas and update custom drivers to emit both fields for every composite
+pair. Missing, duplicate, or non-contiguous positions on identified constraints
+are rejected when those relationships are resolved.
+
+### Selecting a relationship with `via`
+
+`JoinDef.via` accepts strings and objects. A string such as `"public.users"` is
+expanded to `{ tableRef: "public.users" }` before planning; the two forms behave
+identically. Existing intermediate-table routes continue to work. The destination
+is appended automatically when omitted, and may now be supplied as the final
+step to specify its incoming relationship:
+
+```ts
+{
+  tableRef: "public.users",
+  select: ["name"],
+  via: [{ tableRef: "public.users", fromColumnName: "sender_id" }],
+}
+```
+
+Each object may supply `fromColumnName`, `toColumnName`, or both. These column
+names are directional: `fromColumnName` belongs to the preceding table and
+`toColumnName` belongs to this step's table, even when traversing a foreign key
+in reverse. Either field alone is enough if it uniquely identifies a constraint.
+When both are supplied, they must match the same column pair in that constraint.
+
+Alternatively, specify `usingConstraintId` to identify the constraint:
+
+```ts
+via: [{ tableRef: "public.parents", usingConstraintId: "children_parent_fk" }];
+```
+
+Do not combine `usingConstraintId` with either column selector. All column pairs
+of the selected constraint are joined, even if only one column identified it.
+Constraint IDs are scoped to their owning tables; if the same ID matches keys in
+both directions, use directional column selectors instead.
+
+Unselected waypoints retain automatic shortest-path expansion. A step with a
+selector must be adjacent to the preceding waypoint; explicitly include any
+intermediate tables before it. Duplicate waypoints and routes that name the
+destination before the final step are rejected. The base table cannot have a
+`via` route. Prepared queries expand routes into nested joins and retain each
+edge's selectors so they can be executed again.
+
+If more than one constraint still matches, preparation, execution, and counting
+reject the query with available constraints and their directional column pairs,
+and explain how to narrow the selection. Invalid selectors never fall back to
+an arbitrary relationship. The assistant and web query validators accept this
+format; a visual constraint picker has not been added.
+
+Generated SQL result aliases are unique, short identifiers per selected column
+(for example, `quory__result__1`). Each prepared join exposes a `resultAliases`
+mapping from column name to SQL alias. Code constructing `PreparedJoinDef`
+objects must supply this new field (use `prepareQuery` to populate it). Consumers
+executing prepared SQL directly must use this mapping instead of hardcoded aliases; `runQuery` uses the same
+mapping to decode rows. The `rows[].data` column names returned by `runQuery`
+remain unchanged. Join aliases are generated identifiers and should be treated
+as opaque; ambiguous intermediate join instances are rejected rather than
+reusing an arbitrary branch.
+
+### Parameterized execution
+
+`prepareQuery(schemas, query, dialect)` now returns `{ sql, parameters, preparedQuery, joinsList }`.
+The dialect is `"postgres"`, `"mysql"`, or `"sqlite"` (the default). SQL contains
+quoted identifiers and placeholders, so callers executing compiled SQL directly
+must pass the returned `parameters` to a driver using the same dialect. Do not
+interpolate the values into the SQL string. `runQuery` and `getCountForQuery`
+select the driver's dialect and pass bindings automatically.
+
+Custom drivers must expose `readonly dialect: SqlDialect` and implement
+`exec(sql: string, parameters?: SqlParameter[]): Promise<Row[]>` using their
+database client's parameter-binding API. Shared schema validation applies to
+all entry paths, including the expanded `via` format above.

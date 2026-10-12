@@ -181,6 +181,8 @@ describe("SqliteDriver", () => {
     expect(relationships).toEqual<Relationship[]>([
       {
         localSchema: "main",
+        constraintId: "0",
+        columnPosition: 1,
         localTable: "orders",
         localColumn: "customer_id",
         foreignSchema: "main",
@@ -189,6 +191,8 @@ describe("SqliteDriver", () => {
       },
       {
         localSchema: "main",
+        constraintId: "0",
+        columnPosition: 1,
         localTable: "order_fulfilment",
         localColumn: "order_id",
         foreignSchema: "main",

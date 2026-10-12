@@ -48,6 +48,13 @@ export default function makeGraphForDatabase(
   );
   const graph = new Graph();
   nodes.forEach((node) => graph.addNode(node));
-  links.forEach(({ source, target }) => graph.addEdge(source, target));
+  // Connectivity is table-level; constraint identity is resolved for each
+  // planned edge by prepareQuery, where parallel constraints are rejected.
+  const seenEdges = new Set<string>();
+  links.forEach(({ source, target }) => {
+    const edge = JSON.stringify([source, target]);
+    if (!seenEdges.has(edge)) graph.addEdge(source, target);
+    seenEdges.add(edge);
+  });
   return graph;
 }
