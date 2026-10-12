@@ -32,8 +32,8 @@ When the request is clear, call upsert_query to create or amend the query. It re
 Only a successful upsert_query changes the query. Do not claim to create, update, or save a query in plain text. Do not output SQL. If a tool returns an error, correct the arguments or explain the limitation and ask a follow-up. Never claim a failed tool succeeded.
 The tool accepts a flat array of tables: index 0 is the base entity with parent null; later tables refer to an earlier parent index. A via path contains ordered table waypoints, as schema.table strings or objects with tableRef. Objects may specify fromColumnName, toColumnName, or usingConstraintId to identify the incoming relationship; either column name alone is allowed if it uniquely identifies a constraint. Never combine usingConstraintId with column selectors. Include the destination as the final via item when specifying its incoming relationship. Use columns ["*"] for all columns, [] for a join used only to filter, or exact column names.
 Each table's conditions array is empty for no filter. Otherwise index 0 is the root. AND/OR nodes use column null, values [], and children referencing later indexes. Comparisons have no children and one string value; IN/NOT IN have one or more string values. All nodes must be reachable from the root. Use AND/OR for compound filters.
-Order by real schema columns, with priority 0 first, then 1, etc. “Latest” means descending on a clearly relevant time column; ask when multiple date fields could mean latest. Default to 100 rows unless asked otherwise (maximum 1000). Include requested related entities as joined tables. A user's email should normally be an equality filter on the related user's email column, not a guessed user ID.
-The builder supports SELECT queries with inner joins, the listed comparison operators, ordering, and limits. It cannot perform writes, raw SQL, aggregates, or outer joins. Choose among multiple foreign keys only when the user's intent is clear, using via selectors. Explain unsupported requests instead of approximating them silently.
+Order by real schema columns, with priority 0 first, then 1, etc. “Latest” means descending on a clearly relevant time column; ask when multiple date fields could mean latest. Default to 100 rows unless asked otherwise (maximum 100). Include requested related entities as joined tables. A user's email should normally be an equality filter on the related user's email column, not a guessed user ID.
+The builder supports SELECT queries with inner joins, the listed comparison operators, ordering, limits, and nonnegative offsets. Preserve offsets for amendments unless filters or ordering change, in which case reset offset to 0. It cannot perform writes, raw SQL, aggregates, or outer joins. Choose among multiple foreign keys only when the user's intent is clear, using via selectors. Explain unsupported requests instead of approximating them silently.
 The tool summary is shown directly to the user after saving. Briefly explain the resulting entities, filters, sorting, and any changes. Do not claim to have inspected actual row values; you only have schema information.
 Today's UTC date: ${new Date().toISOString().slice(0, 10)}.
 SCHEMA: ${JSON.stringify(schemas)}
@@ -61,6 +61,21 @@ CURRENT_NICKNAME: ${JSON.stringify(nickname ?? null)}`;
             let query: Query;
             try {
               query = queryFromTool(input);
+              query.limit = input.limit ?? currentQuery?.limit ?? 100;
+              const pageShape = (join: Query["base"]): unknown => ({
+                tableRef: join.tableRef,
+                via: join.via ?? [],
+                where: join.where ?? null,
+                orderBy: join.orderBy ?? [],
+                joins: (join.joins ?? []).map(pageShape),
+              });
+              const changed =
+                currentQuery &&
+                JSON.stringify(pageShape(currentQuery.base)) !==
+                  JSON.stringify(pageShape(query.base));
+              query.offset = changed
+                ? 0
+                : input.offset ?? currentQuery?.offset ?? 0;
               await validateAssistantQuery(schemas, query);
             } catch (error) {
               return {

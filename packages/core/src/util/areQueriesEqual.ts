@@ -34,5 +34,9 @@ export default function areQueriesEqual(
     );
   };
 
-  return areJoinsEqual(queryA.base, queryB.base);
+  return (
+    (queryA.limit ?? 100) === (queryB.limit ?? 100) &&
+    (queryA.offset ?? 0) === (queryB.offset ?? 0) &&
+    areJoinsEqual(queryA.base, queryB.base)
+  );
 }

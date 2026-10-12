@@ -13,3 +13,27 @@ it("passes values separately to postgres.js and returns query rows", async () =>
     [rows[0]!.name]
   );
 });
+
+it("cancels the pending postgres.js query when aborted", async () => {
+  const driver = Object.create(PostgresDriver.prototype) as PostgresDriver;
+  let rejectQuery: (error: Error) => void = () => {};
+  const query = new Promise((_, reject) => {
+    rejectQuery = reject;
+  });
+  const cancel = jest.fn(() => {
+    rejectQuery(new Error("cancelled"));
+    return Promise.resolve();
+  });
+  Object.assign(query, { cancel });
+  driver.sql = {
+    unsafe: jest.fn().mockReturnValue(query),
+  } as unknown as PostgresDriver["sql"];
+  const controller = new AbortController();
+  const running = driver.exec("SELECT pg_sleep(60)", [], {
+    signal: controller.signal,
+  });
+  const rejected = expect(running).rejects.toThrow("cancelled");
+  controller.abort();
+  await rejected;
+  expect(cancel).toHaveBeenCalledTimes(1);
+});

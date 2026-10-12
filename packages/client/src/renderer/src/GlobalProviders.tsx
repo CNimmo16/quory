@@ -19,9 +19,25 @@ export default function GlobalProviders({
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <QuoryProvider
-          fetchFn={async (path, data) => {
-            console.info("FETCHING", path, data);
-            return api.quory({ path, data });
+          fetchFn={async (path, data, signal) => {
+            if (path !== "query" && path !== "queryCount")
+              return api.quory({ path, data });
+            const executionId = crypto.randomUUID();
+            const cancel = () => {
+              void api
+                .quory({ path: "cancelQuery", data: { executionId } })
+                .catch(() => {});
+            };
+            signal?.throwIfAborted();
+            signal?.addEventListener("abort", cancel, { once: true });
+            try {
+              return await api.quory({
+                path,
+                data: { ...(data as object), executionId },
+              });
+            } finally {
+              signal?.removeEventListener("abort", cancel);
+            }
           }}
         >
           <TooltipProvider delayDuration={300}>{children}</TooltipProvider>

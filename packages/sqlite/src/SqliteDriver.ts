@@ -25,7 +25,7 @@ export class SqliteDriver implements DatabaseDriver {
     } else {
       this.db = filenameOrClient;
     }
-    this.db.pragma("journal_mode = WAL");
+    if (!this.db.readonly) this.db.pragma("journal_mode = WAL");
   }
 
   async testConnection() {

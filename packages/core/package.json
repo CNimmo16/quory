@@ -16,7 +16,11 @@
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
-  "exports": "./dist/index.js",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "import": "./dist/index.js",
+    "require": "./dist/index.cjs"
+  },
   "types": "./dist/index.d.ts",
   "author": "CNimmo16",
   "license": "MIT",

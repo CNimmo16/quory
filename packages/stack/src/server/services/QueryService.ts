@@ -4,6 +4,7 @@ import {
   getCountForQuery,
   findTableFromSchemas,
   splitTableRef,
+  type ExecutionOptions,
 } from "@quory/core";
 import * as DatabaseService from "./DatabaseService";
 import renderDataValue from "../../util/renderDataValue";
@@ -11,14 +12,15 @@ import findJoinRecursively from "../../util/findJoinRecursively";
 
 export async function fetchDataForQuery(
   database: DatabaseService.ClientDatabase,
-  query: Parameters<typeof runQuery>[2]
+  query: Parameters<typeof runQuery>[2],
+  options?: ExecutionOptions
 ) {
   const { driver, schemas, semantics } = database;
 
   const {
     rows,
     meta: { preparedQuery },
-  } = await runQuery(driver, schemas, query);
+  } = await runQuery(driver, schemas, query, options);
 
   const visibleJoins = rows[0]
     ? rows[0]
@@ -104,17 +106,17 @@ export async function fetchDataForQuery(
 
 export async function fetchCountForQuery(
   database: DatabaseService.ClientDatabase,
-  query: Parameters<typeof runQuery>[2]
+  query: Parameters<typeof runQuery>[2],
+  options?: ExecutionOptions
 ) {
   const { driver, schemas } = database;
 
   validateQuery(schemas, query);
-  const { limit: _, ...rest } = query;
 
   const {
     count,
     meta: { preparedQuery },
-  } = await getCountForQuery(driver, schemas, rest);
+  } = await getCountForQuery(driver, schemas, query, options);
   return {
     originalQuery: query,
     preparedQuery,

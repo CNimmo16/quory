@@ -1,6 +1,7 @@
 import postgres from "postgres";
 import type {
   DatabaseDriver,
+  ExecutionOptions,
   SqlParameter,
   Relationship,
   Row,
@@ -20,10 +21,22 @@ export class PostgresDriver implements DatabaseDriver {
     await this.sql`SELECT 1`;
   }
 
-  exec(sql: string, parameters: SqlParameter[] = []): Promise<Row[]> {
-    return this.sql.unsafe(sql, parameters).then((rows) => {
-      return rows;
-    });
+  async exec(
+    sql: string,
+    parameters: SqlParameter[] = [],
+    options: ExecutionOptions = {}
+  ): Promise<Row[]> {
+    options.signal?.throwIfAborted();
+    const query = this.sql.unsafe(sql, parameters);
+    const abort = () => {
+      query.cancel();
+    };
+    options.signal?.addEventListener("abort", abort, { once: true });
+    try {
+      return await query;
+    } finally {
+      options.signal?.removeEventListener("abort", abort);
+    }
   }
 
   async getAllColumnsInDatabase(): Promise<TableColumn[]> {

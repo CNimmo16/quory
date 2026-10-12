@@ -86,7 +86,11 @@ export const queryChatProcedure = publicProcedure
         currentQuery:
           input.currentQuery ??
           (existing
-            ? { base: existing.base, limit: existing.limit }
+            ? {
+                base: existing.base,
+                limit: existing.limit,
+                offset: existing.offset,
+              }
             : undefined),
         nickname: existing?.nickname,
         messages,
