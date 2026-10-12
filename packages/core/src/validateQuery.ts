@@ -39,9 +39,19 @@ export default function validateQuery(
     query.limit !== undefined &&
     (typeof query.limit !== "number" ||
       !Number.isSafeInteger(query.limit) ||
-      query.limit < 1)
+      query.limit < 1 ||
+      query.limit > 100)
   )
-    throw new Error("Row limit must be a positive safe integer.");
+    throw new Error(
+      "Row limit must be a positive safe integer of at most 100."
+    );
+  if (
+    query.offset !== undefined &&
+    (typeof query.offset !== "number" ||
+      !Number.isSafeInteger(query.offset) ||
+      query.offset < 0)
+  )
+    throw new Error("Row offset must be a nonnegative safe integer.");
   let joinCount = 0;
   let conditionCount = 0;
   let selected = false;

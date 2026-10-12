@@ -1,5 +1,6 @@
 import type {
   DatabaseDriver,
+  ExecutionOptions,
   SqlParameter,
   Relationship,
   Row,
@@ -20,10 +21,24 @@ export class MySQLDriver implements DatabaseDriver {
     await this.pool.query("SELECT 1");
   }
 
-  exec(sql: string, parameters: SqlParameter[] = []): Promise<Row[]> {
-    return this.pool
-      .execute<RowDataPacket[]>(sql, parameters)
-      .then(([rows]) => rows as Row[]);
+  async exec(
+    sql: string,
+    parameters: SqlParameter[] = [],
+    options: ExecutionOptions = {}
+  ): Promise<Row[]> {
+    options.signal?.throwIfAborted();
+    const connection = await this.pool.getConnection();
+    const abort = () => connection.destroy();
+    options.signal?.addEventListener("abort", abort, { once: true });
+    try {
+      options.signal?.throwIfAborted();
+      const [rows] = await connection.execute<RowDataPacket[]>(sql, parameters);
+      return rows as Row[];
+    } finally {
+      options.signal?.removeEventListener("abort", abort);
+      if (options.signal?.aborted) connection.destroy();
+      else connection.release();
+    }
   }
 
   async getAllColumnsInDatabase(): Promise<TableColumn[]> {

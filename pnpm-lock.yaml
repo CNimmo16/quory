@@ -280,6 +280,9 @@ importers:
       '@ai-sdk/openai':
         specifier: ^3.0.124
         version: 3.0.124(zod@3.25.76)
+      '@quory/sqlite':
+        specifier: workspace:*
+        version: link:../sqlite
       '@radix-ui/react-dialog':
         specifier: ^1.2.0
         version: 1.2.0(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -620,6 +623,9 @@ importers:
 
   packages/sqlite:
     dependencies:
+      '@quory/core':
+        specifier: workspace:*
+        version: link:../core
       better-sqlite3:
         specifier: 'catalog:'
         version: 11.7.2
@@ -633,9 +639,6 @@ importers:
       '@quory/config':
         specifier: workspace:*
         version: link:../config
-      '@quory/core':
-        specifier: workspace:*
-        version: link:../core
       '@types/better-sqlite3':
         specifier: 'catalog:'
         version: 7.6.12

@@ -47,7 +47,8 @@
     "radash": "^12.1.0",
     "react-icons": "catalog:",
     "tailwind-merge": "^2.6.1",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@quory/sqlite": "workspace:*"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-ts": "^2.0.0",

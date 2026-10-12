@@ -123,3 +123,5 @@ export type DatabaseSchema = {
 export { default as validateQuery } from "./validateQuery";
 export { quoteIdentifier, parameterPlaceholder } from "./sqlDialect";
 export type { SqlDialect, SqlParameter } from "./sqlDialect";
+
+export type { ExecutionOptions } from "./DatabaseDriver";

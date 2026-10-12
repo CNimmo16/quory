@@ -125,6 +125,7 @@ export type JoinDef = {
 export interface Query {
   base: JoinDef;
   limit?: number | undefined;
+  offset?: number | undefined;
 }
 
 type JoinDefWithAlias = Omit<JoinDef, "joins"> & {
@@ -155,7 +156,8 @@ export type FlattenedPreparedJoinDef = Omit<PreparedJoinDef, "childJoins"> & {
 export default async function prepareQuery(
   databaseSchemas: DatabaseSchema[],
   query: Query,
-  dialect: SqlDialect = "sqlite"
+  dialect: SqlDialect = "sqlite",
+  options: { includeOrderBy?: boolean } = {}
 ): Promise<{
   sql: string;
   parameters: SqlParameter[];
@@ -450,7 +452,7 @@ export default async function prepareQuery(
   } ${
     primaryKeyRefs.length >= 1 ? `GROUP BY ${primaryKeyRefs.join(", ")}` : ""
   } ${
-    orderBy.length >= 1
+    orderBy.length >= 1 && options.includeOrderBy !== false
       ? `ORDER BY ${orderBy.map(
           (column) =>
             `${q(column.joinAlias)}.${q(column.column)} ${
@@ -480,6 +482,8 @@ export default async function prepareQuery(
 
   const preparedQuery = {
     ...query,
+    limit: query.limit ?? 100,
+    offset: query.offset ?? 0,
     base: joinTree,
   };
 

@@ -77,5 +77,11 @@ export const joinDef: z.ZodType<JoinDef> = z.object({
 
 export const query: z.ZodType<Query> = z.object({
   base: joinDef,
-  limit: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
+  limit: z.number().int().positive().max(100).default(100),
+  offset: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(0),
 });

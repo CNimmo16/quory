@@ -1,3 +1,7 @@
+import {
+  withQueryExecution,
+  cancelQueryExecution,
+} from "../services/QueryExecution";
 import { z, ZodType } from "zod";
 import * as DatabaseService from "../services/DatabaseService";
 import * as QueryService from "../services/QueryService";
@@ -25,17 +29,15 @@ export const routes = {
   query: route({
     validate: z.object({
       query: validators.query,
+      executionId: z.string().uuid().optional(),
     }),
     handle: async function ({ database }, request) {
-      const data = await QueryService.fetchDataForQuery(
+      const data = await withQueryExecution(
         database,
-        request.query
+        request.executionId,
+        (signal) =>
+          QueryService.fetchDataForQuery(database, request.query, { signal })
       );
-      const { count } = await QueryService.fetchCountForQuery(
-        database,
-        request.query
-      );
-
       const { rows, preparedQuery, visibleJoins } = data;
 
       return {
@@ -43,18 +45,21 @@ export const routes = {
         preparedQuery,
         visibleJoins,
         rows,
-        count,
+        count: null,
       };
     },
   }),
   queryCount: route({
     validate: z.object({
       query: validators.query,
+      executionId: z.string().uuid().optional(),
     }),
     handle: async function ({ database }, request) {
-      const { count, preparedQuery } = await QueryService.fetchCountForQuery(
+      const { count, preparedQuery } = await withQueryExecution(
         database,
-        request.query
+        request.executionId,
+        (signal) =>
+          QueryService.fetchCountForQuery(database, request.query, { signal })
       );
 
       return {
@@ -62,6 +67,13 @@ export const routes = {
         preparedQuery,
         count,
       };
+    },
+  }),
+  cancelQuery: route({
+    validate: z.object({ executionId: z.string().uuid() }),
+    handle: async ({ database }, request) => {
+      cancelQueryExecution(database, request.executionId);
+      return { cancelled: true };
     },
   }),
   schema: {

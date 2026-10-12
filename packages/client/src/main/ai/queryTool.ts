@@ -52,7 +52,13 @@ export const upsertQuerySchema = z
       .describe(
         "Brief user-facing explanation of the query and any changes, including filters and ordering."
       ),
-    limit: z.number().int().min(1).max(1000),
+    limit: z.number().int().min(1).max(100).optional(),
+    offset: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(Number.MAX_SAFE_INTEGER)
+      .optional(),
     tables: z
       .array(
         z
@@ -175,7 +181,7 @@ export function queryFromTool(input: UpsertQueryInput): Query {
       joins[table.parent]!.joins!.push(joins[index]!);
     }
   });
-  return { base: joins[0]!, limit: input.limit };
+  return { base: joins[0]!, limit: input.limit ?? 100, offset: input.offset };
 }
 
 export async function validateAssistantQuery(
@@ -183,8 +189,6 @@ export async function validateAssistantQuery(
   query: Query
 ) {
   validateQuery(schemas, query);
-  if (query.limit !== undefined && query.limit > 1000)
-    throw new Error("Choose a row limit between 1 and 1000.");
   // The shared planner resolves complete constraints and rejects ambiguity.
   const { preparedQuery } = await prepareQuery(schemas, query);
   validateQuery(schemas, preparedQuery);

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { QuoryContext } from "../QuoryContext";
+import { useCallback, useContext, useMemo, useState } from "react";
 import { RouterRequest } from "../../server/routes";
 import useQuory from "../useQuory";
 import {
@@ -25,9 +26,10 @@ export default function useQuery(
   isolatedCache = false,
   queryOptions?: Parameters<typeof useQuory<"query">>[2]
 ) {
+  const context = useContext(QuoryContext);
   const { data: schemaData } = useFetchSchema();
 
-  const { data, isFetching, error } = useQuory(
+  const { data, isFetching, error, refetch } = useQuory(
     "query",
     query
       ? {
@@ -189,6 +191,7 @@ export default function useQuery(
         ) {
           setQuery(
             produce(data.preparedQuery, (draft) => {
+              draft.offset = 0;
               let priority = 0;
               const join = findJoinRecursively(draft.base, joinAlias)!.join;
               if (clearAllExistingOrders) {
@@ -229,6 +232,7 @@ export default function useQuery(
         setCondition(condition: BooleanCondition) {
           setQuery(
             produce(data.preparedQuery, (draft) => {
+              draft.offset = 0;
               const join = findJoinRecursively(draft.base, joinAlias)!.join;
               if (condition.conditions.length === 0) {
                 delete join.where;
@@ -241,6 +245,7 @@ export default function useQuery(
         removeCondition() {
           setQuery(
             produce(data.preparedQuery, (draft) => {
+              draft.offset = 0;
               const join = findJoinRecursively(draft.base, joinAlias)!.join;
               delete join.where;
             })
@@ -249,6 +254,7 @@ export default function useQuery(
         removeJoin() {
           setQuery(
             produce(data.preparedQuery, (draft) => {
+              draft.offset = 0;
               const removeJoin = (
                 join: WritableDraft<PreparedJoinDef>,
                 joinAliasToRemove: string,
@@ -279,6 +285,7 @@ export default function useQuery(
         addJoin(targetTableRef: string) {
           setQuery(
             produce(data.preparedQuery, (draft) => {
+              draft.offset = 0;
               const source = findJoinRecursively(
                 draft.base,
                 this.join.joinAlias
@@ -301,6 +308,7 @@ export default function useQuery(
           }
           setQuery(
             produce(data.preparedQuery, (draft) => {
+              draft.offset = 0;
               const sourceJoinAlias = this.join.joinAlias;
               const source = findJoinRecursively(draft.base, sourceJoinAlias);
               if (!source) {
@@ -365,6 +373,7 @@ export default function useQuery(
           }
           setQuery(
             produce(data.preparedQuery, (draft) => {
+              draft.offset = 0;
               goToAdjacentJoin(draft, this.join.joinAlias, targetTableRef, {
                 column: targetColumnName,
                 value: columnValue,
@@ -418,5 +427,8 @@ export default function useQuery(
     isLoading: isFetching,
     error,
     joinActions,
+    refetch,
+    cancel: () =>
+      context?.queryClient.cancelQueries({ queryKey: ["query", { query }] }),
   };
 }

@@ -2,6 +2,7 @@ import makeQuoryRequestHandler from "./makeQuoryRequestHandler";
 import { makeClientDatabase } from "./services/DatabaseService";
 import { getSchemas } from "@quory/core";
 import routes from "./routes";
+import { withQueryExecution } from "./services/QueryExecution";
 
 jest.mock("./services/DatabaseService", () => ({
   makeClientDatabase: jest.fn(),
@@ -42,6 +43,7 @@ it("drains accepted requests, rejects new work and disposes exactly once", async
   });
   const handler = await makeQuoryRequestHandler(config);
   const request = handler({ path: "schema", data: {} });
+  await Promise.resolve(); // Let accepted work enter the route.
   const dispose = handler.dispose();
   expect(handler.dispose()).toBe(dispose);
   await expect(handler({ path: "schema", data: {} })).rejects.toThrow(
@@ -89,3 +91,43 @@ it("deduplicates concurrent refresh and waits for it during disposal", async () 
   await Promise.all([first, second, dispose]);
   expect(teardown).toHaveBeenCalledTimes(1);
 });
+
+it("rejects queued requests when disposal begins before dispatch", async () => {
+  const handler = await makeQuoryRequestHandler(config);
+  const request = handler({ path: "schema", data: {} });
+  const dispose = handler.dispose();
+  await expect(request).rejects.toThrow("disposed");
+  await dispose;
+  expect(routes.schema.handle).not.toHaveBeenCalled();
+  expect(teardown).toHaveBeenCalledTimes(1);
+});
+
+it.each(["execution-id", undefined])(
+  "cancels running queries before teardown (execution ID: %s)",
+  async (id) => {
+    let started!: () => void;
+    const running = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    jest.mocked(routes.schema.handle).mockImplementation(({ database }) =>
+      withQueryExecution(
+        database,
+        id,
+        (signal) =>
+          new Promise((_resolve, reject) => {
+            signal!.addEventListener("abort", () => reject(signal!.reason), {
+              once: true,
+            });
+            started();
+          })
+      )
+    );
+    const handler = await makeQuoryRequestHandler(config);
+    const request = handler({ path: "schema", data: {} });
+    const rejected = expect(request).rejects.toThrow("disposed");
+    await running;
+    await handler.dispose();
+    await rejected;
+    expect(teardown).toHaveBeenCalledTimes(1);
+  }
+);

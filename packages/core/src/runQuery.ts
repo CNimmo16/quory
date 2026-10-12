@@ -1,4 +1,6 @@
-import { parameterPlaceholder } from "./sqlDialect";
+import executeQuery from "./executeQuery";
+import type { ExecutionOptions } from "./DatabaseDriver";
+import { parameterPlaceholder, quoteIdentifier } from "./sqlDialect";
 import { DatabaseDriver, Row } from ".";
 import type { DatabaseSchema } from ".";
 import findTableFromSchemas from "./util/findTableFromSchemas";
@@ -13,7 +15,8 @@ import getSelectForColumn from "./util/getSelectForColumn";
 export default async function runQuery(
   databaseDriver: DatabaseDriver,
   databaseSchemas: DatabaseSchema[],
-  query: Query
+  query: Query,
+  options?: ExecutionOptions
 ): Promise<{
   sql: string;
   meta: {
@@ -34,15 +37,40 @@ export default async function runQuery(
   } = await prepareQuery(databaseSchemas, query, databaseDriver.dialect);
 
   let sql = preparedSql;
-  if (query.limit) {
-    parameters.push(query.limit);
-    sql += ` LIMIT ${parameterPlaceholder(
-      parameters.length,
-      databaseDriver.dialect
-    )}`;
-  }
+  // Primary keys provide deterministic page boundaries, including ties in user sorting.
+  const keyOrder = joinsList.flatMap((join) => {
+    const [schemaName, tableName] = splitTableRef(join.tableRef);
+    return findTableFromSchemas(databaseSchemas, schemaName, tableName)
+      .columns.filter((column) => column.includedInPrimaryKey)
+      .map(
+        (column) =>
+          `${quoteIdentifier(
+            join.joinAlias,
+            databaseDriver.dialect
+          )}.${quoteIdentifier(column.name, databaseDriver.dialect)} ASC`
+      );
+  });
+  if (keyOrder.length)
+    sql += `${
+      joinsList.some((join) => join.orderBy?.length) ? ", " : " ORDER BY "
+    }${keyOrder.join(", ")}`;
+  parameters.push(query.limit ?? 100);
+  sql += ` LIMIT ${parameterPlaceholder(
+    parameters.length,
+    databaseDriver.dialect
+  )}`;
+  parameters.push(query.offset ?? 0);
+  sql += ` OFFSET ${parameterPlaceholder(
+    parameters.length,
+    databaseDriver.dialect
+  )}`;
 
-  const execResult = await databaseDriver.exec(sql, parameters).catch((err) => {
+  const execResult = await executeQuery(
+    databaseDriver,
+    sql,
+    parameters,
+    options
+  ).catch((err) => {
     console.error(`Error while executing SQL: \n${sql}\n. Error below`);
     throw err;
   });

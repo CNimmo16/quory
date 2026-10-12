@@ -321,3 +321,26 @@ describe("provider configuration", () => {
     );
   });
 });
+
+it("preserves offsets on AI amendments and resets them when ordering changes", async () => {
+  const currentQuery = { ...queryFromTool(orderQuery), offset: 200 };
+  const upsert = vi.fn().mockResolvedValue(undefined);
+  await runQueryAssistant({
+    model: new MockLanguageModelV3({ doGenerate: call() }),
+    schemas,
+    messages,
+    currentQuery,
+    upsert,
+  });
+  expect(upsert.mock.calls[0]![0]).toMatchObject({ offset: 200 });
+  const amended = structuredClone(orderQuery);
+  amended.tables[0]!.orderBy[0]!.direction = "asc";
+  await runQueryAssistant({
+    model: new MockLanguageModelV3({ doGenerate: call(amended) }),
+    schemas,
+    messages,
+    currentQuery,
+    upsert,
+  });
+  expect(upsert.mock.calls[1]![0]).toMatchObject({ offset: 0 });
+});

@@ -52,6 +52,7 @@ const filtered: Query = {
     orderBy: [{ column: 'select"`', direction: "desc" }],
   },
   limit: 25,
+  offset: 42,
 };
 function driver(dialect: SqlDialect): DatabaseDriver {
   return {
@@ -60,6 +61,7 @@ function driver(dialect: SqlDialect): DatabaseDriver {
     getAllColumnsInDatabase: vi.fn(),
     getAllForeignKeysInDatabase: vi.fn(),
     testConnection: vi.fn(),
+    teardown: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -94,13 +96,24 @@ describe.each(["postgres", "mysql", "sqlite"] as const)(
       }
       await runQuery(db, schemas, filtered);
       expect(db.exec).toHaveBeenCalledWith(
-        sql + (dialect === "postgres" ? " LIMIT $5" : " LIMIT ?"),
-        [...parameters, 25]
+        sql +
+          (dialect === "mysql"
+            ? ", `quory__join__1`.`id` ASC"
+            : ', "quory__join__1"."id" ASC') +
+          (dialect === "postgres"
+            ? " LIMIT $5 OFFSET $6"
+            : " LIMIT ? OFFSET ?"),
+        [...parameters, 25, 42],
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
+      const { sql: countSql } = await prepareQuery(schemas, filtered, dialect, {
+        includeOrderBy: false,
+      });
       await getCountForQuery(db, schemas, filtered);
       expect(db.exec).toHaveBeenLastCalledWith(
-        `SELECT COUNT(*) AS count FROM (${sql}) AS quory_count`,
-        parameters
+        `SELECT COUNT(*) AS count FROM (${countSql}) AS quory_count`,
+        parameters,
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });
 

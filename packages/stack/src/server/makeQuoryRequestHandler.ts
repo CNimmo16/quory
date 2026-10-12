@@ -1,3 +1,4 @@
+import { cancelAllQueryExecutions } from "./services/QueryExecution";
 import routes from "./routes";
 import { QuoryRequestHandlerConfig } from "./types";
 import * as ClientDatabaseService from "./services/DatabaseService";
@@ -55,6 +56,7 @@ export default async function makeQuoryRequestHandler(
   }) =>
     track(async () => {
       if (invalidSchema || refreshing) await (refreshing ?? refresh());
+      if (disposed) throw new Error("Database session is disposed.");
       const parsedBody = z
         .object({ path: z.string(), data: z.unknown() })
         .parse(body);
@@ -75,6 +77,7 @@ export default async function makeQuoryRequestHandler(
     },
     dispose: () => {
       disposed = true;
+      cancelAllQueryExecutions(database);
       return (disposal ??= (async () => {
         await Promise.allSettled([...operations]);
         await database.driver.teardown();

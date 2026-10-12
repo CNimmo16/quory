@@ -45,6 +45,11 @@ export type Relationship = {
   foreignColumn: string;
 };
 
+export type ExecutionOptions = {
+  signal?: AbortSignal | undefined;
+  timeoutMs?: number | undefined;
+};
+
 export interface DatabaseDriver {
   readonly dialect: SqlDialect;
   getAllColumnsInDatabase(): Promise<TableColumn[]>;
@@ -52,7 +57,11 @@ export interface DatabaseDriver {
   getAllForeignKeysInDatabase(): Promise<Relationship[]>;
 
   /** Bind values using the database protocol; never interpolate or escape them into SQL. */
-  exec(sql: string, parameters?: SqlParameter[]): Promise<Row[]>;
+  exec(
+    sql: string,
+    parameters?: SqlParameter[],
+    options?: ExecutionOptions
+  ): Promise<Row[]>;
 
   testConnection(): Promise<void>;
 

@@ -120,3 +120,16 @@ it("a switch during previous-session disposal cannot return the wrong session", 
   expect(second.dispose).toHaveBeenCalledTimes(1);
   expect(await owner.get()).toBe(third);
 });
+
+it("changes the ownership generation even when reconnecting to the same ID", async () => {
+  const owner = new SessionOwner<ReturnType<typeof session>>();
+  await owner.connect("a", async () => session());
+  const initialGeneration = owner.connectionGeneration;
+  await owner.connect("b", async () => session());
+  await owner.connect("a", async () => session());
+  expect(owner.connectionId).toBe("a");
+  expect(owner.connectionGeneration).toBeGreaterThan(initialGeneration);
+  const connectedGeneration = owner.connectionGeneration;
+  await owner.disconnect();
+  expect(owner.connectionGeneration).toBeGreaterThan(connectedGeneration);
+});

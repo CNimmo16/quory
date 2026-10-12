@@ -1,8 +1,7 @@
 import { DatabaseDriver, DatabaseSchema, getSchemas } from "@quory/core";
-import { SqliteDriver } from "@quory/sqlite";
+import { WorkerSqliteDriver } from "@quory/sqlite";
 import { PostgresDriver } from "@quory/postgres";
 import { MySQLDriver } from "@quory/mysql";
-import sqlite from "better-sqlite3";
 import { QuoryRequestHandlerConfig } from "../types";
 import { DatabaseConnectionFailedError } from "../errors";
 
@@ -48,8 +47,7 @@ export async function makeClientDatabase(
   const driver = await (async () => {
     switch (config.database.type) {
       case "sqlite": {
-        const client = sqlite(config.database.hostOrFilePath);
-        return new SqliteDriver(client);
+        return new WorkerSqliteDriver(config.database.hostOrFilePath);
       }
       case "postgres":
       case "mysql": {

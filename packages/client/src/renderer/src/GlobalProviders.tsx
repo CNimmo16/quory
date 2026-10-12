@@ -25,14 +25,34 @@ export default function GlobalProviders({
 }
 
 function ConnectedQuoryProvider({ children }: { children: React.ReactNode }) {
-  const { data } = trpc.connections.fetchActiveConnection.useQuery();
-  const connection = data?.connection;
+  const { data: activeConnection } =
+    trpc.connections.fetchActiveConnection.useQuery();
+  const connection = activeConnection?.connection;
   return (
     <QuoryProvider
       key={connection ? `${connection._id}:${connection._rev}` : "disconnected"}
-      fetchFn={async (path, requestData) =>
-        api.quory({ path, data: requestData })
-      }
+      fetchFn={async (path, data, signal) => {
+        const invoke = (body: { path: string; data?: unknown }) =>
+          api.quory({ ...body, connectionId: connection?._id });
+        if (path !== "query" && path !== "queryCount")
+          return invoke({ path, data });
+        const executionId = crypto.randomUUID();
+        const cancel = () => {
+          void invoke({ path: "cancelQuery", data: { executionId } }).catch(
+            () => {}
+          );
+        };
+        signal?.throwIfAborted();
+        signal?.addEventListener("abort", cancel, { once: true });
+        try {
+          return await invoke({
+            path,
+            data: { ...(data as object), executionId },
+          });
+        } finally {
+          signal?.removeEventListener("abort", cancel);
+        }
+      }}
     >
       <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
     </QuoryProvider>
