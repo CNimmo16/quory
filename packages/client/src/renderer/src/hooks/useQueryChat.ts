@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Query } from "@quory/core";
 import type { inferRouterInputs } from "@trpc/server";
 import type { AppRouter } from "../../../main/ipc";
@@ -8,12 +8,14 @@ import trpc from "../util/tprc";
 type ChatRequest = inferRouterInputs<AppRouter>["queries"]["chat"];
 
 export function useQueryChat({
+  connectionId,
   queryId,
   revision,
   currentQuery,
   initialMessages = [],
   onUpsert,
 }: {
+  connectionId: string;
   queryId?: string;
   revision?: string;
   currentQuery?: Query;
@@ -27,6 +29,15 @@ export function useQueryChat({
   const request = useRef<ChatRequest | null>(null);
   const sending = useRef(false);
   const mutation = trpc.queries.chat.useMutation();
+  const currentContext = useRef(connectionId);
+  currentContext.current = connectionId;
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   async function send(message: string) {
     if (sending.current || !message.trim()) return false;
@@ -35,8 +46,13 @@ export function useQueryChat({
     setError(null);
     // Retry the same logical request after a transport failure, without creating
     // a second query if the first response was lost after saving.
-    if (!request.current || request.current.message !== message.trim()) {
+    if (
+      !request.current ||
+      request.current.message !== message.trim() ||
+      request.current.connectionId !== connectionId
+    ) {
       request.current = {
+        connectionId,
         requestId: crypto.randomUUID(),
         message: message.trim(),
         history: messages.slice(-60),
@@ -45,14 +61,19 @@ export function useQueryChat({
         ...(currentQuery ? { currentQuery } : {}),
       };
     }
+    const sentConnectionId = connectionId;
+    const isCurrent = () =>
+      mounted.current && currentContext.current === sentConnectionId;
     try {
       const result = await mutation.mutateAsync(request.current);
+      if (!isCurrent()) return false;
       setMessages(result.messages);
       if (result.queryUpdated) await onUpsert(result);
       request.current = null;
       setDraft("");
       return true;
     } catch (cause) {
+      if (!isCurrent()) return false;
       setError(
         cause instanceof Error
           ? cause.message

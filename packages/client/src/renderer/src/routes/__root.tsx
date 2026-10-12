@@ -39,9 +39,12 @@ function RootLayout() {
   );
 
   const { data: savedQueriesData, error: savedQueriesError } =
-    trpc.queries.listSavedQueries.useQuery(undefined, {
-      enabled: !!activeConnection,
-    });
+    trpc.queries.listSavedQueries.useQuery(
+      { connectionId: activeConnection?.id ?? "" },
+      {
+        enabled: !!activeConnection,
+      }
+    );
 
   const navigate = useNavigate();
 

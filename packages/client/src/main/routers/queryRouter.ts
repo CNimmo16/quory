@@ -3,66 +3,49 @@ import { publicProcedure, router } from "../util/trpc";
 import { z } from "zod";
 import { validators } from "@quory/stack/server";
 import { splitTableRef } from "@quory/core";
-import activeConnectionState from "../state/activeConnectionState";
 
-import { queryRepo } from "../repositories/queryRepo";
+import { savedQueryService } from "../repositories/savedQueryService";
 import { queryChatProcedure } from "../ai/queryChat";
 
 const queryRouter = router({
   chat: queryChatProcedure,
-  listSavedQueries: publicProcedure.query(async () => {
-    const activeConnectionId =
-      await activeConnectionState.getActiveConnectionId();
-
-    if (!activeConnectionId) {
-      return {
-        queries: [],
-      };
-    }
-
-    const { rows } = await queryRepo.allDocs({ include_docs: true });
-
-    return {
-      queries: rows
-        .filter((row) => row.doc!.connectionId === activeConnectionId)
-        .map((row) => ({
-          id: row.id,
-          query: row.doc!,
-        })),
-    };
-  }),
+  listSavedQueries: publicProcedure
+    .input(z.object({ connectionId: z.string() }))
+    .query(async ({ input }) => ({
+      queries: await savedQueryService.list(input.connectionId),
+    })),
   fetchQuery: publicProcedure
     .input(
       z.object({
+        connectionId: z.string(),
         queryId: z.string(),
       })
     )
-    .query(async ({ input: { queryId } }) => {
-      const query = await queryRepo.get(queryId);
+    .query(async ({ input: { queryId, connectionId } }) => {
+      const query = await savedQueryService.fetch(connectionId, queryId);
 
       return { query };
     }),
   createQuery: publicProcedure
     .input(
       z.object({
+        connectionId: z.string(),
         query: validators.query,
       })
     )
-    .mutation(async ({ input: { query } }) => {
+    .mutation(async ({ input: { query, connectionId } }) => {
       const queryId = randomUUID();
-      const activeConnectionId =
-        await activeConnectionState.getActiveConnectionIdOrThrow();
 
       const [_schemaName, tableName] = splitTableRef(query.base.tableRef);
-      await queryRepo.put({
-        _id: queryId,
-        ...query,
-        connectionId: activeConnectionId,
-        nickname: `${tableName} ${new Date()
+      await savedQueryService.create(
+        connectionId,
+        queryId,
+        query,
+        `${tableName} ${new Date()
           .toISOString()
           .substring(0, 16)
-          .replace("T", " ")}`,
-      });
+          .replace("T", " ")}`
+      );
       return {
         queryId,
       };
@@ -70,22 +53,19 @@ const queryRouter = router({
   updateQuery: publicProcedure
     .input(
       z.object({
+        connectionId: z.string(),
         query: validators.query,
         queryId: z.string(),
         revision: z.string(),
       })
     )
-    .mutation(async ({ input: { queryId, query, revision } }) => {
-      const activeConnectionId =
-        await activeConnectionState.getActiveConnectionIdOrThrow();
-      const existingDoc = await queryRepo.get(queryId);
-      const doc = await queryRepo.put({
-        ...existingDoc,
-        _rev: revision,
-        ...query,
-        connectionId: activeConnectionId,
-        nickname: existingDoc.nickname,
-      });
+    .mutation(async ({ input: { queryId, query, revision, connectionId } }) => {
+      const doc = await savedQueryService.update(
+        connectionId,
+        queryId,
+        revision,
+        { query }
+      );
       return {
         revision: doc.rev,
       };
@@ -93,35 +73,35 @@ const queryRouter = router({
   updateQueryNickname: publicProcedure
     .input(
       z.object({
+        connectionId: z.string(),
         queryId: z.string(),
         revision: z.string(),
         nickname: z.string(),
       })
     )
-    .mutation(async ({ input: { queryId, nickname, revision } }) => {
-      const activeConnectionId =
-        await activeConnectionState.getActiveConnectionIdOrThrow();
-      const existingDoc = await queryRepo.get(queryId);
-      const doc = await queryRepo.put({
-        ...existingDoc,
-        _rev: revision,
-        connectionId: activeConnectionId,
-        nickname,
-      });
-      return {
-        revision: doc.rev,
-      };
-    }),
+    .mutation(
+      async ({ input: { queryId, nickname, revision, connectionId } }) => {
+        const doc = await savedQueryService.update(
+          connectionId,
+          queryId,
+          revision,
+          { nickname }
+        );
+        return {
+          revision: doc.rev,
+        };
+      }
+    ),
   deleteQuery: publicProcedure
     .input(
       z.object({
+        connectionId: z.string(),
         queryId: z.string(),
+        revision: z.string(),
       })
     )
-    .mutation(async ({ input: { queryId } }) => {
-      const query = await queryRepo.get(queryId);
-
-      await queryRepo.remove(query);
+    .mutation(async ({ input: { queryId, connectionId, revision } }) => {
+      await savedQueryService.delete(connectionId, queryId, revision);
     }),
 });
 

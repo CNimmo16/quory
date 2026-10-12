@@ -1,8 +1,12 @@
 import { connectionRepo } from "../routers/connectionsRouter";
 
 let activeConnectionId: string | null = null;
+let connectionGeneration = 0;
 
 const activeConnectionState = {
+  getConnectionGeneration() {
+    return connectionGeneration;
+  },
   async getActiveConnectionId() {
     return activeConnectionId;
   },
@@ -24,9 +28,11 @@ const activeConnectionState = {
     }
   },
   async setActiveConnection(connectionId: string) {
+    connectionGeneration++;
     activeConnectionId = connectionId;
   },
   async deleteActiveConnection() {
+    connectionGeneration++;
     activeConnectionId = null;
   },
 };
