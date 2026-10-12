@@ -1,6 +1,13 @@
+import { beforeEach, afterEach, describe, it, expect } from "vitest";
 import knex, { Knex } from "knex";
 import { SqliteDriver } from "./SqliteDriver";
-import type { Relationship, Row, TableColumn } from "@quory/core";
+import {
+  getSchemas,
+  runQuery,
+  getCountForQuery,
+  ConditionOperator,
+} from "@quory/core";
+import type { Query, Relationship, Row, TableColumn } from "@quory/core";
 import sqlite, { Database } from "better-sqlite3";
 
 describe("SqliteDriver", () => {
@@ -276,6 +283,48 @@ describe("SqliteDriver", () => {
         public__orders__status: 2,
       },
     ]);
+  });
+
+  it("executes quoted identifiers and bound hostile values in an isolated in-memory database", async () => {
+    sqliteClient.exec(
+      'CREATE TABLE "Order ""History""" ("id" INTEGER PRIMARY KEY, "select ""text""" TEXT)'
+    );
+    const value = "\\' OR 1=1; --\0雪";
+    sqliteClient
+      .prepare('INSERT INTO "Order ""History""" VALUES (?, ?)')
+      .run(1, value);
+    sqliteClient
+      .prepare('INSERT INTO "Order ""History""" VALUES (?, ?)')
+      .run(2, "other");
+    const schemas = await getSchemas(driver);
+    const query: Query = {
+      base: {
+        tableRef: 'main.Order "History"',
+        select: "*" as const,
+        where: {
+          column: 'select "text"',
+          operator: ConditionOperator.EQUALS,
+          value,
+        },
+        orderBy: [{ column: 'select "text"', direction: "desc" as const }],
+      },
+      limit: 1,
+    };
+    const result = await runQuery(driver, schemas, query);
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]![0]!.data.id).toBe(1);
+    expect((await getCountForQuery(driver, schemas, query)).count).toBe(1);
+    await expect(
+      runQuery(driver, schemas, {
+        base: {
+          ...query.base,
+          orderBy: [{ column: "id, (SELECT 123)", direction: "asc" }],
+        },
+      })
+    ).rejects.toThrow("column");
+    expect(
+      await driver.exec('SELECT COUNT(*) AS count FROM "Order ""History"""')
+    ).toEqual([{ count: 2 }]);
   });
 
   afterEach(async () => {

@@ -25,6 +25,8 @@ type FakeTableDefinition = {
 };
 
 export default class FakeDatabaseDriver implements DatabaseDriver {
+  readonly dialect = "sqlite" as const;
+
   private tables: FakeTableDefinition[] = [];
 
   private mockedExecResponse?: Row[];

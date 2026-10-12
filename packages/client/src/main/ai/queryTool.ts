@@ -1,9 +1,8 @@
 import { z } from "zod";
 import {
   ConditionOperator,
-  isBooleanCondition,
-  isListCondition,
   prepareQuery,
+  validateQuery,
   type Condition,
   type DatabaseSchema,
   type DatabaseTableInfo,
@@ -177,75 +176,11 @@ export async function validateAssistantQuery(
       )
     )
   );
-  let count = 0;
-  let selected = false;
-  function checkJoin(join: JoinDef) {
-    if (++count > 32) throw new Error("Too many joined tables.");
-    const table = tables.get(join.tableRef);
-    if (!table)
-      throw new Error(
-        `Unknown table ${join.tableRef}. Use only tables in the supplied schema.`
-      );
-    const identifiers = join.tableRef.split(".");
-    if (
-      identifiers.length !== 2 ||
-      identifiers.some((name) => !/^[a-zA-Z_][a-zA-Z0-9_$]*$/.test(name))
-    )
-      throw new Error(
-        `The query builder does not support this table identifier: ${join.tableRef}.`
-      );
-    const checkColumn = (column: string) => {
-      if (
-        !table.columns.some((item) => item.name === column) ||
-        !/^[a-zA-Z_][a-zA-Z0-9_$]*$/.test(column)
-      )
-        throw new Error(
-          `Unknown or unsupported column ${join.tableRef}.${column}.`
-        );
-    };
-    if (join.select === "*")
-      table.columns.forEach((column) => checkColumn(column.name));
-    else join.select.forEach(checkColumn);
-    selected ||= join.select.length > 0;
-    (join.orderBy ?? []).forEach((order) => checkColumn(order.column));
-    (join.via ?? []).forEach((ref) => {
-      if (!tables.has(ref))
-        throw new Error(`Unknown intermediate table ${ref}.`);
-    });
-    function checkCondition(condition: Condition, depth = 0) {
-      if (depth > 20) throw new Error("Filter nesting is too deep.");
-      if (isBooleanCondition(condition)) {
-        if (!condition.conditions.length)
-          throw new Error("Empty boolean filter.");
-        condition.conditions.forEach((child) =>
-          checkCondition(child, depth + 1)
-        );
-      } else {
-        checkColumn(condition.column);
-        const values = isListCondition(condition)
-          ? condition.values
-          : [condition.value];
-        if (!values.length) throw new Error("Empty list filter.");
-        if (values.some((value) => /[\\\0]/.test(value)))
-          throw new Error(
-            "Backslashes and null bytes in filter values are not supported by this query builder."
-          );
-      }
-    }
-    if (join.where) checkCondition(join.where);
-    (join.joins ?? []).forEach(checkJoin);
-  }
-  checkJoin(query.base);
-  if (!selected) throw new Error("Select at least one column.");
-  if (
-    query.limit !== undefined &&
-    (!Number.isInteger(query.limit) || query.limit < 1 || query.limit > 1000)
-  )
+  validateQuery(schemas, query);
+  if (query.limit !== undefined && query.limit > 1000)
     throw new Error("Choose a row limit between 1 and 1000.");
   // Compiles only; verifies the existing engine can resolve the relationship paths.
-  const { preparedQuery, joinsList } = await prepareQuery(schemas, query);
-  count = 0;
-  checkJoin(preparedQuery.base);
+  const { joinsList } = await prepareQuery(schemas, query);
   for (const join of joinsList) {
     if (!join.parent) continue;
     const refsBetween = (from: string, to: string) =>

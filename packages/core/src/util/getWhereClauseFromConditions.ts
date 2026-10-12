@@ -1,4 +1,10 @@
 import { DatabaseTableInfo } from "..";
+import {
+  SqlDialect,
+  SqlParameter,
+  quoteIdentifier,
+  parameterPlaceholder,
+} from "../sqlDialect";
 import { Condition, ConditionOperator } from "../prepareQuery";
 
 export default function getWhereClauseFromConditions(
@@ -6,12 +12,18 @@ export default function getWhereClauseFromConditions(
     schemaName: string;
   },
   tableAlias: string | null,
-  where: Condition
+  where: Condition,
+  dialect: SqlDialect,
+  parameters: SqlParameter[]
 ) {
-  if (!tableAlias) {
-    tableAlias = `${table.schemaName}.${table.name}`;
-  }
-  const quoteValue = (value: string) => `'${value.replace(/'/g, "''")}'`;
+  const q = (name: string) => quoteIdentifier(name, dialect);
+  const ref = tableAlias
+    ? q(tableAlias)
+    : `${q(table.schemaName)}.${q(table.name)}`;
+  const bindValue = (value: string) => {
+    parameters.push(value);
+    return parameterPlaceholder(parameters.length, dialect);
+  };
   function makeCondition(condition: Condition): string {
     if (
       "column" in condition &&
@@ -28,12 +40,12 @@ export default function getWhereClauseFromConditions(
           .map(makeCondition)
           .join(` ${condition.operator.toUpperCase()} `)})`;
       default:
-        return `${tableAlias}.${
+        return `${ref}.${q(
           condition.column
-        } ${condition.operator.toUpperCase()} ${
+        )} ${condition.operator.toUpperCase()} ${
           "value" in condition
-            ? quoteValue(condition.value)
-            : `(${condition.values.map(quoteValue).join(",")})`
+            ? bindValue(condition.value)
+            : `(${condition.values.map(bindValue).join(",")})`
         }`;
     }
   }

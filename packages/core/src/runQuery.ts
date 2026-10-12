@@ -1,3 +1,4 @@
+import { parameterPlaceholder } from "./sqlDialect";
 import { DatabaseDriver, Row } from ".";
 import type { DatabaseSchema } from ".";
 import findTableFromSchemas from "./util/findTableFromSchemas";
@@ -27,16 +28,21 @@ export default async function runQuery(
 }> {
   const {
     sql: preparedSql,
+    parameters,
     preparedQuery,
     joinsList,
-  } = await prepareQuery(databaseSchemas, query);
+  } = await prepareQuery(databaseSchemas, query, databaseDriver.dialect);
 
   let sql = preparedSql;
   if (query.limit) {
-    sql += ` LIMIT ${query.limit}`;
+    parameters.push(query.limit);
+    sql += ` LIMIT ${parameterPlaceholder(
+      parameters.length,
+      databaseDriver.dialect
+    )}`;
   }
 
-  const execResult = await databaseDriver.exec(sql).catch((err) => {
+  const execResult = await databaseDriver.exec(sql, parameters).catch((err) => {
     console.error(`Error while executing SQL: \n${sql}\n. Error below`);
     throw err;
   });

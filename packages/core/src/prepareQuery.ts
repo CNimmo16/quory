@@ -1,3 +1,9 @@
+import validateQuery from "./validateQuery";
+import {
+  quoteIdentifier,
+  type SqlDialect,
+  type SqlParameter,
+} from "./sqlDialect";
 import type { DatabaseSchema } from ".";
 import makeGraphForDatabase from "../util/makeGraphForDatabase";
 import findTableFromSchemas from "./util/findTableFromSchemas";
@@ -142,22 +148,25 @@ export type FlattenedPreparedJoinDef = Omit<PreparedJoinDef, "childJoins"> & {
   }[];
 };
 
+/** Compile validated SQL and ordered bindings. Pass both to a driver of the same dialect. */
 export default async function prepareQuery(
   databaseSchemas: DatabaseSchema[],
-  query: Query
+  query: Query,
+  dialect: SqlDialect = "sqlite"
 ): Promise<{
   sql: string;
+  parameters: SqlParameter[];
   preparedQuery: PreparedQuery;
   joinsList: FlattenedPreparedJoinDef[];
 }> {
+  validateQuery(databaseSchemas, query);
+  const parameters: SqlParameter[] = [];
+  const q = (name: string) => quoteIdentifier(name, dialect);
+  const tableRefSql = (ref: string) => splitTableRef(ref).map(q).join(".");
   const { base } = query;
 
   const [baseSchemaName, baseTableName] = splitTableRef(base.tableRef);
-  findTableFromSchemas(
-    databaseSchemas,
-    baseSchemaName,
-    baseTableName
-  );
+  findTableFromSchemas(databaseSchemas, baseSchemaName, baseTableName);
 
   const tableSeenCounts: {
     [key: string]: number;
@@ -286,7 +295,9 @@ export default async function prepareQuery(
     const table = findTableFromSchemas(databaseSchemas, schemaName, tableName);
     return [
       ...table.columns
-        .map((column) => getSelectForColumn(table, join.joinAlias, column))
+        .map((column) =>
+          getSelectForColumn(table, join.joinAlias, column, dialect)
+        )
         .filter((column) => join.select.includes(column.name)),
       ...join.joins.flatMap(extractSelects),
     ];
@@ -299,7 +310,15 @@ export default async function prepareQuery(
     const table = findTableFromSchemas(databaseSchemas, schemaName, tableName);
     return [
       ...(join.where
-        ? [getWhereClauseFromConditions(table, join.joinAlias, join.where)]
+        ? [
+            getWhereClauseFromConditions(
+              table,
+              join.joinAlias,
+              join.where,
+              dialect,
+              parameters
+            ),
+          ]
         : []),
       ...join.joins.flatMap(extractConditions),
     ];
@@ -341,7 +360,9 @@ export default async function prepareQuery(
     ];
   })(joinTree);
 
-  let fromClause = `${joinTree.tableRef} AS ${joinTree.joinAlias}`;
+  let fromClause = `${tableRefSql(joinTree.tableRef)} AS ${q(
+    joinTree.joinAlias
+  )}`;
   const primaryKeyRefs: string[] = [];
   function traverseTree(thisJoin: PreparedJoinDef) {
     const [schemaName, tableName] = splitTableRef(thisJoin.tableRef);
@@ -353,7 +374,7 @@ export default async function prepareQuery(
     primaryKeyRefs.push(
       ...thisTable.columns
         .filter((column) => column.includedInPrimaryKey)
-        .map((column) => `${thisJoin.joinAlias}.${column.name}`)
+        .map((column) => `${q(thisJoin.joinAlias)}.${q(column.name)}`)
     );
 
     for (const childJoin of thisJoin.joins) {
@@ -378,7 +399,13 @@ export default async function prepareQuery(
             reference.foreignTableName === childTableName
         );
       if (referenceFromThisTableToChildTable) {
-        fromClause += ` INNER JOIN ${childSchemaName}.${childTableName} AS ${childJoin.joinAlias} ON ${childJoin.joinAlias}.${referenceFromThisTableToChildTable.foreignColumnName} = ${thisJoin.joinAlias}.${referenceFromThisTableToChildTable.columnName}`;
+        fromClause += ` INNER JOIN ${q(childSchemaName)}.${q(
+          childTableName
+        )} AS ${q(childJoin.joinAlias)} ON ${q(childJoin.joinAlias)}.${q(
+          referenceFromThisTableToChildTable.foreignColumnName
+        )} = ${q(thisJoin.joinAlias)}.${q(
+          referenceFromThisTableToChildTable.columnName
+        )}`;
       } else {
         const referenceFromChildTableToThisTable = childTable.columns
           .flatMap((column) =>
@@ -397,7 +424,13 @@ export default async function prepareQuery(
             `Could not find reference from ${childSchemaName}.${childTableName} to ${schemaName}.${tableName}. This should never happen.`
           );
         }
-        fromClause += ` INNER JOIN ${childSchemaName}.${childTableName} AS ${childJoin.joinAlias} ON ${childJoin.joinAlias}.${referenceFromChildTableToThisTable.columnName} = ${thisJoin.joinAlias}.${referenceFromChildTableToThisTable.foreignColumnName}`;
+        fromClause += ` INNER JOIN ${q(childSchemaName)}.${q(
+          childTableName
+        )} AS ${q(childJoin.joinAlias)} ON ${q(childJoin.joinAlias)}.${q(
+          referenceFromChildTableToThisTable.columnName
+        )} = ${q(thisJoin.joinAlias)}.${q(
+          referenceFromChildTableToThisTable.foreignColumnName
+        )}`;
       }
       traverseTree(childJoin);
     }
@@ -405,7 +438,7 @@ export default async function prepareQuery(
   traverseTree(joinTree);
 
   const sql = `SELECT ${select.map(
-    (column) => `${column.ref} AS ${column.outerAlias}`
+    (column) => `${column.ref} AS ${q(column.outerAlias)}`
   )} FROM ${fromClause} ${
     conditions.length >= 1 ? `WHERE ${conditions.join(" AND ")}` : ""
   } ${
@@ -414,7 +447,7 @@ export default async function prepareQuery(
     orderBy.length >= 1
       ? `ORDER BY ${orderBy.map(
           (column) =>
-            `${column.joinAlias}.${column.column} ${
+            `${q(column.joinAlias)}.${q(column.column)} ${
               column.order === "asc" ? "ASC" : "DESC"
             }`
         )}`
@@ -448,5 +481,6 @@ export default async function prepareQuery(
     preparedQuery,
     joinsList,
     sql,
+    parameters,
   };
 }

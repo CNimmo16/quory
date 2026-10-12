@@ -9,27 +9,10 @@
   "author": "CNimmo16",
   "license": "MIT",
   "scripts": {
-    "test": "jest --runInBand",
+    "test": "vitest run",
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "build:watch": "tsup src/index.ts --format cjs,esm --dts --watch",
     "lint": "eslint ."
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
   },
   "devDependencies": {
     "@quory/core": "workspace:*",
@@ -38,7 +21,8 @@
     "jest": "catalog:",
     "ts-jest": "catalog:",
     "tsup": "catalog:",
-    "@quory/config": "workspace:*"
+    "@quory/config": "workspace:*",
+    "vitest": "catalog:"
   },
   "dependencies": {
     "better-sqlite3": "catalog:",

@@ -1,5 +1,7 @@
+import { quoteIdentifier } from "@quory/core";
 import type {
   DatabaseDriver,
+  SqlParameter,
   Relationship,
   Row,
   TableColumn,
@@ -9,6 +11,7 @@ import sqlite, { Database } from "better-sqlite3";
 import getAffinityForType from "./util/getAffinityForType";
 
 export class SqliteDriver implements DatabaseDriver {
+  readonly dialect = "sqlite" as const;
   db: Database;
 
   constructor(filenameOrClient: string, options: sqlite.Options);
@@ -29,8 +32,8 @@ export class SqliteDriver implements DatabaseDriver {
     await this.db.prepare("SELECT 1").get();
   }
 
-  async exec(sql: string): Promise<Row[]> {
-    const rows = this.db.prepare(sql).all();
+  async exec(sql: string, parameters: SqlParameter[] = []): Promise<Row[]> {
+    const rows = this.db.prepare(sql).all(...parameters);
     return rows as Row[];
   }
 
@@ -41,12 +44,22 @@ export class SqliteDriver implements DatabaseDriver {
       return (
         this.db
           .prepare(
-            `SELECT * FROM ${schema.name}.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';`
+            `SELECT * FROM ${quoteIdentifier(
+              schema.name,
+              "sqlite"
+            )}.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';`
           )
           .all() as { name: string }[]
       ).flatMap((table) => {
         return (
-          this.db.prepare(`PRAGMA table_info('${table.name}');`).all() as {
+          this.db
+            .prepare(
+              `PRAGMA ${quoteIdentifier(
+                schema.name,
+                "sqlite"
+              )}.table_info(${quoteIdentifier(table.name, "sqlite")});`
+            )
+            .all() as {
             name: string;
             type: string;
             pk: 1 | 0;
@@ -56,7 +69,15 @@ export class SqliteDriver implements DatabaseDriver {
         ).map((column): TableColumn => {
           const dataType = column.type;
           const typeRes = this.db
-            .prepare(`SELECT typeof(${column.name}) FROM ${table.name};`)
+            .prepare(
+              `SELECT typeof(${quoteIdentifier(
+                column.name,
+                "sqlite"
+              )}) FROM ${quoteIdentifier(
+                schema.name,
+                "sqlite"
+              )}.${quoteIdentifier(table.name, "sqlite")};`
+            )
             .get() as { [key: string]: string } | null;
           const affinity = getAffinityForType(
             typeRes ? Object.values(typeRes)[0]! : column.type
@@ -84,13 +105,21 @@ export class SqliteDriver implements DatabaseDriver {
       return (
         this.db
           .prepare(
-            `SELECT * FROM ${schema.name}.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';`
+            `SELECT * FROM ${quoteIdentifier(
+              schema.name,
+              "sqlite"
+            )}.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';`
           )
           .all() as { name: string }[]
       ).flatMap((table) => {
         return (
           this.db
-            .prepare(`PRAGMA foreign_key_list('${table.name}');`)
+            .prepare(
+              `PRAGMA ${quoteIdentifier(
+                schema.name,
+                "sqlite"
+              )}.foreign_key_list(${quoteIdentifier(table.name, "sqlite")});`
+            )
             .all() as {
             id: number;
             sq: number;
