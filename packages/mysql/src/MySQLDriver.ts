@@ -1,5 +1,6 @@
 import type {
   DatabaseDriver,
+  SqlParameter,
   Relationship,
   Row,
   TableColumn,
@@ -9,6 +10,7 @@ import mysql, { Pool, PoolOptions, RowDataPacket } from "mysql2/promise";
 import { sortBy, uniqBy } from "lodash";
 
 export class MySQLDriver implements DatabaseDriver {
+  readonly dialect = "mysql" as const;
   pool: Pool;
   constructor(poolConfig: PoolOptions) {
     this.pool = mysql.createPool(poolConfig);
@@ -18,10 +20,10 @@ export class MySQLDriver implements DatabaseDriver {
     await this.pool.query("SELECT 1");
   }
 
-  exec(sql: string): Promise<Row[]> {
-    return this.pool.query(sql).then(() => {
-      return [{}];
-    });
+  exec(sql: string, parameters: SqlParameter[] = []): Promise<Row[]> {
+    return this.pool
+      .execute<RowDataPacket[]>(sql, parameters)
+      .then(([rows]) => rows as Row[]);
   }
 
   async getAllColumnsInDatabase(): Promise<TableColumn[]> {

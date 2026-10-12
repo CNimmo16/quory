@@ -1,3 +1,5 @@
+import type { SqlDialect, SqlParameter } from "./sqlDialect";
+
 export type Row = Record<string, string | number | Date>;
 
 export type GenericDataType =
@@ -31,11 +33,13 @@ export type Relationship = {
 };
 
 export interface DatabaseDriver {
+  readonly dialect: SqlDialect;
   getAllColumnsInDatabase(): Promise<TableColumn[]>;
 
   getAllForeignKeysInDatabase(): Promise<Relationship[]>;
 
-  exec(sql: string): Promise<Row[]>;
+  /** Bind values using the database protocol; never interpolate or escape them into SQL. */
+  exec(sql: string, parameters?: SqlParameter[]): Promise<Row[]>;
 
   testConnection(): Promise<void>;
 }

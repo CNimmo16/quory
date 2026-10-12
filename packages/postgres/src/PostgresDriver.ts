@@ -1,6 +1,7 @@
 import postgres from "postgres";
 import type {
   DatabaseDriver,
+  SqlParameter,
   Relationship,
   Row,
   TableColumn,
@@ -8,6 +9,7 @@ import type {
 import postgresDatatypeToGenericDatatype from "./util/postgresDatatypeToGenericDatatype";
 
 export class PostgresDriver implements DatabaseDriver {
+  readonly dialect = "postgres" as const;
   sql: postgres.Sql;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(config: postgres.Options<Record<string, any>>) {
@@ -18,8 +20,8 @@ export class PostgresDriver implements DatabaseDriver {
     await this.sql`SELECT 1`;
   }
 
-  exec(sql: string): Promise<Row[]> {
-    return this.sql.unsafe(sql).then((rows) => {
+  exec(sql: string, parameters: SqlParameter[] = []): Promise<Row[]> {
+    return this.sql.unsafe(sql, parameters).then((rows) => {
       return rows;
     });
   }

@@ -1,3 +1,4 @@
+import { quoteIdentifier, type SqlDialect } from "../sqlDialect";
 import { DatabaseTableInfo } from "..";
 
 export default function getSelectForColumn(
@@ -5,11 +6,15 @@ export default function getSelectForColumn(
     schemaName: string;
   },
   tableAlias: string,
-  column: DatabaseTableInfo["columns"][number]
+  column: DatabaseTableInfo["columns"][number],
+  dialect: SqlDialect = "sqlite"
 ) {
   return {
     name: column.name,
-    ref: `${tableAlias}.${column.name}`,
+    ref: `${quoteIdentifier(tableAlias, dialect)}.${quoteIdentifier(
+      column.name,
+      dialect
+    )}`,
     subQueryAlias: `${tableAlias}__${column.name}`,
     outerAlias: `${table.schemaName}__${table.name}__${column.name}`,
     includeInOuter: true,

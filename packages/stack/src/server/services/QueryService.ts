@@ -1,5 +1,6 @@
 import {
   runQuery,
+  validateQuery,
   getCountForQuery,
   findTableFromSchemas,
   splitTableRef,
@@ -104,6 +105,7 @@ export async function fetchCountForQuery(
 ) {
   const { driver, schemas } = database;
 
+  validateQuery(schemas, query);
   const { limit: _, ...rest } = query;
 
   const {

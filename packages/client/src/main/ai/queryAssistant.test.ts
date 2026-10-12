@@ -74,11 +74,12 @@ describe("query assistant", () => {
     ).toEqual({ queryUpdated: true, text: orderQuery.summary });
     expect(upsert).toHaveBeenCalledOnce();
     const query = upsert.mock.calls[0]![0];
-    const { sql } = await prepareQuery(schemas, query);
-    expect(sql).toContain("INNER JOIN public.users");
-    expect(sql).toContain("INNER JOIN public.listings");
-    expect(sql).toContain("email = 'cameron@gmail.com'");
-    expect(sql).toContain("created_at DESC");
+    const { sql, parameters } = await prepareQuery(schemas, query);
+    expect(sql).toContain('INNER JOIN "public"."users"');
+    expect(sql).toContain('INNER JOIN "public"."listings"');
+    expect(sql).toContain('"email" = ?');
+    expect(parameters).toContain("cameron@gmail.com");
+    expect(sql).toContain('"created_at" DESC');
     expect(model.doGenerateCalls).toHaveLength(1);
   });
   it("amends the current query with conversation and unsaved filters as context", async () => {
@@ -178,7 +179,7 @@ describe("query validation", () => {
       })
     ).rejects.toThrow();
   });
-  it("rejects invalid filter trees and dialect-dependent escape sequences", async () => {
+  it("rejects invalid filter trees and accepts bound escape sequences", async () => {
     const invalid = structuredClone(orderQuery);
     invalid.tables[1]!.conditions.push({
       column: "email",
@@ -193,9 +194,12 @@ describe("query validation", () => {
       operator: ConditionOperator.EQUALS,
       value: "\\' OR 1=1",
     };
-    await expect(validateAssistantQuery(schemas, query)).rejects.toThrow(
-      "Backslashes"
-    );
+    await expect(
+      validateAssistantQuery(schemas, query)
+    ).resolves.toBeUndefined();
+    const { sql, parameters } = await prepareQuery(schemas, query);
+    expect(sql).not.toContain(query.base.where.value);
+    expect(parameters).toContain(query.base.where.value);
   });
   it("rejects ambiguous foreign keys rather than silently choosing one", async () => {
     const ambiguous = structuredClone(schemas);

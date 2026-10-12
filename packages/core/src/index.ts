@@ -104,3 +104,7 @@ export type DatabaseSchema = {
   name: string;
   tables: DatabaseTableInfo[];
 };
+
+export { default as validateQuery } from "./validateQuery";
+export { quoteIdentifier, parameterPlaceholder } from "./sqlDialect";
+export type { SqlDialect, SqlParameter } from "./sqlDialect";

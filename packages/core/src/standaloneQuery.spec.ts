@@ -29,12 +29,12 @@ it("compiles standalone entities and offers no relationships", async () => {
   const { sql } = await prepareQuery(schemas, {
     base: { tableRef: "public.notes", select: "*" },
   });
-  expect(sql).toContain("FROM public.notes");
+  expect(sql).toContain('FROM "public"."notes"');
   expect(getRelationsForTable(schemas, "public", "notes")).toEqual([]);
 });
 
-it("escapes apostrophes in scalar and list filters", async () => {
-  const { sql } = await prepareQuery(schemas, {
+it("binds apostrophes in scalar and list filters", async () => {
+  const { sql, parameters } = await prepareQuery(schemas, {
     base: {
       tableRef: "public.notes",
       select: "*",
@@ -55,6 +55,7 @@ it("escapes apostrophes in scalar and list filters", async () => {
       },
     },
   });
-  expect(sql).toContain("= 'O''Connor'");
-  expect(sql).toContain("IN ('x'' OR 1=1 --','it''s fine')");
+  expect(sql).toContain("= ?");
+  expect(sql).toContain("IN (?,?)");
+  expect(parameters).toEqual(["O'Connor", "x' OR 1=1 --", "it's fine"]);
 });
