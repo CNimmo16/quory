@@ -29,7 +29,10 @@ export const Route = createFileRoute("/queries/$queryId")({
   loader: async ({ params }) => {
     const res = await trpcClient.connections.fetchActiveConnection.query();
     if (!res.connection) throw redirect({ to: "/connections" });
-    return trpcClient.queries.fetchQuery.query({ queryId: params.queryId });
+    return trpcClient.queries.fetchQuery.query({
+      queryId: params.queryId,
+      connectionId: res.connection._id,
+    });
   },
 });
 
@@ -65,6 +68,7 @@ function QueryEditor({
   );
   const chat = useQueryChat({
     queryId,
+    connectionId: data.query.connectionId,
     revision: data.query._rev,
     currentQuery: query ?? data.query,
     initialMessages: data.query.chatMessages ?? [],
@@ -118,7 +122,11 @@ function QueryEditor({
         "This will permanently delete this query. Do you want to proceed?"
       )
     )
-      deleteQuery.mutate({ queryId });
+      deleteQuery.mutate({
+        queryId,
+        connectionId: data.query.connectionId,
+        revision: data.query._rev,
+      });
   }
   const error = updateQuery.error ?? updateNickname.error ?? deleteQuery.error;
   return (
@@ -145,6 +153,7 @@ function QueryEditor({
                   event.preventDefault();
                   updateNickname.mutate({
                     queryId,
+                    connectionId: data.query.connectionId,
                     nickname,
                     revision: data.query._rev,
                   });
@@ -202,6 +211,7 @@ function QueryEditor({
                   query &&
                   updateQuery.mutate({
                     queryId,
+                    connectionId: data.query.connectionId,
                     query,
                     revision: data.query._rev,
                   })

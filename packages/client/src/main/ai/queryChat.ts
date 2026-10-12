@@ -8,8 +8,7 @@ import {
   type ChatMessage,
   type QueryChatResult,
 } from "../../shared/queryChat";
-import { queryRepo } from "../repositories/queryRepo";
-import activeConnectionState from "../state/activeConnectionState";
+import { savedQueryService } from "../repositories/savedQueryService";
 import { getQuorySession } from "../state/quorySession";
 import { publicProcedure } from "../util/trpc";
 import { getQueryModel } from "./model";
@@ -26,6 +25,7 @@ const conflict = () =>
 export const queryChatProcedure = publicProcedure
   .input(
     z.object({
+      connectionId: z.string(),
       requestId: z.string().uuid(),
       message: z.string().trim().min(1).max(6000),
       history: z.array(chatMessageSchema).max(60),
@@ -43,16 +43,22 @@ export const queryChatProcedure = publicProcedure
       });
     inFlight.add(id);
     try {
+      const context = await savedQueryService.assertConnection(
+        input.connectionId
+      );
       const session = await getQuorySession();
-      const existing = await queryRepo.get(id).catch((error: unknown) => {
-        if ((error as { status?: number }).status === 404 && !input.queryId)
-          return undefined;
-        throw error;
-      });
-      if (existing && existing.connectionId !== session.connectionId)
+      if (session.connectionId !== input.connectionId)
         throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This query belongs to a different connection.",
+          code: "CONFLICT",
+          message:
+            "The active connection changed. Start again on the current connection.",
+        });
+      const existing = await savedQueryService
+        .fetch(context, id)
+        .catch((error: unknown) => {
+          if ((error as { status?: number }).status === 404 && !input.queryId)
+            return undefined;
+          throw error;
         });
       if (existing?.lastChatRequestId === input.requestId) {
         return {
@@ -80,6 +86,7 @@ export const queryChatProcedure = publicProcedure
         { id: input.requestId, role: "user", content: input.message },
       ];
       let saved: { revision: string; messages: ChatMessage[] } | undefined;
+      await savedQueryService.assertConnection(context);
       const result = await runQueryAssistant({
         model,
         schemas: session.schemas,
@@ -91,15 +98,6 @@ export const queryChatProcedure = publicProcedure
         nickname: existing?.nickname,
         messages,
         upsert: async (query, nickname, summary) => {
-          if (
-            (await activeConnectionState.getActiveConnectionId()) !==
-            session.connectionId
-          )
-            throw new TRPCError({
-              code: "CONFLICT",
-              message:
-                "The active connection changed. Start again on the current connection.",
-            });
           const chatMessages: ChatMessage[] = [
             ...messages,
             {
@@ -110,17 +108,26 @@ export const queryChatProcedure = publicProcedure
             },
           ];
           try {
-            const doc = await queryRepo.put({
-              ...existing,
-              ...query,
-              _id: id,
-              connectionId: session.connectionId,
-              nickname,
+            const metadata = {
               chatMessages,
               lastChatRequestId: input.requestId,
-            });
+            };
+            const doc = existing
+              ? await savedQueryService.update(context, id, existing._rev, {
+                  query,
+                  nickname,
+                  ...metadata,
+                })
+              : await savedQueryService.create(
+                  context,
+                  id,
+                  query,
+                  nickname,
+                  metadata
+                );
             saved = { revision: doc.rev, messages: chatMessages };
           } catch (error) {
+            if (error instanceof TRPCError) throw error;
             if ((error as { status?: number }).status === 409) throw conflict();
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
@@ -129,6 +136,7 @@ export const queryChatProcedure = publicProcedure
           }
         },
       });
+      await savedQueryService.assertConnection(context);
       if (saved)
         return {
           messages: saved.messages,

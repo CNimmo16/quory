@@ -6,6 +6,7 @@ import { queryFromTool } from "./queryTool";
 import type { SavedQuery } from "../repositories/queryRepo";
 
 const mocks = vi.hoisted(() => ({
+  generation: 0,
   get: vi.fn(),
   put: vi.fn(),
   session: vi.fn(),
@@ -18,7 +19,10 @@ vi.mock("../repositories/queryRepo", () => ({
 }));
 vi.mock("../state/quorySession", () => ({ getQuorySession: mocks.session }));
 vi.mock("../state/activeConnectionState", () => ({
-  default: { getActiveConnectionId: mocks.connection },
+  default: {
+    getActiveConnectionId: mocks.connection,
+    getConnectionGeneration: () => mocks.generation,
+  },
 }));
 vi.mock("./queryAssistant", () => ({ runQueryAssistant: mocks.assistant }));
 vi.mock("./model", () => ({ getQueryModel: mocks.model }));
@@ -28,6 +32,7 @@ import { router } from "../util/trpc";
 const caller = router({ chat: queryChatProcedure }).createCaller({});
 let docs: Map<string, SavedQuery & { _id: string; _rev: string }>;
 const input = () => ({
+  connectionId: "connection-1",
   requestId: randomUUID(),
   message: "Latest orders with listings for cameron@gmail.com",
   history: [],
@@ -35,6 +40,7 @@ const input = () => ({
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.generation = 0;
   docs = new Map();
   mocks.session.mockResolvedValue({ connectionId: "connection-1", schemas });
   mocks.connection.mockResolvedValue("connection-1");
@@ -119,6 +125,7 @@ describe("chat persistence", () => {
     await expect(
       caller.chat({ ...input(), queryId: initial.queryId!, revision: "stale" })
     ).rejects.toThrow("changed");
+    mocks.connection.mockResolvedValue("another-connection");
     mocks.session.mockResolvedValue({
       connectionId: "another-connection",
       schemas,
@@ -126,6 +133,7 @@ describe("chat persistence", () => {
     await expect(
       caller.chat({
         ...input(),
+        connectionId: "another-connection",
         queryId: initial.queryId!,
         revision: initial.revision!,
       })
@@ -158,4 +166,19 @@ describe("chat persistence", () => {
     );
     expect(mocks.put).not.toHaveBeenCalled();
   });
+});
+
+it("rejects switching away and back during chat generation", async () => {
+  mocks.assistant.mockImplementation(async ({ upsert }) => {
+    mocks.generation += 2;
+    await upsert(
+      queryFromTool(orderQuery),
+      orderQuery.nickname,
+      orderQuery.summary
+    );
+  });
+  await expect(caller.chat(input())).rejects.toThrow(
+    "active connection changed"
+  );
+  expect(mocks.put).not.toHaveBeenCalled();
 });

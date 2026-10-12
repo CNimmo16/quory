@@ -6,6 +6,10 @@ export class SessionOwner<T extends { dispose(): Promise<void> }> {
   private operations = new Set<Promise<unknown>>();
   private stopped = false;
 
+  get connectionGeneration() {
+    return this.generation;
+  }
+
   get connectionId() {
     return this.pending?.id ?? this.current?.id;
   }

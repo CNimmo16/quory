@@ -6,13 +6,17 @@ import { MainDimensionsContext } from "../hooks/useMainDimensions";
 import type { QueryChatResult } from "../../../shared/queryChat";
 
 const mocks = vi.hoisted(() => ({
+  connectionId: "connection-1",
   chat: vi.fn(),
   create: vi.fn(),
   navigate: vi.fn(),
   invalidate: vi.fn(),
 }));
 vi.mock("@tanstack/react-router", () => ({
-  createFileRoute: () => (options: unknown) => ({ options }),
+  createFileRoute: () => (options: unknown) => ({
+    options,
+    useLoaderData: () => ({ connectionId: mocks.connectionId }),
+  }),
   useNavigate: () => mocks.navigate,
   redirect: vi.fn(),
 }));
@@ -44,6 +48,7 @@ const Page = Route.options.component as ComponentType;
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.connectionId = "connection-1";
 });
 function mount() {
   return render(
@@ -63,6 +68,7 @@ it("starts with a description and retains the original table picker in secondary
   await user.click(screen.getByRole("option", { name: "orders" }));
   await user.click(screen.getByRole("button", { name: "Go" }));
   expect(mocks.create).toHaveBeenCalledWith({
+    connectionId: "connection-1",
     query: {
       base: { tableRef: "public.orders", select: "*", joins: [] },
       limit: 100,
@@ -81,14 +87,12 @@ it("asks for clarification in the left chat before navigating to the created que
     revision: null,
     queryUpdated: false,
   };
-  mocks.chat
-    .mockResolvedValueOnce(clarification)
-    .mockResolvedValueOnce({
-      ...clarification,
-      queryId: "saved-query",
-      revision: "1-saved",
-      queryUpdated: true,
-    });
+  mocks.chat.mockResolvedValueOnce(clarification).mockResolvedValueOnce({
+    ...clarification,
+    queryId: "saved-query",
+    revision: "1-saved",
+    queryUpdated: true,
+  });
   mount();
   await user.type(
     screen.getByRole("textbox", { name: "Describe your query" }),
@@ -125,6 +129,51 @@ it("retains the description on failure and retries with the same request id", as
   );
   await user.click(screen.getByRole("button", { name: "Send" }));
   expect(mocks.chat.mock.calls[1]![0].requestId).toBe(
+    mocks.chat.mock.calls[0]![0].requestId
+  );
+});
+
+it("discards an old chat response and draft after switching connections", async () => {
+  const user = userEvent.setup();
+  let finish!: (result: QueryChatResult) => void;
+  mocks.chat.mockImplementation(
+    () =>
+      new Promise<QueryChatResult>((resolve) => {
+        finish = resolve;
+      })
+  );
+  const view = mount();
+  await user.type(
+    screen.getByRole("textbox", { name: "Describe your query" }),
+    "Latest orders"
+  );
+  await user.click(screen.getByRole("button", { name: "Build query" }));
+  expect(mocks.chat.mock.calls[0]![0].connectionId).toBe("connection-1");
+  mocks.connectionId = "connection-2";
+  view.rerender(
+    <MainDimensionsContext.Provider value={{ width: 900, height: 800 }}>
+      <Page />
+    </MainDimensionsContext.Provider>
+  );
+  finish({
+    queryId: "old-query",
+    revision: "1-saved",
+    queryUpdated: true,
+    messages: [],
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole("textbox", { name: "Describe your query" })
+    ).toHaveValue("")
+  );
+  expect(mocks.navigate).not.toHaveBeenCalled();
+  await user.type(
+    screen.getByRole("textbox", { name: "Describe your query" }),
+    "New orders"
+  );
+  await user.click(screen.getByRole("button", { name: "Build query" }));
+  expect(mocks.chat.mock.calls[1]![0].connectionId).toBe("connection-2");
+  expect(mocks.chat.mock.calls[1]![0].requestId).not.toBe(
     mocks.chat.mock.calls[0]![0].requestId
   );
 });

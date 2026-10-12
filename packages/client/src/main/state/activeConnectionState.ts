@@ -2,6 +2,9 @@ import { connectionRepo } from "./connectionRepo";
 import { connectQuorySession, quorySessions } from "./quorySession";
 
 const activeConnectionState = {
+  getConnectionGeneration() {
+    return quorySessions.connectionGeneration;
+  },
   async getActiveConnectionId() {
     return quorySessions.connectionId ?? null;
   },

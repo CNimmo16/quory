@@ -20,16 +20,23 @@ export const Route = createFileRoute("/queries/")({
     if (!res.connection) {
       throw redirect({ to: "/connections" });
     }
+    return { connectionId: res.connection._id };
   },
 });
 
 function RouteComponent() {
+  const { connectionId } = Route.useLoaderData();
+  return <QueryLaunch key={connectionId} connectionId={connectionId} />;
+}
+
+function QueryLaunch({ connectionId }: { connectionId: string }) {
   const compact = (useMainDimensions()?.width ?? 900) < 720;
   const [manual, setManual] = useState(false);
   const [started, setStarted] = useState(false);
   const navigate = useNavigate({ from: "/queries" });
   const utils = trpc.useUtils();
   const chat = useQueryChat({
+    connectionId,
     onUpsert: async ({ queryId }) => {
       await utils.queries.listSavedQueries.invalidate();
       if (queryId)
@@ -69,7 +76,7 @@ function RouteComponent() {
           </Button>
         </div>
         {manual ? (
-          <ManualQueryForm />
+          <ManualQueryForm connectionId={connectionId} />
         ) : started ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
             <MessageSquare
@@ -130,7 +137,7 @@ function RouteComponent() {
   );
 }
 
-function ManualQueryForm() {
+function ManualQueryForm({ connectionId }: { connectionId: string }) {
   const { data: schemaData } = useFetchSchema();
 
   const { height: mainHeight } = useMainDimensions()!;
@@ -166,6 +173,7 @@ function ManualQueryForm() {
           return;
         }
         createQuery({
+          connectionId,
           query: {
             base: {
               tableRef: baseTableRef,
