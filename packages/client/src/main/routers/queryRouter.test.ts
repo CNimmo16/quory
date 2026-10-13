@@ -1,5 +1,10 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import type { SavedQuery } from "../repositories/queryRepo";
+import {
+  appendQueryVersion,
+  createQueryHistory,
+  type QueryHistoryAction,
+} from "../../shared/queryHistory";
 const mocks = vi.hoisted(() => ({
   active: "a",
   generation: 0,
@@ -53,6 +58,112 @@ async function create() {
   const { queryId } = await caller.createQuery({ connectionId: "a", query });
   return queryId;
 }
+function historyInput(queryId: string, action: QueryHistoryAction = "undo") {
+  const doc = docs.get(queryId)!;
+  return {
+    connectionId: "a",
+    queryId,
+    revision: doc._rev,
+    action,
+    queryHistory: doc.queryHistory!,
+    messages: (doc.chatMessages ?? []).slice(-60),
+  };
+}
+it("persists undo and redo without removing the chat that caused the change", async () => {
+  const queryId = await create();
+  const changed = { ...query, limit: 7 };
+  const history = appendQueryVersion(
+    docs.get(queryId)!.queryHistory!,
+    changed,
+    "reply"
+  );
+  const messages = [
+    { id: "request", role: "user" as const, content: "Only seven rows" },
+    {
+      id: "reply",
+      role: "assistant" as const,
+      content: "Showing seven rows.",
+      queryUpdated: true,
+    },
+  ];
+  await caller.updateQuery({
+    connectionId: "a",
+    queryId,
+    revision: "1-saved",
+    query: changed,
+    queryHistory: history,
+  });
+  docs.get(queryId)!.chatMessages = messages;
+  const undone = await caller.changeQueryHistory(historyInput(queryId));
+  expect(docs.get(queryId)).toMatchObject({
+    limit: 100,
+    chatMessages: expect.arrayContaining(messages),
+  });
+  expect(undone.messages.at(-1)).toMatchObject({
+    historyAction: "undo",
+    relatedMessageId: "reply",
+  });
+  expect(undone.messages.at(-1)?.content).toContain("Showing seven rows.");
+  const reopened = await caller.fetchQuery({ connectionId: "a", queryId });
+  expect(reopened.query.queryHistory?.future).toHaveLength(1);
+  const redone = await caller.changeQueryHistory(historyInput(queryId, "redo"));
+  expect(docs.get(queryId)?.limit).toBe(7);
+  expect(redone.messages.slice(0, 2)).toEqual(messages);
+  expect(redone.messages.at(-1)).toMatchObject({
+    historyAction: "redo",
+    relatedMessageId: "reply",
+  });
+  expect(redone.queryHistory.future).toEqual([]);
+});
+
+it("retains older chat messages when undo appends to a truncated agent context", async () => {
+  const queryId = await create();
+  docs.get(queryId)!.chatMessages = Array.from({ length: 70 }, (_, i) => ({
+    id: String(i),
+    role: "user" as const,
+    content: `Message ${i}`,
+  }));
+  await caller.updateQuery({
+    connectionId: "a",
+    queryId,
+    revision: "1-saved",
+    query: { ...query, limit: 7 },
+  });
+  const undone = await caller.changeQueryHistory(historyInput(queryId));
+  expect(undone.messages).toHaveLength(71);
+  expect(undone.messages[0]?.content).toBe("Message 0");
+});
+
+it("clears redo after a new save, preserves history on rename, and rejects unavailable actions", async () => {
+  const queryId = await create();
+  await expect(
+    caller.changeQueryHistory(historyInput(queryId))
+  ).rejects.toThrow("no query change to undo");
+  await caller.updateQuery({
+    connectionId: "a",
+    queryId,
+    revision: "1-saved",
+    query: { ...query, limit: 7 },
+  });
+  await caller.changeQueryHistory(historyInput(queryId));
+  await caller.updateQueryNickname({
+    connectionId: "a",
+    queryId,
+    revision: docs.get(queryId)!._rev,
+    nickname: "Renamed",
+  });
+  expect(docs.get(queryId)!.queryHistory!.future).toHaveLength(1);
+  await caller.updateQuery({
+    connectionId: "a",
+    queryId,
+    revision: docs.get(queryId)!._rev,
+    query: { ...query, limit: 3 },
+  });
+  expect(docs.get(queryId)!.queryHistory!.future).toEqual([]);
+  await expect(
+    caller.changeQueryHistory(historyInput(queryId, "redo"))
+  ).rejects.toThrow("no query change to redo");
+});
 it("supports create, fetch, list, edit, rename and delete without changing ownership", async () => {
   const queryId = await create();
   const { query: saved } = await caller.fetchQuery({
@@ -98,6 +209,7 @@ it("rejects wrong-connection fetch, edit, rename and delete before any write", a
     () => caller.updateQuery({ ...input, query }),
     () => caller.updateQueryNickname({ ...input, nickname: "Stolen" }),
     () => caller.deleteQuery(input),
+    () => caller.changeQueryHistory({ ...historyInput(queryId), ...input }),
   ])
     await expect(operation()).rejects.toThrow("different connection");
   expect(
@@ -114,6 +226,15 @@ it("rejects stale revisions for edits, renames and deletes", async () => {
     () => caller.updateQuery({ ...input, query }),
     () => caller.updateQueryNickname({ ...input, nickname: "Old" }),
     () => caller.deleteQuery(input),
+    () =>
+      caller.changeQueryHistory({
+        ...historyInput(queryId),
+        ...input,
+        queryHistory: appendQueryVersion(createQueryHistory(query), {
+          ...query,
+          limit: 7,
+        }),
+      }),
   ])
     await expect(operation()).rejects.toMatchObject({ code: "CONFLICT" });
   expect(docs.get(queryId)?._rev).toBe("1-saved");
@@ -131,7 +252,7 @@ it("rejects stale renderer context for create and fetch", async () => {
   expect(mocks.get).not.toHaveBeenCalled();
   expect(docs.size).toBe(1);
 });
-it.each(["fetch", "update", "rename", "delete", "list"] as const)(
+it.each(["fetch", "update", "rename", "delete", "list", "history"] as const)(
   "rejects a switch away and back during %s",
   async (operation) => {
     const queryId = await create();
@@ -158,6 +279,8 @@ it.each(["fetch", "update", "rename", "delete", "list"] as const)(
       rename: () => caller.updateQueryNickname({ ...input, nickname: "Old" }),
       delete: () => caller.deleteQuery(input),
       list: () => caller.listSavedQueries(input),
+      history: () =>
+        caller.changeQueryHistory({ ...historyInput(queryId), ...input }),
     };
     await expect(operations[operation]()).rejects.toThrow(
       "active connection changed"
@@ -167,7 +290,7 @@ it.each(["fetch", "update", "rename", "delete", "list"] as const)(
   }
 );
 
-it.each(["update", "rename", "delete"] as const)(
+it.each(["update", "rename", "delete", "history"] as const)(
   "preserves a concurrent edit made after the %s ownership read",
   async (operation) => {
     const queryId = await create();
@@ -183,6 +306,15 @@ it.each(["update", "rename", "delete"] as const)(
       update: () => caller.updateQuery({ ...input, query }),
       rename: () => caller.updateQueryNickname({ ...input, nickname: "Old" }),
       delete: () => caller.deleteQuery(input),
+      history: () =>
+        caller.changeQueryHistory({
+          ...historyInput(queryId),
+          ...input,
+          queryHistory: appendQueryVersion(createQueryHistory(query), {
+            ...query,
+            limit: 7,
+          }),
+        }),
     };
     await expect(operations[operation]()).rejects.toMatchObject({
       code: "CONFLICT",

@@ -28,8 +28,10 @@ vi.mock("./queryAssistant", () => ({ runQueryAssistant: mocks.assistant }));
 vi.mock("./model", () => ({ getQueryModel: mocks.model }));
 import { queryChatProcedure } from "./queryChat";
 import { router } from "../util/trpc";
+import queryRouter from "../routers/queryRouter";
 
 const caller = router({ chat: queryChatProcedure }).createCaller({});
+const historyCaller = queryRouter.createCaller({});
 let docs: Map<string, SavedQuery & { _id: string; _rev: string }>;
 const input = () => ({
   connectionId: "connection-1",
@@ -119,6 +121,62 @@ describe("chat persistence", () => {
     expect(result.queryUpdated).toBe(false);
     expect(result.queryId).toBeNull();
     expect(mocks.put).not.toHaveBeenCalled();
+  });
+  it("restores the pre-AI draft and supplies the undo notice and retained messages on the next turn", async () => {
+    const initial = await caller.chat(input());
+    const draft = { ...queryFromTool(orderQuery), limit: 7 };
+    mocks.assistant.mockImplementationOnce(async ({ upsert }) => {
+      await upsert({ ...draft, limit: 2 }, "Orders", "Showing two rows.");
+      return { queryUpdated: true, text: "Showing two rows." };
+    });
+    const amended = await caller.chat({
+      ...input(),
+      queryId: initial.queryId!,
+      revision: initial.revision!,
+      message: "Only two rows",
+      currentQuery: draft,
+      history: initial.messages,
+    });
+    expect(amended.queryHistory?.present.query.limit).toBe(2);
+    expect(amended.queryHistory?.past.at(-1)?.query.limit).toBe(7);
+    const undone = await historyCaller.changeQueryHistory({
+      connectionId: "connection-1",
+      queryId: amended.queryId!,
+      revision: amended.revision!,
+      action: "undo",
+      queryHistory: amended.queryHistory!,
+      messages: amended.messages,
+    });
+    expect(mocks.assistant).toHaveBeenCalledTimes(2);
+    expect(docs.get(amended.queryId!)?.limit).toBe(7);
+    mocks.assistant.mockImplementationOnce(
+      async ({ currentQuery, messages }) => {
+        expect(currentQuery.limit).toBe(7);
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ role: "user", content: "Only two rows" }),
+            expect.objectContaining({
+              role: "assistant",
+              content: "Showing two rows.",
+            }),
+            expect.objectContaining({
+              historyAction: "undo",
+              relatedMessageId: amended.messages.at(-1)!.id,
+            }),
+          ])
+        );
+        return { queryUpdated: false, text: "Which date range?" };
+      }
+    );
+    const next = await caller.chat({
+      ...input(),
+      queryId: amended.queryId!,
+      revision: undone.revision,
+      message: "Filter by date",
+      history: [],
+    });
+    expect(next.messages).toHaveLength(amended.messages.length + 3);
+    expect(next.messages.at(-1)?.content).toBe("Which date range?");
   });
   it("rejects a query owned by another connection and stale revisions", async () => {
     const initial = await caller.chat(input());

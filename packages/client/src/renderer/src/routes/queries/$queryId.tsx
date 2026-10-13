@@ -6,9 +6,16 @@ import {
   useBlocker,
 } from "@tanstack/react-router";
 import { useState } from "react";
-import { areQueriesEqual, type PreparedQuery } from "@quory/core";
+import { type Query } from "@quory/core";
 import { useFetchSchema } from "@quory/stack/react";
-import { MessageSquare, SlidersHorizontal } from "lucide-react";
+import { Code2, MessageSquare, Undo2, Redo2 } from "lucide-react";
+import {
+  appendQueryVersion,
+  createQueryHistory,
+  queriesMatch,
+  type QueryHistory,
+  type QueryHistoryAction,
+} from "../../../../shared/queryHistory";
 import { TbTrash } from "react-icons/tb";
 import { AiFillEdit, AiOutlineCheck } from "react-icons/ai";
 import QueryView from "../../components/QueryView";
@@ -52,11 +59,13 @@ function QueryEditor({
   const navigate = useNavigate({ from: "/queries/$queryId" });
   const router = useRouter();
   const utils = trpc.useUtils();
-  const [query, setQuery] = useState<PreparedQuery | null>(null);
-  const [viewVersion, setViewVersion] = useState(0);
-  const [chatOpen, setChatOpen] = useState(
-    Boolean(data.query.chatMessages?.length)
+  const [queryHistory, setQueryHistory] = useState<QueryHistory>(
+    () => data.query.queryHistory ?? createQueryHistory(data.query)
   );
+  const [historyNotice, setHistoryNotice] = useState<string | null>(null);
+  const [viewVersion, setViewVersion] = useState(0);
+  const [chatOpen, setChatOpen] = useState(true);
+  const [showQueryText, setShowQueryText] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
   const [nickname, setNickname] = useState(data.query.nickname);
   const { ref, width, height } = useElementSize();
@@ -64,18 +73,20 @@ function QueryEditor({
   const { data: schemaData } = useFetchSchema();
   const unsavedChanges = Boolean(
     schemaData &&
-      !areQueriesEqual(schemaData.schemas, data.query, query ?? data.query)
+      !queriesMatch(schemaData.schemas, data.query, queryHistory.present.query)
   );
   const chat = useQueryChat({
     queryId,
     connectionId: data.query.connectionId,
     revision: data.query._rev,
-    currentQuery: query ?? data.query,
+    currentQuery: queryHistory.present.query,
+    queryHistory,
     initialMessages: data.query.chatMessages ?? [],
-    onUpsert: async () => {
+    onUpsert: async (result) => {
+      if (result.queryHistory) setQueryHistory(result.queryHistory);
+      setHistoryNotice(null);
       await utils.queries.listSavedQueries.invalidate();
       await router.invalidate();
-      setQuery(null);
       setViewVersion((version) => version + 1);
     },
   });
@@ -88,7 +99,6 @@ function QueryEditor({
   const updateQuery = trpc.queries.updateQuery.useMutation({
     onSuccess: async () => {
       await router.invalidate();
-      setQuery(null);
       setViewVersion((version) => version + 1);
     },
   });
@@ -99,14 +109,27 @@ function QueryEditor({
       await utils.queries.listSavedQueries.invalidate();
     },
   });
+  const changeHistory = trpc.queries.changeQueryHistory.useMutation({
+    onSuccess: async (result, { action }) => {
+      setQueryHistory(result.queryHistory);
+      setViewVersion((version) => version + 1);
+      chat.replaceMessages(result.messages);
+      setHistoryNotice(
+        action === "undo" ? "Query change undone." : "Query change restored."
+      );
+      await router.invalidate();
+      await utils.queries.listSavedQueries.invalidate();
+    },
+  });
   const busy =
     chat.isPending ||
+    changeHistory.isPending ||
     updateQuery.isPending ||
     updateNickname.isPending ||
     deleteQuery.isPending;
   useBlocker({
     shouldBlockFn: () => {
-      if (chat.isPending)
+      if (chat.isPending || changeHistory.isPending)
         return !confirm(
           "Your query is still being updated. Leave this conversation?"
         );
@@ -116,6 +139,25 @@ function QueryEditor({
       );
     },
   });
+  function handleQueryChange(next: Query) {
+    setHistoryNotice(null);
+    setQueryHistory((history) =>
+      schemaData &&
+      queriesMatch(schemaData.schemas, history.present.query, next)
+        ? history
+        : appendQueryVersion(history, next)
+    );
+  }
+  function handleHistoryAction(action: QueryHistoryAction) {
+    changeHistory.mutate({
+      connectionId: data.query.connectionId,
+      queryId,
+      revision: data.query._rev,
+      action,
+      queryHistory,
+      messages: chat.messages.slice(-60),
+    });
+  }
   function handleDeleteQuery() {
     if (
       confirm(
@@ -128,7 +170,11 @@ function QueryEditor({
         revision: data.query._rev,
       });
   }
-  const error = updateQuery.error ?? updateNickname.error ?? deleteQuery.error;
+  const error =
+    changeHistory.error ??
+    updateQuery.error ??
+    updateNickname.error ??
+    deleteQuery.error;
   return (
     <div className={`flex h-full min-h-0 ${compact ? "flex-col" : ""}`}>
       {chatOpen && (
@@ -144,7 +190,7 @@ function QueryEditor({
         />
       )}
       <div className="flex min-w-0 flex-1 flex-col">
-        <fieldset disabled={busy} className="min-w-0 border-0 p-0">
+        <div className="min-w-0">
           <div className="flex min-h-16 flex-wrap items-center gap-2 border-b bg-background px-4 py-3">
             {editingNickname ? (
               <form
@@ -162,10 +208,16 @@ function QueryEditor({
                 <Input
                   aria-label="Query nickname"
                   autoFocus
+                  disabled={busy}
                   value={nickname}
                   onChange={(event) => setNickname(event.target.value)}
                 />
-                <Button type="submit" size="icon" aria-label="Save nickname">
+                <Button
+                  type="submit"
+                  size="icon"
+                  aria-label="Save nickname"
+                  disabled={busy}
+                >
                   <AiOutlineCheck />
                 </Button>
               </form>
@@ -182,6 +234,7 @@ function QueryEditor({
                     size="icon"
                     aria-label="Edit nickname"
                     variant="ghost"
+                    disabled={busy}
                     onClick={() => {
                       setEditingNickname(true);
                       setNickname(data.query.nickname);
@@ -193,26 +246,49 @@ function QueryEditor({
               </div>
             )}
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={() => setChatOpen(!chatOpen)}
+              aria-label="Undo query change"
+              disabled={
+                busy || editingNickname || queryHistory.past.length === 0
+              }
+              onClick={() => handleHistoryAction("undo")}
             >
-              {chatOpen ? (
-                <SlidersHorizontal aria-hidden="true" />
-              ) : (
-                <MessageSquare aria-hidden="true" />
-              )}
-              {chatOpen ? "Manual mode" : "Chat mode"}
+              <Undo2 aria-hidden="true" />
+              Undo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Redo query change"
+              disabled={
+                busy || editingNickname || queryHistory.future.length === 0
+              }
+              onClick={() => handleHistoryAction("redo")}
+            >
+              <Redo2 aria-hidden="true" />
+              Redo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-expanded={chatOpen}
+              aria-controls="query-chat"
+              onClick={() => setChatOpen((open) => !open)}
+            >
+              <MessageSquare aria-hidden="true" />
+              {chatOpen ? "Close AI chat" : "Open AI chat"}
             </Button>
             {unsavedChanges && (
               <Button
                 size="sm"
+                disabled={busy}
                 onClick={() =>
-                  query &&
                   updateQuery.mutate({
                     queryId,
                     connectionId: data.query.connectionId,
-                    query,
+                    query: queryHistory.present.query,
+                    queryHistory,
                     revision: data.query._rev,
                   })
                 }
@@ -221,18 +297,54 @@ function QueryEditor({
                 {updateQuery.isPending && <Spinner />}Save changes
               </Button>
             )}
+            <Hint
+              content={
+                showQueryText ? "Show query tree" : "Show raw query (JSON)"
+              }
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground"
+                aria-label={
+                  showQueryText ? "Show query tree" : "Show raw query (JSON)"
+                }
+                aria-pressed={showQueryText}
+                onClick={() => setShowQueryText((show) => !show)}
+              >
+                <Code2 aria-hidden="true" />
+              </Button>
+            </Hint>
             <Hint content="Delete query">
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Delete query"
+                disabled={busy}
                 onClick={handleDeleteQuery}
               >
                 <TbTrash aria-hidden="true" />
               </Button>
             </Hint>
           </div>
-        </fieldset>
+        </div>
+        {historyNotice && (
+          <p
+            role="status"
+            className="border-b bg-muted px-4 py-2 text-sm text-muted-foreground"
+          >
+            {historyNotice} Your conversation has been kept.
+          </p>
+        )}
+        {Number.isSafeInteger(data.query.limit) &&
+          (data.query.limit ?? 0) > 100 && (
+            <Alert>
+              <AlertDescription>
+                This saved query’s row limit was reduced to 100. Save changes to
+                keep the new limit.
+              </AlertDescription>
+            </Alert>
+          )}
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error.message}</AlertDescription>
@@ -245,9 +357,10 @@ function QueryEditor({
           <div ref={ref} className="h-full w-full overflow-auto">
             <QueryView
               key={`${queryId}:${viewVersion}`}
-              initialQuery={data.query}
-              onQueryChange={setQuery}
+              initialQuery={queryHistory.present.query}
+              onQueryChange={handleQueryChange}
               onDeleteQuery={handleDeleteQuery}
+              showQueryText={showQueryText}
               width={width}
               height={height}
             />

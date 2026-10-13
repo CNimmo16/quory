@@ -57,23 +57,34 @@ function QueryLaunch({ connectionId }: { connectionId: string }) {
         />
       )}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-16 shrink-0 items-center justify-between px-6">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-b px-6 py-4">
           <span className="text-sm font-medium text-muted-foreground">
             New query
           </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={chat.isPending}
-            onClick={() => setManual(!manual)}
+          <div
+            role="group"
+            aria-label="Query creation mode"
+            className="flex gap-1 rounded-lg border bg-muted p-1"
           >
-            {manual ? (
+            <Button
+              variant={manual ? "ghost" : "default"}
+              aria-pressed={!manual}
+              disabled={chat.isPending}
+              onClick={() => setManual(false)}
+            >
               <MessageSquare aria-hidden="true" />
-            ) : (
+              AI assisted
+            </Button>
+            <Button
+              variant={manual ? "default" : "ghost"}
+              aria-pressed={manual}
+              disabled={chat.isPending}
+              onClick={() => setManual(true)}
+            >
               <SlidersHorizontal aria-hidden="true" />
-            )}
-            {manual ? "Describe a query" : "Manual mode"}
-          </Button>
+              Manual mode
+            </Button>
+          </div>
         </div>
         {manual ? (
           <ManualQueryForm connectionId={connectionId} />

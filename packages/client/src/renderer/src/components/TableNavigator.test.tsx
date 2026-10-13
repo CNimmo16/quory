@@ -72,16 +72,16 @@ const query: PreparedQuery = {
   },
 };
 
-function renderNavigator() {
+function renderNavigator(navigatorQuery: PreparedQuery = query) {
   type JoinActions = ComponentProps<typeof TableNavigator>["joinActions"];
   const setSelectedColumns = vi.fn();
   const setCondition = vi.fn();
   const removeCondition = vi.fn();
   const joinActions = vi.fn<JoinActions>().mockReturnValue({
-    join: query.base,
+    join: navigatorQuery.base,
     getChildren: () => [],
     getParent: () => undefined,
-    getVisibleColumns: () => ["id", "name"],
+    getVisibleColumns: () => navigatorQuery.base.select,
     setSelectedColumns,
     setCondition,
     removeCondition,
@@ -97,7 +97,7 @@ function renderNavigator() {
       <TableNavigator
         padding={20}
         width={1000}
-        query={query}
+        query={navigatorQuery}
         schemas={schemas}
         joinActions={joinActions}
         onHeightChange={vi.fn()}
@@ -111,6 +111,89 @@ function renderNavigator() {
 }
 
 describe("TableNavigator", () => {
+  it("shows and edits filters on tables without visible columns without adding their columns", async () => {
+    const user = userEvent.setup();
+    const { setSelectedColumns, setCondition } = renderNavigator({
+      ...query,
+      base: {
+        ...query.base,
+        select: [],
+        where: {
+          column: "name",
+          operator: ConditionOperator.EQUALS,
+          value: "Ada",
+        },
+      },
+    });
+    const filter = screen.getByRole("button", { name: 'name = "Ada"' });
+    expect(filter).toBeVisible();
+    await user.click(filter);
+    await user.clear(screen.getByRole("textbox", { name: "Filter value" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "Filter value" }),
+      "Grace"
+    );
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(setCondition).toHaveBeenCalledWith({
+      operator: ConditionOperator.AND,
+      conditions: [
+        { column: "name", operator: ConditionOperator.EQUALS, value: "Grace" },
+      ],
+    });
+    expect(setSelectedColumns).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole("button", { name: "Show columns for customers" })
+    );
+    expect(setSelectedColumns).toHaveBeenCalledWith(["id", "name"]);
+  });
+
+  it("keeps compound filter values visible and supports keyboard editing on hidden tables", async () => {
+    const user = userEvent.setup();
+    const { setSelectedColumns, removeCondition } = renderNavigator({
+      ...query,
+      base: {
+        ...query.base,
+        select: [],
+        where: {
+          operator: ConditionOperator.AND,
+          conditions: [
+            {
+              column: "name",
+              operator: ConditionOperator.IN,
+              values: ["Ada", "Grace"],
+            },
+          ],
+        },
+      },
+    });
+    expect(screen.getByText("name in (Ada, Grace)")).toBeVisible();
+    await user.tab();
+    expect(
+      screen.getByRole("button", { name: "Show columns for customers" })
+    ).toHaveFocus();
+    await user.tab();
+    await user.keyboard("{Enter}");
+    expect(
+      screen.getByRole("textbox", { name: "Filter values" })
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Delete filter" }));
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(removeCondition).toHaveBeenCalledOnce();
+    expect(setSelectedColumns).not.toHaveBeenCalled();
+  });
+
+  it("still adds columns from an unfiltered hidden table with the keyboard", async () => {
+    const user = userEvent.setup();
+    const { setSelectedColumns } = renderNavigator({
+      ...query,
+      base: { ...query.base, select: [] },
+    });
+    await user.tab();
+    expect(screen.getByRole("button", { name: "customers" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(setSelectedColumns).toHaveBeenCalledWith(["id", "name"]);
+  });
+
   it("keeps at least one column, discards dismissed edits, and applies column choices only on Apply", async () => {
     const user = userEvent.setup();
     const { setSelectedColumns } = renderNavigator();

@@ -24,6 +24,7 @@ import { hierarchy as makeHierarchy, tree as treeBuilder } from "d3-hierarchy";
 import { useQuery, useFetchSchema } from "@quory/stack/react";
 import {
   CSSProperties,
+  Fragment,
   memo,
   ReactNode,
   useCallback,
@@ -206,10 +207,15 @@ function TableNavigator({
             join.joinAlias
           ).getVisibleColumns();
           const isGhost = visibleColumns.length === 0;
+          const isGhostButton = isGhost && !join.where;
+          const showColumns = () =>
+            joinActions(join.joinAlias).setSelectedColumns(
+              table.columns.map((column) => column.name)
+            );
           return (
             <Hint
-              content="Click to add to query"
-              disabled={!isGhost}
+              content="Click to show columns"
+              disabled={!isGhostButton}
               key={join.joinAlias}
             >
               <div
@@ -222,47 +228,65 @@ function TableNavigator({
                     ? "bg-slate-200"
                     : "bg-slate-100",
                   {
-                    "cursor-pointer border-dashed": isGhost,
+                    "border-dashed": isGhost,
+                    "cursor-pointer": isGhostButton,
                   }
                 )}
                 style={positionStyle}
-                role={isGhost ? "button" : undefined}
-                tabIndex={isGhost ? 0 : undefined}
+                role={isGhostButton ? "button" : undefined}
+                tabIndex={isGhostButton ? 0 : undefined}
                 onKeyDown={(event) => {
-                  if (isGhost && (event.key === "Enter" || event.key === " ")) {
+                  if (
+                    isGhostButton &&
+                    (event.key === "Enter" || event.key === " ")
+                  ) {
                     event.preventDefault();
-                    joinActions(join.joinAlias).setSelectedColumns(
-                      table.columns.map((column) => column.name)
-                    );
+                    showColumns();
                   }
                 }}
                 onMouseOver={() => onChangeHighlightedJoinAlias(join.joinAlias)}
                 onMouseOut={() => onChangeHighlightedJoinAlias(null)}
                 onClick={() => {
-                  if (isGhost) {
-                    joinActions(join.joinAlias).setSelectedColumns(
-                      table.columns.map((c) => c.name)
-                    );
-                  }
+                  if (isGhostButton) showColumns();
                 }}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex flex-col gap-1">
-                    <div
-                      className={classNames({
-                        "text-slate-500": isGhost,
-                      })}
-                    >
-                      {tableName}
-                    </div>
-                    {!isGhost && (
+                  <div className="flex min-w-0 flex-col gap-1">
+                    {isGhost && join.where ? (
+                      <Hint content="Click to show columns">
+                        <button
+                          type="button"
+                          aria-label={`Show columns for ${tableName}`}
+                          className="w-fit rounded-sm text-left text-slate-500 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          onClick={showColumns}
+                        >
+                          {tableName}
+                        </button>
+                      </Hint>
+                    ) : (
+                      <div
+                        className={classNames({
+                          "text-slate-500": isGhost,
+                        })}
+                      >
+                        {tableName}
+                      </div>
+                    )}
+                    {(!isGhost || join.where) && (
                       <Popover
                         open={
                           conditionDropdownOpenForJoinAlias === join.joinAlias
                         }
                         onOpenChange={(visible) => {
                           if (visible) {
-                            setCondition(join.where ?? null);
+                            setCondition(
+                              join.where && !isBooleanCondition(join.where)
+                                ? {
+                                    operator: ConditionOperator.AND,
+                                    conditions: [join.where],
+                                  }
+                                : join.where ?? null
+                            );
                             setConditionDropdownOpenForJoinAlias(
                               join.joinAlias
                             );
@@ -275,9 +299,9 @@ function TableNavigator({
                         <PopoverTrigger asChild>
                           <button
                             type="button"
-                            className="group flex w-fit items-center gap-2 rounded-full bg-slate-300 pl-2 pr-1 transition-all hover:bg-slate-200"
+                            className="group flex w-fit max-w-full items-center gap-2 rounded-full bg-slate-300 pl-2 pr-1 text-left transition-all hover:bg-slate-200"
                           >
-                            <span>
+                            <span className="min-w-0 break-words">
                               {join.where ? (
                                 (function renderCondition(
                                   cond: Condition
@@ -285,22 +309,17 @@ function TableNavigator({
                                   if (isBooleanCondition(cond)) {
                                     return (
                                       <span>
-                                        {cond.conditions.flatMap((child, i) => {
-                                          const rendered =
-                                            renderCondition(child);
-                                          return [
-                                            rendered,
-                                            i < cond.conditions.length - 1 && (
-                                              <span
-                                                key={JSON.stringify(child)}
-                                                className="text-sm text-slate-900"
-                                              >
+                                        {cond.conditions.map((child, i) => (
+                                          <Fragment key={i}>
+                                            {renderCondition(child)}
+                                            {i < cond.conditions.length - 1 && (
+                                              <span className="text-sm text-slate-900">
                                                 {" "}
                                                 {cond.operator.toUpperCase()}{" "}
                                               </span>
-                                            ),
-                                          ];
-                                        })}
+                                            )}
+                                          </Fragment>
+                                        ))}
                                       </span>
                                     );
                                   }
@@ -322,7 +341,7 @@ function TableNavigator({
                             </span>
                             <div
                               className={
-                                "my-[1px] rounded-full p-1 transition-all group-hover:bg-slate-500"
+                                "my-[1px] shrink-0 rounded-full p-1 transition-all group-hover:bg-slate-500"
                               }
                             >
                               {join.where ? (

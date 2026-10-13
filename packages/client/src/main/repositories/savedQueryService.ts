@@ -2,6 +2,10 @@ import { TRPCError } from "@trpc/server";
 import type { Query } from "@quory/core";
 import { queryRepo, type SavedQuery } from "./queryRepo";
 import activeConnectionState from "../state/activeConnectionState";
+import {
+  appendQueryVersion,
+  createQueryHistory,
+} from "../../shared/queryHistory";
 
 export type SavedQueryContext = { connectionId: string; generation: number };
 type ConnectionContext = string | SavedQueryContext;
@@ -95,12 +99,16 @@ export const savedQueryService = {
     queryId: string,
     query: Query,
     nickname: string,
-    metadata: Pick<SavedQuery, "chatMessages" | "lastChatRequestId"> = {}
+    metadata: Pick<
+      SavedQuery,
+      "chatMessages" | "lastChatRequestId" | "queryHistory"
+    > = {}
   ) {
     const context = await assertConnection(connection);
     const { connectionId } = context;
     return write(context, {
       ...query,
+      queryHistory: createQueryHistory(query),
       ...metadata,
       _id: queryId,
       connectionId,
@@ -113,7 +121,7 @@ export const savedQueryService = {
     revision: string,
     changes: { query?: Query; nickname?: string } & Pick<
       SavedQuery,
-      "chatMessages" | "lastChatRequestId"
+      "chatMessages" | "lastChatRequestId" | "queryHistory"
     >
   ) {
     const context = await assertConnection(connection);
@@ -123,6 +131,14 @@ export const savedQueryService = {
     return write(context, {
       ...existing,
       ...query,
+      ...(query
+        ? {
+            queryHistory: appendQueryVersion(
+              existing.queryHistory ?? createQueryHistory(existing),
+              query
+            ),
+          }
+        : {}),
       ...metadata,
       _id: existing._id,
       _rev: revision,

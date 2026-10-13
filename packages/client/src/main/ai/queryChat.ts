@@ -5,6 +5,7 @@ import { validators } from "@quory/stack/server";
 import { z } from "zod";
 import {
   chatMessageSchema,
+  mergeChatMessages,
   type ChatMessage,
   type QueryChatResult,
 } from "../../shared/queryChat";
@@ -13,6 +14,13 @@ import { getQuorySession } from "../state/quorySession";
 import { publicProcedure } from "../util/trpc";
 import { getQueryModel } from "./model";
 import { runQueryAssistant } from "./queryAssistant";
+import {
+  appendQueryVersion,
+  createQueryHistory,
+  queriesMatch,
+  type QueryHistory,
+} from "../../shared/queryHistory";
+import { queryHistorySchema } from "../repositories/queryHistorySchema";
 
 const inFlight = new Set<string>();
 const conflict = () =>
@@ -32,6 +40,7 @@ export const queryChatProcedure = publicProcedure
       queryId: z.string().optional(),
       revision: z.string().optional(),
       currentQuery: validators.query.optional(),
+      queryHistory: queryHistorySchema.optional(),
     })
   )
   .mutation(async ({ input }): Promise<QueryChatResult> => {
@@ -66,6 +75,9 @@ export const queryChatProcedure = publicProcedure
           queryId: id,
           revision: existing._rev,
           queryUpdated: true,
+          ...(existing.queryHistory
+            ? { queryHistory: existing.queryHistory }
+            : {}),
         };
       }
       if (existing && (!input.queryId || input.revision !== existing._rev))
@@ -82,10 +94,16 @@ export const queryChatProcedure = publicProcedure
       }
 
       const messages: ChatMessage[] = [
-        ...input.history,
+        ...mergeChatMessages(existing?.chatMessages ?? [], input.history),
         { id: input.requestId, role: "user", content: input.message },
       ];
-      let saved: { revision: string; messages: ChatMessage[] } | undefined;
+      let saved:
+        | {
+            revision: string;
+            messages: ChatMessage[];
+            queryHistory: QueryHistory;
+          }
+        | undefined;
       await savedQueryService.assertConnection(context);
       const result = await runQueryAssistant({
         model,
@@ -102,19 +120,48 @@ export const queryChatProcedure = publicProcedure
         nickname: existing?.nickname,
         messages,
         upsert: async (query, nickname, summary) => {
+          const messageId = randomUUID();
           const chatMessages: ChatMessage[] = [
             ...messages,
             {
-              id: randomUUID(),
+              id: messageId,
               role: "assistant",
               content: summary,
               queryUpdated: true,
             },
           ];
+          let previousHistory = input.queryHistory ?? existing?.queryHistory;
+          const previousQuery = input.currentQuery ?? existing;
+          if (!previousHistory && previousQuery)
+            previousHistory = createQueryHistory(previousQuery);
+          if (
+            previousHistory &&
+            previousQuery &&
+            !queriesMatch(
+              session.schemas,
+              previousHistory.present.query,
+              previousQuery
+            )
+          ) {
+            previousHistory = appendQueryVersion(
+              previousHistory,
+              previousQuery
+            );
+          }
+          const queryHistory = previousHistory
+            ? queriesMatch(
+                session.schemas,
+                previousHistory.present.query,
+                query
+              )
+              ? previousHistory
+              : appendQueryVersion(previousHistory, query, messageId)
+            : { ...createQueryHistory(query), present: { query, messageId } };
           try {
             const metadata = {
               chatMessages,
               lastChatRequestId: input.requestId,
+              queryHistory,
             };
             const doc = existing
               ? await savedQueryService.update(context, id, existing._rev, {
@@ -129,7 +176,7 @@ export const queryChatProcedure = publicProcedure
                   nickname,
                   metadata
                 );
-            saved = { revision: doc.rev, messages: chatMessages };
+            saved = { revision: doc.rev, messages: chatMessages, queryHistory };
           } catch (error) {
             if (error instanceof TRPCError) throw error;
             if ((error as { status?: number }).status === 409) throw conflict();
@@ -147,6 +194,7 @@ export const queryChatProcedure = publicProcedure
           queryId: id,
           revision: saved.revision,
           queryUpdated: true,
+          queryHistory: saved.queryHistory,
         };
       return {
         messages: [

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ArrowUp, Check, MessageSquare } from "lucide-react";
+import { ArrowUp, Check, MessageSquare, Undo2, Redo2 } from "lucide-react";
 import type { ChatMessage } from "../../../shared/queryChat";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
@@ -102,8 +102,20 @@ export function QueryChatPane({
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "nearest" });
   }, [messages, pendingMessage, error]);
+  const historyActions = new Map(
+    messages
+      .filter((message) => message.historyAction && message.relatedMessageId)
+      .map((message) => [message.relatedMessageId, message.historyAction])
+  );
+  const conversation: ChatMessage[] = [
+    ...messages,
+    ...(pendingMessage
+      ? [{ id: "pending", role: "user" as const, content: pendingMessage }]
+      : []),
+  ];
   return (
     <aside
+      id="query-chat"
       className={`flex shrink-0 flex-col bg-background ${
         compact ? "h-1/2 min-h-[320px] w-full border-b" : "h-full w-80 border-r"
       }`}
@@ -120,44 +132,66 @@ export function QueryChatPane({
         className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5"
       >
         {messages.length === 0 && !pendingMessage && (
-          <p className="text-sm text-muted-foreground">
-            Describe what you want to change. Your current tables, filters, and
-            unsaved edits are included.
-          </p>
-        )}
-        {[
-          ...messages,
-          ...(pendingMessage
-            ? [
-                {
-                  id: "pending",
-                  role: "user" as const,
-                  content: pendingMessage,
-                },
-              ]
-            : []),
-        ].map((message) => (
-          <div key={message.id} className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">
-              {message.role === "user" ? "You" : "Quory"}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Refine your query with AI</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Ask to add columns, filter results, or explore related tables.
+              Your current query and any unsaved edits are included.
             </p>
-            <p
-              className={
-                message.role === "user"
-                  ? "whitespace-pre-wrap break-words rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed"
-                  : "whitespace-pre-wrap break-words text-sm leading-relaxed"
-              }
-            >
-              {message.content}
-            </p>
-            {"queryUpdated" in message && message.queryUpdated && (
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Check className="size-3" aria-hidden="true" />
-                Query saved
-              </p>
-            )}
           </div>
-        ))}
+        )}
+        {conversation.map((message) =>
+          message.historyAction ? (
+            <div
+              key={message.id}
+              role="note"
+              className="space-y-2 rounded-lg border bg-muted/50 p-3 text-sm"
+            >
+              <p className="flex items-center gap-2 font-medium">
+                {message.historyAction === "undo" ? (
+                  <Undo2 className="size-4" aria-hidden="true" />
+                ) : (
+                  <Redo2 className="size-4" aria-hidden="true" />
+                )}
+                {message.historyAction === "undo"
+                  ? "Query change undone"
+                  : "Query change restored"}
+              </p>
+              <p className="whitespace-pre-wrap break-words leading-relaxed text-muted-foreground">
+                {message.content}
+              </p>
+            </div>
+          ) : (
+            <div key={message.id} className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                {message.role === "user" ? "You" : "Quory"}
+              </p>
+              <p
+                className={
+                  message.role === "user"
+                    ? "whitespace-pre-wrap break-words rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed"
+                    : "whitespace-pre-wrap break-words text-sm leading-relaxed"
+                }
+              >
+                {message.content}
+              </p>
+              {"queryUpdated" in message && message.queryUpdated && (
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {historyActions.get(message.id) === "undo" ? (
+                    <Undo2 className="size-3" aria-hidden="true" />
+                  ) : (
+                    <Check className="size-3" aria-hidden="true" />
+                  )}
+                  {historyActions.get(message.id) === "undo"
+                    ? "Change undone"
+                    : historyActions.get(message.id) === "redo"
+                    ? "Change restored"
+                    : "Query saved"}
+                </p>
+              )}
+            </div>
+          )
+        )}
         {pendingMessage && (
           <div
             role="status"

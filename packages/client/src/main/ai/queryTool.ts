@@ -50,7 +50,7 @@ export const upsertQuerySchema = z
       .min(1)
       .max(2000)
       .describe(
-        "Brief user-facing explanation of the query and any changes, including filters and ordering."
+        "Brief user-facing explanation of the query and any changes, including relevant displayed fields, filters, and ordering."
       ),
     limit: z.number().int().min(1).max(100).optional(),
     offset: z
@@ -77,7 +77,7 @@ export const upsertQuerySchema = z
             columns: z
               .array(z.string())
               .describe(
-                "['*'] for all columns; [] for a relationship used only to filter; otherwise exact column names."
+                "Displayed columns: choose a focused set of exact schema column names relevant to the user's request. Users can show more later. Use [] for tables needed only to filter or connect other tables. Use ['*'] only for an explicit all-columns request or to preserve an existing all-column selection. Preserve existing selections on unrelated amendments."
               ),
             via: z
               .array(viaStep)

@@ -49,6 +49,47 @@ const messages = [
 ];
 
 describe("query assistant", () => {
+  it("tells the model about undo while retaining the prompt and treating the current query as authoritative", async () => {
+    const model = new MockLanguageModelV3({
+      doGenerate: response([{ type: "text", text: "Which date range?" }]),
+    });
+    await runQueryAssistant({
+      model,
+      schemas,
+      currentQuery: { ...queryFromTool(orderQuery), limit: 7 },
+      upsert: vi.fn(),
+      messages: [
+        { id: "request", role: "user", content: "Only two rows" },
+        {
+          id: "reply",
+          role: "assistant",
+          content: "Showing two rows.",
+          queryUpdated: true,
+        },
+        {
+          id: "undo",
+          role: "user",
+          content:
+            "Undid the AI query change. The previous query has been restored and saved.",
+          historyAction: "undo",
+          relatedMessageId: "reply",
+        },
+        { id: "next", role: "user", content: "Filter by date" },
+      ],
+    });
+    const prompt = model.doGenerateCalls[0]!.prompt;
+    expect(prompt[0]).toMatchObject({
+      role: "system",
+      content: expect.stringContaining(
+        "Do not reapply an undone change unless the user explicitly requests it."
+      ),
+    });
+    expect(JSON.stringify(prompt)).toContain("Only two rows");
+    expect(JSON.stringify(prompt)).toContain("[Query history: undo]");
+    expect(prompt[0]).toMatchObject({
+      content: expect.stringContaining('"limit":7'),
+    });
+  });
   it("asks a follow-up without saving and includes schema context", async () => {
     const model = new MockLanguageModelV3({
       doGenerate: response([
@@ -71,15 +112,31 @@ describe("query assistant", () => {
       "created_at"
     );
   });
-  it("creates the joined query through the tool and stops after saving", async () => {
-    const model = new MockLanguageModelV3({ doGenerate: call() });
+  it("saves focused columns on requested entities while keeping filter-only tables hidden", async () => {
+    const focused = structuredClone(orderQuery);
+    focused.tables[0]!.columns = ["created_at", "status"];
+    focused.tables[2]!.columns = ["title"];
+    const model = new MockLanguageModelV3({ doGenerate: call(focused) });
     const upsert = vi.fn().mockResolvedValue(undefined);
     expect(
       await runQueryAssistant({ model, schemas, messages, upsert })
     ).toEqual({ queryUpdated: true, text: orderQuery.summary });
     expect(upsert).toHaveBeenCalledOnce();
     const query = upsert.mock.calls[0]![0];
-    const { sql, parameters } = await prepareQuery(schemas, query);
+    const { sql, parameters, preparedQuery } = await prepareQuery(
+      schemas,
+      query
+    );
+    expect(preparedQuery.base.select).toEqual(["created_at", "status"]);
+    expect(
+      preparedQuery.base.joins.map(({ tableRef, select }) => ({
+        tableRef,
+        select,
+      }))
+    ).toEqual([
+      { tableRef: "public.users", select: [] },
+      { tableRef: "public.listings", select: ["title"] },
+    ]);
     expect(sql).toContain('INNER JOIN "public"."users"');
     expect(sql).toContain('INNER JOIN "public"."listings"');
     expect(sql).toContain('"email" = ?');
@@ -87,14 +144,47 @@ describe("query assistant", () => {
     expect(sql).toContain('"created_at" DESC');
     expect(model.doGenerateCalls).toHaveLength(1);
   });
+  it("still supports an explicit request to show all columns", async () => {
+    const model = new MockLanguageModelV3({ doGenerate: call() });
+    const upsert = vi.fn().mockResolvedValue(undefined);
+    await runQueryAssistant({
+      model,
+      schemas,
+      messages: [
+        {
+          ...messages[0]!,
+          content:
+            "Latest orders with listings for cameron@gmail.com. Show all columns from orders and listings.",
+        },
+      ],
+      upsert,
+    });
+    const { preparedQuery } = await prepareQuery(
+      schemas,
+      upsert.mock.calls[0]![0]
+    );
+    expect(preparedQuery.base.select).toEqual([
+      "id",
+      "user_id",
+      "created_at",
+      "status",
+    ]);
+    expect(preparedQuery.base.joins[1]!.select).toEqual([
+      "id",
+      "order_id",
+      "title",
+    ]);
+  });
   it("amends the current query with conversation and unsaved filters as context", async () => {
     const currentQuery = queryFromTool(orderQuery);
+    currentQuery.base.select = ["status"];
     currentQuery.base.where = {
       column: "status",
       operator: ConditionOperator.EQUALS,
       value: "paid",
     };
     const amended = structuredClone(orderQuery);
+    amended.tables[0]!.columns = ["status"];
     amended.limit = 10;
     amended.tables[0]!.conditions = [
       {
@@ -120,7 +210,7 @@ describe("query assistant", () => {
     expect(JSON.stringify(model.doGenerateCalls[0]!.prompt)).toContain("paid");
     expect(upsert.mock.calls[0]![0]).toMatchObject({
       limit: 10,
-      base: { where: { value: "paid" } },
+      base: { select: ["status"], where: { value: "paid" } },
     });
   });
   it("returns validation errors to the model for repair before writing", async () => {

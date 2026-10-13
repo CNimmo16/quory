@@ -57,13 +57,28 @@ function mount() {
     </MainDimensionsContext.Provider>
   );
 }
-it("starts with a description and retains the original table picker in secondary manual mode", async () => {
+it("offers AI and manual creation, preserving the description when switching modes", async () => {
   const user = userEvent.setup();
   mount();
   expect(
     screen.getByRole("textbox", { name: "Describe your query" })
   ).toBeVisible();
   expect(screen.getByRole("button", { name: "Build query" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "AI assisted", pressed: true })
+  ).toBeVisible();
+  await user.type(
+    screen.getByRole("textbox", { name: "Describe your query" }),
+    "Latest orders"
+  );
+  await user.click(screen.getByRole("button", { name: "Manual mode" }));
+  expect(
+    screen.getByRole("button", { name: "Manual mode", pressed: true })
+  ).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "AI assisted" }));
+  expect(
+    screen.getByRole("textbox", { name: "Describe your query" })
+  ).toHaveValue("Latest orders");
   await user.click(screen.getByRole("button", { name: "Manual mode" }));
   await user.click(screen.getByRole("option", { name: "orders" }));
   await user.click(screen.getByRole("button", { name: "Go" }));
