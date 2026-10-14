@@ -3,7 +3,6 @@ import type { Query } from "@quory/core";
 import type { inferRouterInputs } from "@trpc/server";
 import type { AppRouter } from "../../../main/ipc";
 import type { ChatMessage, QueryChatResult } from "../../../shared/queryChat";
-import type { QueryHistory } from "../../../shared/queryHistory";
 import trpc from "../util/tprc";
 
 type ChatRequest = inferRouterInputs<AppRouter>["queries"]["chat"];
@@ -13,7 +12,6 @@ export function useQueryChat({
   queryId,
   revision,
   currentQuery,
-  queryHistory,
   initialMessages = [],
   onUpsert,
 }: {
@@ -21,7 +19,6 @@ export function useQueryChat({
   queryId?: string;
   revision?: string;
   currentQuery?: Query;
-  queryHistory?: QueryHistory;
   initialMessages?: ChatMessage[];
   onUpsert: (result: QueryChatResult) => Promise<void>;
 }) {
@@ -54,17 +51,16 @@ export function useQueryChat({
       request.current.message !== message.trim() ||
       request.current.connectionId !== connectionId ||
       request.current.revision !== revision ||
-      request.current.queryHistory !== queryHistory
+      request.current.currentQuery !== currentQuery
     ) {
       request.current = {
         connectionId,
         requestId: crypto.randomUUID(),
         message: message.trim(),
-        history: messages.slice(-60),
+        history: messages.filter((entry) => !entry.historyAction).slice(-60),
         ...(queryId ? { queryId } : {}),
         ...(revision ? { revision } : {}),
         ...(currentQuery ? { currentQuery } : {}),
-        ...(queryHistory ? { queryHistory } : {}),
       };
     }
     const sentConnectionId = connectionId;

@@ -3,6 +3,7 @@ import { APICallError, RetryError } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { schemas, orderQuery } from "../../../test/queryFixtures";
 import { queryFromTool } from "./queryTool";
+import type { ChatMessage } from "../../shared/queryChat";
 import type { SavedQuery } from "../repositories/queryRepo";
 
 const mocks = vi.hoisted(() => ({
@@ -122,7 +123,7 @@ describe("chat persistence", () => {
     expect(result.queryId).toBeNull();
     expect(mocks.put).not.toHaveBeenCalled();
   });
-  it("restores the pre-AI draft and supplies the undo notice and retained messages on the next turn", async () => {
+  it("supplies the latest query and conversation without legacy undo notices", async () => {
     const initial = await caller.chat(input());
     const draft = { ...queryFromTool(orderQuery), limit: 7 };
     mocks.assistant.mockImplementationOnce(async ({ upsert }) => {
@@ -159,12 +160,11 @@ describe("chat persistence", () => {
               role: "assistant",
               content: "Showing two rows.",
             }),
-            expect.objectContaining({
-              historyAction: "undo",
-              relatedMessageId: amended.messages.at(-1)!.id,
-            }),
           ])
         );
+        expect(
+          messages.some((message: ChatMessage) => message.historyAction)
+        ).toBe(false);
         return { queryUpdated: false, text: "Which date range?" };
       }
     );
@@ -175,7 +175,7 @@ describe("chat persistence", () => {
       message: "Filter by date",
       history: [],
     });
-    expect(next.messages).toHaveLength(amended.messages.length + 3);
+    expect(next.messages).toHaveLength(amended.messages.length + 2);
     expect(next.messages.at(-1)?.content).toBe("Which date range?");
   });
   it("rejects a query owned by another connection and stale revisions", async () => {

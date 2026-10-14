@@ -8,13 +8,12 @@ import {
 import { useState } from "react";
 import { type Query } from "@quory/core";
 import { useFetchSchema } from "@quory/stack/react";
-import { Code2, MessageSquare, Undo2, Redo2 } from "lucide-react";
+import { Code2, MessageSquare } from "lucide-react";
 import {
   appendQueryVersion,
   createQueryHistory,
   queriesMatch,
   type QueryHistory,
-  type QueryHistoryAction,
 } from "../../../../shared/queryHistory";
 import { TbTrash } from "react-icons/tb";
 import { AiFillEdit, AiOutlineCheck } from "react-icons/ai";
@@ -62,8 +61,6 @@ function QueryEditor({
   const [queryHistory, setQueryHistory] = useState<QueryHistory>(
     () => data.query.queryHistory ?? createQueryHistory(data.query)
   );
-  const [historyNotice, setHistoryNotice] = useState<string | null>(null);
-  const [viewVersion, setViewVersion] = useState(0);
   const [chatOpen, setChatOpen] = useState(true);
   const [showQueryText, setShowQueryText] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
@@ -80,14 +77,11 @@ function QueryEditor({
     connectionId: data.query.connectionId,
     revision: data.query._rev,
     currentQuery: queryHistory.present.query,
-    queryHistory,
     initialMessages: data.query.chatMessages ?? [],
     onUpsert: async (result) => {
       if (result.queryHistory) setQueryHistory(result.queryHistory);
-      setHistoryNotice(null);
       await utils.queries.listSavedQueries.invalidate();
       await router.invalidate();
-      setViewVersion((version) => version + 1);
     },
   });
   const deleteQuery = trpc.queries.deleteQuery.useMutation({
@@ -99,7 +93,6 @@ function QueryEditor({
   const updateQuery = trpc.queries.updateQuery.useMutation({
     onSuccess: async () => {
       await router.invalidate();
-      setViewVersion((version) => version + 1);
     },
   });
   const updateNickname = trpc.queries.updateQueryNickname.useMutation({
@@ -109,27 +102,14 @@ function QueryEditor({
       await utils.queries.listSavedQueries.invalidate();
     },
   });
-  const changeHistory = trpc.queries.changeQueryHistory.useMutation({
-    onSuccess: async (result, { action }) => {
-      setQueryHistory(result.queryHistory);
-      setViewVersion((version) => version + 1);
-      chat.replaceMessages(result.messages);
-      setHistoryNotice(
-        action === "undo" ? "Query change undone." : "Query change restored."
-      );
-      await router.invalidate();
-      await utils.queries.listSavedQueries.invalidate();
-    },
-  });
   const busy =
     chat.isPending ||
-    changeHistory.isPending ||
     updateQuery.isPending ||
     updateNickname.isPending ||
     deleteQuery.isPending;
   useBlocker({
     shouldBlockFn: () => {
-      if (chat.isPending || changeHistory.isPending)
+      if (chat.isPending)
         return !confirm(
           "Your query is still being updated. Leave this conversation?"
         );
@@ -140,23 +120,12 @@ function QueryEditor({
     },
   });
   function handleQueryChange(next: Query) {
-    setHistoryNotice(null);
     setQueryHistory((history) =>
       schemaData &&
       queriesMatch(schemaData.schemas, history.present.query, next)
         ? history
         : appendQueryVersion(history, next)
     );
-  }
-  function handleHistoryAction(action: QueryHistoryAction) {
-    changeHistory.mutate({
-      connectionId: data.query.connectionId,
-      queryId,
-      revision: data.query._rev,
-      action,
-      queryHistory,
-      messages: chat.messages.slice(-60),
-    });
   }
   function handleDeleteQuery() {
     if (
@@ -170,11 +139,7 @@ function QueryEditor({
         revision: data.query._rev,
       });
   }
-  const error =
-    changeHistory.error ??
-    updateQuery.error ??
-    updateNickname.error ??
-    deleteQuery.error;
+  const error = updateQuery.error ?? updateNickname.error ?? deleteQuery.error;
   return (
     <div className={`flex h-full min-h-0 ${compact ? "flex-col" : ""}`}>
       {chatOpen && (
@@ -191,7 +156,7 @@ function QueryEditor({
       )}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="min-w-0">
-          <div className="flex min-h-16 flex-wrap items-center gap-2 border-b bg-background px-4 py-3">
+          <div className="flex min-h-16 flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-4 py-3 [&_button]:shadow-none [&_input]:shadow-none">
             {editingNickname ? (
               <form
                 className="flex min-w-0 flex-1 items-center gap-2"
@@ -245,30 +210,6 @@ function QueryEditor({
                 </Hint>
               </div>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              aria-label="Undo query change"
-              disabled={
-                busy || editingNickname || queryHistory.past.length === 0
-              }
-              onClick={() => handleHistoryAction("undo")}
-            >
-              <Undo2 aria-hidden="true" />
-              Undo
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              aria-label="Redo query change"
-              disabled={
-                busy || editingNickname || queryHistory.future.length === 0
-              }
-              onClick={() => handleHistoryAction("redo")}
-            >
-              <Redo2 aria-hidden="true" />
-              Redo
-            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -328,23 +269,6 @@ function QueryEditor({
             </Hint>
           </div>
         </div>
-        {historyNotice && (
-          <p
-            role="status"
-            className="border-b bg-muted px-4 py-2 text-sm text-muted-foreground"
-          >
-            {historyNotice} Your conversation has been kept.
-          </p>
-        )}
-        {Number.isSafeInteger(data.query.limit) &&
-          (data.query.limit ?? 0) > 100 && (
-            <Alert>
-              <AlertDescription>
-                This saved query’s row limit was reduced to 100. Save changes to
-                keep the new limit.
-              </AlertDescription>
-            </Alert>
-          )}
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error.message}</AlertDescription>
@@ -356,7 +280,7 @@ function QueryEditor({
         >
           <div ref={ref} className="h-full w-full overflow-auto">
             <QueryView
-              key={`${queryId}:${viewVersion}`}
+              key={queryId}
               initialQuery={queryHistory.present.query}
               onQueryChange={handleQueryChange}
               onDeleteQuery={handleDeleteQuery}

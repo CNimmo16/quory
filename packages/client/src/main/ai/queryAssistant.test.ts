@@ -49,7 +49,7 @@ const messages = [
 ];
 
 describe("query assistant", () => {
-  it("tells the model about undo while retaining the prompt and treating the current query as authoritative", async () => {
+  it("uses the latest query as authoritative and excludes legacy undo notices", async () => {
     const model = new MockLanguageModelV3({
       doGenerate: response([{ type: "text", text: "Which date range?" }]),
     });
@@ -81,11 +81,11 @@ describe("query assistant", () => {
     expect(prompt[0]).toMatchObject({
       role: "system",
       content: expect.stringContaining(
-        "Do not reapply an undone change unless the user explicitly requests it."
+        "It may have changed since you last generated a query."
       ),
     });
     expect(JSON.stringify(prompt)).toContain("Only two rows");
-    expect(JSON.stringify(prompt)).toContain("[Query history: undo]");
+    expect(JSON.stringify(prompt)).not.toContain("Undid the AI query change");
     expect(prompt[0]).toMatchObject({
       content: expect.stringContaining('"limit":7'),
     });

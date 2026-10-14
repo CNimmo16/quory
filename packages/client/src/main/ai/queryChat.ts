@@ -94,7 +94,10 @@ export const queryChatProcedure = publicProcedure
       }
 
       const messages: ChatMessage[] = [
-        ...mergeChatMessages(existing?.chatMessages ?? [], input.history),
+        ...mergeChatMessages(
+          existing?.chatMessages ?? [],
+          input.history
+        ).filter((message) => !message.historyAction),
         { id: input.requestId, role: "user", content: input.message },
       ];
       let saved:
@@ -130,7 +133,7 @@ export const queryChatProcedure = publicProcedure
               queryUpdated: true,
             },
           ];
-          let previousHistory = input.queryHistory ?? existing?.queryHistory;
+          let previousHistory = existing?.queryHistory;
           const previousQuery = input.currentQuery ?? existing;
           if (!previousHistory && previousQuery)
             previousHistory = createQueryHistory(previousQuery);

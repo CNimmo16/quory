@@ -1,13 +1,19 @@
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import { Alert, AlertDescription } from "./ui/alert";
 import { LoadingState, Spinner } from "./LoadingState";
 import { Hint } from "./Hint";
 import { Query } from "@quory/core";
 import { useQuery, useFetchSchema, useQueryCount } from "@quory/stack/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DataTable from "./DataTable";
 import TableNavigator from "./TableNavigator";
+import { QueryFilters } from "./QueryFilters";
+import useElementSize from "../hooks/useElementSize";
+
+import { keepPreviousData } from "@tanstack/react-query";
+import { removeQueryJoin } from "./removeQueryJoin";
+
+const PAGE_SIZE = 100;
 
 export default function QueryView({
   initialQuery,
@@ -26,52 +32,66 @@ export default function QueryView({
 }) {
   const { data: schemaData } = useFetchSchema();
 
-  const legacyLimit =
-    Number.isSafeInteger(initialQuery.limit) && (initialQuery.limit ?? 0) > 100;
   const [_query, setQuery] = useState<Query>({
     ...initialQuery,
-    limit: legacyLimit
-      ? 100
-      : initialQuery.limit === undefined
-      ? 100
-      : initialQuery.limit,
-    offset: initialQuery.offset === undefined ? 0 : initialQuery.offset,
+    limit: PAGE_SIZE,
+    offset: Math.floor((initialQuery.offset ?? 0) / PAGE_SIZE) * PAGE_SIZE,
   });
 
+  const incomingQuery = JSON.stringify(initialQuery);
+  const previousIncomingQuery = useRef(incomingQuery);
+  useEffect(() => {
+    if (previousIncomingQuery.current === incomingQuery) return;
+    previousIncomingQuery.current = incomingQuery;
+    setQuery({
+      ...initialQuery,
+      limit: PAGE_SIZE,
+      offset: Math.floor((initialQuery.offset ?? 0) / PAGE_SIZE) * PAGE_SIZE,
+    });
+  }, [initialQuery, incomingQuery]);
+
   function changeQuery(next: Query) {
-    setQuery(next);
-    onQueryChange(next);
+    const updatedQuery = { ...next, limit: PAGE_SIZE };
+    setQuery(updatedQuery);
+    onQueryChange(updatedQuery);
   }
 
-  const { query, data, error, isLoading, joinActions, cancel, refetch } =
-    useQuery(_query, changeQuery);
+  const {
+    query,
+    data,
+    error,
+    isLoading,
+    joinActions: originalJoinActions,
+    cancel,
+    refetch,
+  } = useQuery(_query, changeQuery, false, {
+    placeholderData: keepPreviousData,
+  });
+  const joinActions: typeof originalJoinActions = (alias) => ({
+    ...originalJoinActions(alias),
+    removeJoin: () => {
+      if (query) changeQuery(removeQueryJoin(query, alias));
+    },
+  });
 
-  const [rowLimit, setRowLimit] = useState(String(_query.limit ?? 100));
   const [countRequestedFor, setCountRequestedFor] = useState<Query | null>(
     null
   );
   const countQuery = useMemo(
-    () => ({ base: _query.base, limit: _query.limit, offset: 0 }),
-    [_query.base, _query.limit]
+    () => ({ base: _query.base, limit: PAGE_SIZE, offset: 0 }),
+    [_query.base]
   );
   const total = useQueryCount(
     countRequestedFor === countQuery ? countQuery : null
   );
 
-  const treePadding = 20;
-
-  const [treeHeight, setTreeHeight] = useState<number | null>(null);
+  const definitionSize = useElementSize();
+  const paginationSize = useElementSize();
   const queryTextHeight = Math.min(320, Math.max(160, viewHeight * 0.4));
-
-  const tableHeight = useMemo(() => {
-    if (showQueryText) {
-      return viewHeight - queryTextHeight - treePadding * 3;
-    }
-    if (!treeHeight) {
-      return 300;
-    }
-    return viewHeight - treeHeight - treePadding;
-  }, [viewHeight, treeHeight, showQueryText, queryTextHeight]);
+  const tableHeight = Math.max(
+    160,
+    viewHeight - definitionSize.height - paginationSize.height - 24
+  );
 
   const [highlightedJoinAlias, setHighlightedJoinAlias] = useState<
     string | null
@@ -81,57 +101,62 @@ export default function QueryView({
     return <LoadingState />;
   }
   return (
-    <div className="bg-slate-200">
-      {legacyLimit && (
-        <Alert>
-          <AlertDescription>
-            This saved query’s row limit was reduced to 100. Save changes to
-            keep the new limit.
-          </AlertDescription>
-        </Alert>
-      )}
-      {showQueryText ? (
-        <div className="p-5">
-          <pre
-            role="region"
-            aria-label="Raw query (JSON)"
-            tabIndex={0}
-            className="overflow-auto rounded-md border bg-background p-4 font-mono text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            style={{ height: queryTextHeight }}
-          >
-            <code>{JSON.stringify(_query, null, 2)}</code>
-          </pre>
-        </div>
-      ) : query ? (
-        <TableNavigator
-          padding={treePadding}
-          width={viewWidth}
-          onHeightChange={setTreeHeight}
-          query={query}
-          schemas={schemaData.schemas}
-          highlightedJoinAlias={highlightedJoinAlias}
-          onChangeHighlightedJoinAlias={setHighlightedJoinAlias}
-          joinActions={joinActions}
-          onDeleteQuery={onDeleteQuery}
-        />
-      ) : null}
-      <div>
+    <div className="w-full min-w-0 max-w-full bg-slate-50 [&_button]:shadow-none [&_input]:shadow-none">
+      <fieldset
+        disabled={isLoading}
+        className="min-w-0 border-0 p-0"
+        ref={definitionSize.ref}
+      >
+        {query && (
+          <QueryFilters
+            query={query}
+            schemas={schemaData.schemas}
+            joinActions={joinActions}
+            onHighlight={setHighlightedJoinAlias}
+          />
+        )}
+        {showQueryText ? (
+          <div className="p-5">
+            <pre
+              role="region"
+              aria-label="Raw query (JSON)"
+              tabIndex={0}
+              className="overflow-auto rounded-md border bg-background p-4 font-mono text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              style={{ height: queryTextHeight }}
+            >
+              <code>{JSON.stringify(_query, null, 2)}</code>
+            </pre>
+          </div>
+        ) : query ? (
+          <TableNavigator
+            width={viewWidth}
+            maxHeight={Math.max(200, Math.min(440, viewHeight * 0.5))}
+            query={query}
+            schemas={schemaData.schemas}
+            highlightedJoinAlias={highlightedJoinAlias}
+            onChangeHighlightedJoinAlias={setHighlightedJoinAlias}
+            joinActions={joinActions}
+            onDeleteQuery={onDeleteQuery}
+          />
+        ) : null}
+      </fieldset>
+      <div className="min-w-0 px-4 py-3">
         {error && (
           <Alert variant="destructive" className="mb-3 bg-red-100">
             <AlertDescription>{error.message}</AlertDescription>
           </Alert>
         )}
-        {isLoading && (
-          <div className="bg-white p-5">
-            <LoadingState label="Running query…" />
-          </div>
-        )}
-        {query && data && !isLoading && (
-          <>
+        {query && data && (
+          <fieldset
+            disabled={isLoading}
+            aria-busy={isLoading}
+            className="min-w-0 border-0 p-0"
+          >
             {data.rows[0] ? (
               <DataTable
-                width={viewWidth - 30}
-                height={Math.max(100, tableHeight - 100)}
+                width={viewWidth - 32}
+                height={tableHeight}
+                isLoading={isLoading}
                 rows={data.rows}
                 visibleJoins={data.visibleJoins}
                 highlightedJoinAlias={highlightedJoinAlias}
@@ -141,67 +166,42 @@ export default function QueryView({
             ) : (
               <div className="bg-white p-5">No records found</div>
             )}
-          </>
+          </fieldset>
         )}
       </div>
       <div
+        ref={paginationSize.ref}
         role="region"
         aria-label="Results pagination"
-        className="flex flex-wrap items-center gap-3 border-t bg-background px-4 py-2 text-sm"
+        className="flex flex-wrap items-center gap-3 border-t border-slate-200 bg-white px-4 py-3 text-xs text-slate-600"
       >
-        <form
-          className="flex items-center gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const limit = Number(rowLimit);
-            if (Number.isSafeInteger(limit) && limit >= 1 && limit <= 100)
-              changeQuery({ ..._query, limit, offset: 0 });
-          }}
-        >
-          <label className="flex items-center gap-2 whitespace-nowrap">
-            Rows per page{" "}
-            <Input
-              aria-label="Rows per page"
-              type="number"
-              min={1}
-              max={100}
-              step={1}
-              required
-              className="w-20"
-              value={rowLimit}
-              onChange={(event) => setRowLimit(event.target.value)}
-            />
-          </label>
-          <Button type="submit" disabled={isLoading}>
-            Apply page size
-          </Button>
-        </form>
         <Button
+          variant="ghost"
+          size="sm"
           disabled={isLoading || !(_query.offset ?? 0)}
           onClick={() =>
             changeQuery({
               ..._query,
-              offset: Math.max(0, (_query.offset ?? 0) - (_query.limit ?? 100)),
+              offset: Math.max(0, (_query.offset ?? 0) - PAGE_SIZE),
             })
           }
         >
           Previous
         </Button>
-        <span>
-          Page {Math.floor((_query.offset ?? 0) / (_query.limit ?? 100)) + 1}
-        </span>
+        <span>Page {Math.floor((_query.offset ?? 0) / PAGE_SIZE) + 1}</span>
         <Button
+          variant="ghost"
+          size="sm"
           disabled={
             isLoading ||
             !data ||
-            data.rows.length < (_query.limit ?? 100) ||
-            (_query.offset ?? 0) >
-              Number.MAX_SAFE_INTEGER - (_query.limit ?? 100)
+            data.rows.length < PAGE_SIZE ||
+            (_query.offset ?? 0) > Number.MAX_SAFE_INTEGER - PAGE_SIZE
           }
           onClick={() =>
             changeQuery({
               ..._query,
-              offset: (_query.offset ?? 0) + (_query.limit ?? 100),
+              offset: (_query.offset ?? 0) + PAGE_SIZE,
             })
           }
         >
@@ -251,6 +251,12 @@ export default function QueryView({
               void cancel();
             }}
           >
+            {!data?.rows.length && (
+              <span role="status" title="Running query…">
+                <Spinner />
+                <span className="sr-only">Running query…</span>
+              </span>
+            )}
             Cancel query
           </Button>
         )}

@@ -144,7 +144,9 @@ export default function ConditionEditor({
       >
         <SelectTrigger
           aria-label="Filter column"
-          className={`w-44 ${isGhost ? "border-dashed" : ""}`}
+          className={`w-44 max-w-full shadow-none ${
+            isGhost ? "border-dashed" : ""
+          }`}
           onFocus={onFocus}
           onBlur={onBlur}
         >
@@ -154,6 +156,7 @@ export default function ConditionEditor({
         </SelectTrigger>
         <SelectContent
           position="popper"
+          className="shadow-none"
           style={{ maxHeight: maxDropdownHeight }}
         >
           {columns.map((column) => (
@@ -201,7 +204,7 @@ export default function ConditionEditor({
           >
             <SelectTrigger
               aria-label="Filter operator"
-              className="w-28"
+              className="w-28 shadow-none"
               onFocus={onFocus}
               onBlur={onBlur}
             >
@@ -209,6 +212,7 @@ export default function ConditionEditor({
             </SelectTrigger>
             <SelectContent
               position="popper"
+              className="shadow-none"
               style={{ maxHeight: maxDropdownHeight }}
             >
               {[...valueConditionOperators, ...listConditionOperators].map(
@@ -223,7 +227,7 @@ export default function ConditionEditor({
           {isValueCondition(condition) && (
             <Input
               aria-label="Filter value"
-              className="min-w-32 flex-1"
+              className="min-w-32 flex-1 shadow-none"
               value={condition.value}
               onChange={(event) =>
                 onConditionChange({ ...condition, value: event.target.value })

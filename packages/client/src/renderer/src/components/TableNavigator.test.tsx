@@ -1,5 +1,5 @@
 import { type ComponentProps } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -8,6 +8,7 @@ import {
   type PreparedQuery,
 } from "@quory/core";
 import TableNavigator from "./TableNavigator";
+import { QueryFilters } from "./QueryFilters";
 import { TooltipProvider } from "./ui/tooltip";
 
 const schemas: DatabaseSchema[] = [
@@ -72,7 +73,10 @@ const query: PreparedQuery = {
   },
 };
 
-function renderNavigator(navigatorQuery: PreparedQuery = query) {
+function renderNavigator(
+  navigatorQuery: PreparedQuery = query,
+  showBreakdown = false
+) {
   type JoinActions = ComponentProps<typeof TableNavigator>["joinActions"];
   const setSelectedColumns = vi.fn();
   const setCondition = vi.fn();
@@ -92,25 +96,104 @@ function renderNavigator(navigatorQuery: PreparedQuery = query) {
     addJoinOnForeignKeyReference: vi.fn(),
     hasCondition: () => false,
   });
-  render(
+  const view = render(
     <TooltipProvider>
+      {showBreakdown && (
+        <QueryFilters
+          query={navigatorQuery}
+          schemas={schemas}
+          joinActions={joinActions}
+          onHighlight={vi.fn()}
+        />
+      )}
       <TableNavigator
-        padding={20}
         width={1000}
         query={navigatorQuery}
         schemas={schemas}
         joinActions={joinActions}
-        onHeightChange={vi.fn()}
         highlightedJoinAlias={null}
         onChangeHighlightedJoinAlias={vi.fn()}
         onDeleteQuery={vi.fn()}
       />
     </TooltipProvider>
   );
-  return { setSelectedColumns, setCondition, removeCondition };
+  return { setSelectedColumns, setCondition, removeCondition, view };
 }
 
 describe("TableNavigator", () => {
+  it("shows grouped filter values above the diagram and edits them without showing hidden columns", async () => {
+    const user = userEvent.setup();
+    const { setCondition, setSelectedColumns } = renderNavigator(
+      {
+        ...query,
+        base: {
+          ...query.base,
+          select: [],
+          where: {
+            operator: ConditionOperator.AND,
+            conditions: [
+              {
+                column: "id",
+                operator: ConditionOperator.GREATER_THAN,
+                value: "5",
+              },
+              {
+                operator: ConditionOperator.OR,
+                conditions: [
+                  {
+                    column: "name",
+                    operator: ConditionOperator.EQUALS,
+                    value: "Ada",
+                  },
+                  {
+                    column: "name",
+                    operator: ConditionOperator.EQUALS,
+                    value: "Grace",
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      true
+    );
+    const summary = screen.getByRole("region", { name: "Query filters" });
+    expect(summary).toHaveTextContent(
+      'id > "5" AND (name = "Ada" OR name = "Grace")'
+    );
+    expect(
+      screen.getByRole("button", { name: "Edit 3 filters for customers" })
+    ).toBeVisible();
+    await user.click(within(summary).getByRole("button"));
+    const values = screen.getAllByRole("textbox", { name: "Filter value" });
+    await user.clear(values[0]!);
+    await user.type(values[0]!, "10");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(setCondition).toHaveBeenCalledWith({
+      operator: ConditionOperator.AND,
+      conditions: [
+        { column: "id", operator: ConditionOperator.GREATER_THAN, value: "10" },
+        {
+          operator: ConditionOperator.OR,
+          conditions: [
+            {
+              column: "name",
+              operator: ConditionOperator.EQUALS,
+              value: "Ada",
+            },
+            {
+              column: "name",
+              operator: ConditionOperator.EQUALS,
+              value: "Grace",
+            },
+          ],
+        },
+      ],
+    });
+    expect(setSelectedColumns).not.toHaveBeenCalled();
+  });
+
   it("shows and edits filters on tables without visible columns without adding their columns", async () => {
     const user = userEvent.setup();
     const { setSelectedColumns, setCondition } = renderNavigator({
@@ -125,7 +208,10 @@ describe("TableNavigator", () => {
         },
       },
     });
-    const filter = screen.getByRole("button", { name: 'name = "Ada"' });
+    const filter = screen.getByRole("button", {
+      name: "Edit 1 filter for customers",
+    });
+    expect(screen.queryByText('name = "Ada"')).not.toBeInTheDocument();
     expect(filter).toBeVisible();
     await user.click(filter);
     await user.clear(screen.getByRole("textbox", { name: "Filter value" }));
@@ -147,7 +233,7 @@ describe("TableNavigator", () => {
     expect(setSelectedColumns).toHaveBeenCalledWith(["id", "name"]);
   });
 
-  it("keeps compound filter values visible and supports keyboard editing on hidden tables", async () => {
+  it("opens compound filter values from the keyboard on hidden tables", async () => {
     const user = userEvent.setup();
     const { setSelectedColumns, removeCondition } = renderNavigator({
       ...query,
@@ -166,12 +252,10 @@ describe("TableNavigator", () => {
         },
       },
     });
-    expect(screen.getByText("name in (Ada, Grace)")).toBeVisible();
-    await user.tab();
-    expect(
-      screen.getByRole("button", { name: "Show columns for customers" })
-    ).toHaveFocus();
-    await user.tab();
+    const filter = screen.getByRole("button", {
+      name: "Edit 1 filter for customers",
+    });
+    filter.focus();
     await user.keyboard("{Enter}");
     expect(
       screen.getByRole("textbox", { name: "Filter values" })
@@ -188,8 +272,7 @@ describe("TableNavigator", () => {
       ...query,
       base: { ...query.base, select: [] },
     });
-    await user.tab();
-    expect(screen.getByRole("button", { name: "customers" })).toHaveFocus();
+    screen.getByRole("button", { name: "Show columns for customers" }).focus();
     await user.keyboard("{Enter}");
     expect(setSelectedColumns).toHaveBeenCalledWith(["id", "name"]);
   });
@@ -229,7 +312,9 @@ describe("TableNavigator", () => {
   it("cancels filter edits and applies complete filters without the trailing empty row", async () => {
     const user = userEvent.setup();
     const { setCondition, removeCondition } = renderNavigator();
-    await user.click(screen.getByRole("button", { name: "Add filter" }));
+    await user.click(
+      screen.getByRole("button", { name: "Add filter for customers" })
+    );
     await user.type(
       screen.getByRole("textbox", { name: "Filter value" }),
       "42"
@@ -237,7 +322,9 @@ describe("TableNavigator", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(setCondition).not.toHaveBeenCalled();
     expect(removeCondition).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Add filter" }));
+    await user.click(
+      screen.getByRole("button", { name: "Add filter for customers" })
+    );
     expect(screen.getByRole("textbox", { name: "Filter value" })).toHaveValue(
       ""
     );
@@ -257,7 +344,9 @@ describe("TableNavigator", () => {
   it("keeps incomplete filters open while choosing columns and operators, and cancels deletions", async () => {
     const user = userEvent.setup();
     const { setCondition, removeCondition } = renderNavigator();
-    await user.click(screen.getByRole("button", { name: "Add filter" }));
+    await user.click(
+      screen.getByRole("button", { name: "Add filter for customers" })
+    );
     await user.click(screen.getByRole("combobox", { name: "Filter column" }));
     await user.click(screen.getByRole("option", { name: "name" }));
     await user.click(screen.getByRole("combobox", { name: "Filter operator" }));
@@ -271,7 +360,9 @@ describe("TableNavigator", () => {
     expect(setCondition).not.toHaveBeenCalled();
     expect(removeCondition).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Add filter" }));
+    await user.click(
+      screen.getByRole("button", { name: "Add filter for customers" })
+    );
     await user.click(screen.getByRole("button", { name: "Delete filter" }));
     await user.click(screen.getByRole("button", { name: "Apply" }));
     expect(removeCondition).toHaveBeenCalledOnce();

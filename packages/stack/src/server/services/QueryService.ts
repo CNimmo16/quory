@@ -71,7 +71,7 @@ export async function fetchDataForQuery(
     rows: rows.map((row) => {
       return row
         .filter(({ data }) => Object.keys(data).length > 0)
-        .map(({ data, tableRef, joinAlias }) => {
+        .map(({ data, tableRef, joinAlias, recordKey }) => {
           const entries = Object.entries(data);
           return entries.map(([columnName, value]) => {
             const lexiconEntry = semantics?.lexicon.find(
@@ -85,6 +85,7 @@ export async function fetchDataForQuery(
             ).columns.find((col) => col.name === columnName)!;
             return {
               joinAlias,
+              recordKey,
               isPrimary: column.includedInPrimaryKey,
               type: column.genericDataType,
               rawField: columnName,

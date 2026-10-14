@@ -157,12 +157,13 @@ export default async function prepareQuery(
   databaseSchemas: DatabaseSchema[],
   query: Query,
   dialect: SqlDialect = "sqlite",
-  options: { includeOrderBy?: boolean } = {}
+  options: { includeOrderBy?: boolean; includeRecordKeys?: boolean } = {}
 ): Promise<{
   sql: string;
   parameters: SqlParameter[];
   preparedQuery: PreparedQuery;
   joinsList: FlattenedPreparedJoinDef[];
+  recordKeyAliases: Record<string, string[]>;
 }> {
   validateQuery(databaseSchemas, query);
   const parameters: SqlParameter[] = [];
@@ -324,12 +325,42 @@ export default async function prepareQuery(
     return result;
   }
   const joinTree = buildTree(joinDefsWithAliases);
+  const recordKeyAliases: Record<string, string[]> = {};
 
   const select = (function extractSelects(
     join: PreparedJoinDef
   ): ReturnType<typeof getSelectForColumn>[] {
     const [schemaName, tableName] = splitTableRef(join.tableRef);
     const table = findTableFromSchemas(databaseSchemas, schemaName, tableName);
+    // Identity is execution metadata, independent of the displayed columns.
+    // Reuse visible keys and fetch omitted keys without changing the saved query.
+    const hiddenKeys =
+      options.includeRecordKeys && join.select.length
+        ? table.columns
+            .filter(
+              (column) =>
+                column.includedInPrimaryKey &&
+                !join.select.includes(column.name)
+            )
+            .map((column) =>
+              getSelectForColumn(
+                table,
+                join.joinAlias,
+                column,
+                `quory__result__${++resultAliasCount}`,
+                dialect
+              )
+            )
+        : [];
+    if (options.includeRecordKeys && join.select.length) {
+      recordKeyAliases[join.joinAlias] = table.columns
+        .filter((column) => column.includedInPrimaryKey)
+        .map(
+          (column) =>
+            join.resultAliases[column.name] ??
+            hiddenKeys.find((key) => key.name === column.name)!.outerAlias
+        );
+    }
     return [
       ...table.columns
         .map((column) =>
@@ -342,6 +373,7 @@ export default async function prepareQuery(
           )
         )
         .filter((column) => join.select.includes(column.name)),
+      ...hiddenKeys,
       ...join.joins.flatMap(extractSelects),
     ];
   })(joinTree);
@@ -492,5 +524,6 @@ export default async function prepareQuery(
     joinsList,
     sql,
     parameters,
+    recordKeyAliases,
   };
 }

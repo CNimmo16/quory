@@ -26,6 +26,7 @@ export default async function runQuery(
   rows: {
     joinAlias: string;
     tableRef: string;
+    recordKey: string | null;
     data: Row;
   }[][];
 }> {
@@ -34,7 +35,10 @@ export default async function runQuery(
     parameters,
     preparedQuery,
     joinsList,
-  } = await prepareQuery(databaseSchemas, query, databaseDriver.dialect);
+    recordKeyAliases,
+  } = await prepareQuery(databaseSchemas, query, databaseDriver.dialect, {
+    includeRecordKeys: true,
+  });
 
   let sql = preparedSql;
   // Primary keys provide deterministic page boundaries, including ties in user sorting.
@@ -100,9 +104,18 @@ export default async function runQuery(
               join.resultAliases[column.name]
             ).outerAlias,
           }));
+        const keys = (recordKeyAliases[join.joinAlias] ?? []).map(
+          (alias) => row[alias]
+        );
         return {
           joinAlias: join.joinAlias,
           tableRef: join.tableRef,
+          // Tuple encoding avoids composite-key collisions and preserves types.
+          // Missing or nullable keys cannot establish that two records are equal.
+          recordKey:
+            keys.length && keys.every((key) => key != null)
+              ? JSON.stringify(keys)
+              : null,
           data: Object.fromEntries(
             columns.map((column) => {
               return [column.name, row[column.alias]!];
