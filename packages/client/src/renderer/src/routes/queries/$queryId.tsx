@@ -6,26 +6,30 @@ import {
   useBlocker,
 } from "@tanstack/react-router";
 import { useState } from "react";
+import { isSqlQuery, type CustomSqlQuery } from "../../../../shared/sqlQuery";
+import { SqlQueryWorkspace } from "../../components/SqlQueryWorkspace";
 import { type Query } from "@quory/core";
 import { useFetchSchema } from "@quory/stack/react";
-import { Code2, MessageSquare } from "lucide-react";
 import {
   appendQueryVersion,
   createQueryHistory,
   queriesMatch,
+  moveQueryHistory,
   type QueryHistory,
 } from "../../../../shared/queryHistory";
-import { TbTrash } from "react-icons/tb";
-import { AiFillEdit, AiOutlineCheck } from "react-icons/ai";
+import { AiOutlineCheck } from "react-icons/ai";
 import QueryView from "../../components/QueryView";
+import { ConnectionBadge } from "../../components/ConnectionBadge";
+import { SelectConnectionScreen } from "../../components/SelectConnectionScreen";
 import { QueryChatPane } from "../../components/QueryChat";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Alert, AlertDescription } from "../../components/ui/alert";
-import { Hint } from "../../components/Hint";
+import { QueryToolbar } from "../../components/WindowToolbar";
+import { QueryActionsMenu } from "../../components/QueryActionsMenu";
 import { Spinner } from "../../components/LoadingState";
 import useElementSize from "../../hooks/useElementSize";
-import useMainDimensions from "../../hooks/useMainDimensions";
+import { useConnectionSwitchGuard } from "../../hooks/useConnectionSwitchGuard";
 import { useQueryChat } from "../../hooks/useQueryChat";
 import trpc from "../../util/tprc";
 import { trpcClient } from "../../GlobalProviders";
@@ -34,25 +38,91 @@ export const Route = createFileRoute("/queries/$queryId")({
   component: RouteComponent,
   loader: async ({ params }) => {
     const res = await trpcClient.connections.fetchActiveConnection.query();
-    if (!res.connection) throw redirect({ to: "/connections" });
-    return trpcClient.queries.fetchQuery.query({
+    if (!res.connection) {
+      const { activeProject } = await trpcClient.projects.list.query();
+      if (!activeProject) throw redirect({ to: "/projects" });
+      const { queries } = await trpcClient.projects.listQueries.query({
+        projectId: activeProject._id,
+      });
+      const saved = queries.find(({ id }) => id === params.queryId);
+      if (!saved)
+        throw new Error("This query could not be found in the project.");
+      return { query: saved.query, connectionId: null, dialect: undefined };
+    }
+    const result = await trpcClient.queries.fetchQuery.query({
       queryId: params.queryId,
       connectionId: res.connection._id,
     });
+    return {
+      ...result,
+      connectionId: res.connection._id,
+      dialect: res.connection.type,
+    };
   },
 });
+
+type ConnectedQueryData = Extract<
+  ReturnType<typeof Route.useLoaderData>,
+  { connectionId: string }
+>;
 
 function RouteComponent() {
   const data = Route.useLoaderData();
   const { queryId } = Route.useParams();
-  return <QueryEditor key={queryId} data={data} queryId={queryId} />;
+  if (!data.connectionId)
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <QueryToolbar>
+          {isSqlQuery(data.query) && (
+            <span className="rounded border border-teal-200 bg-teal-50 px-1.5 py-0.5 font-mono text-xs font-medium text-teal-800">
+              SQL
+            </span>
+          )}
+          <div className="flex min-w-0 flex-1 items-center gap-1">
+            <h1
+              className="truncate text-sm font-medium"
+              title={data.query.nickname}
+            >
+              {data.query.nickname}
+            </h1>
+          </div>
+          <div className="flex items-center gap-1">
+            <ConnectionBadge />
+            <QueryActionsMenu disabled />
+          </div>
+        </QueryToolbar>
+        <div className="min-h-0 flex-1 overflow-auto">
+          <SelectConnectionScreen queryId={queryId} />
+        </div>
+      </div>
+    );
+  if (isSqlQuery(data.query))
+    return (
+      <CustomSqlQueryEditor
+        key={`${queryId}:${data.connectionId}`}
+        data={{ ...data, query: data.query }}
+        queryId={queryId}
+      />
+    );
+  return (
+    <QueryEditor
+      key={`${queryId}:${data.connectionId}`}
+      data={{ ...data, query: data.query }}
+      queryId={queryId}
+    />
+  );
 }
 
 function QueryEditor({
   data,
   queryId,
 }: {
-  data: ReturnType<typeof Route.useLoaderData>;
+  data: Omit<ConnectedQueryData, "query"> & {
+    query: Extract<
+      ReturnType<typeof Route.useLoaderData>["query"],
+      { mode?: "relationship" | undefined }
+    >;
+  };
   queryId: string;
 }) {
   const navigate = useNavigate({ from: "/queries/$queryId" });
@@ -62,11 +132,9 @@ function QueryEditor({
     () => data.query.queryHistory ?? createQueryHistory(data.query)
   );
   const [chatOpen, setChatOpen] = useState(true);
-  const [showQueryText, setShowQueryText] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
   const [nickname, setNickname] = useState(data.query.nickname);
   const { ref, width, height } = useElementSize();
-  const compact = (useMainDimensions()?.width ?? 900) < 720;
   const { data: schemaData } = useFetchSchema();
   const unsavedChanges = Boolean(
     schemaData &&
@@ -74,24 +142,25 @@ function QueryEditor({
   );
   const chat = useQueryChat({
     queryId,
-    connectionId: data.query.connectionId,
+    connectionId: data.connectionId,
     revision: data.query._rev,
     currentQuery: queryHistory.present.query,
     initialMessages: data.query.chatMessages ?? [],
     onUpsert: async (result) => {
       if (result.queryHistory) setQueryHistory(result.queryHistory);
-      await utils.queries.listSavedQueries.invalidate();
+      await utils.projects.listQueries.invalidate();
       await router.invalidate();
     },
   });
   const deleteQuery = trpc.queries.deleteQuery.useMutation({
     onSuccess: async () => {
-      await utils.queries.listSavedQueries.invalidate();
+      await utils.projects.listQueries.invalidate();
       await navigate({ to: "/queries" });
     },
   });
   const updateQuery = trpc.queries.updateQuery.useMutation({
     onSuccess: async () => {
+      await utils.projects.listQueries.invalidate();
       await router.invalidate();
     },
   });
@@ -99,26 +168,27 @@ function QueryEditor({
     onSuccess: async () => {
       setEditingNickname(false);
       await router.invalidate();
-      await utils.queries.listSavedQueries.invalidate();
+      await utils.projects.listQueries.invalidate();
     },
   });
+  const shouldBlock = () => {
+    if (chat.isPending)
+      return !confirm(
+        "Your query is still being updated. Leave this conversation?"
+      );
+    if (!unsavedChanges || deleteQuery.isSuccess) return false;
+    return !confirm(
+      "You have made changes to this query. Are you sure you want to leave without saving?"
+    );
+  };
+  useBlocker({ shouldBlockFn: shouldBlock });
+  const switching = useConnectionSwitchGuard(shouldBlock);
   const busy =
+    switching ||
     chat.isPending ||
     updateQuery.isPending ||
     updateNickname.isPending ||
     deleteQuery.isPending;
-  useBlocker({
-    shouldBlockFn: () => {
-      if (chat.isPending)
-        return !confirm(
-          "Your query is still being updated. Leave this conversation?"
-        );
-      if (!unsavedChanges || deleteQuery.isSuccess) return false;
-      return !confirm(
-        "You have made changes to this query. Are you sure you want to leave without saving?"
-      );
-    },
-  });
   function handleQueryChange(next: Query) {
     setQueryHistory((history) =>
       schemaData &&
@@ -135,145 +205,89 @@ function QueryEditor({
     )
       deleteQuery.mutate({
         queryId,
-        connectionId: data.query.connectionId,
+        connectionId: data.connectionId,
         revision: data.query._rev,
       });
   }
   const error = updateQuery.error ?? updateNickname.error ?? deleteQuery.error;
   return (
-    <div className={`flex h-full min-h-0 ${compact ? "flex-col" : ""}`}>
-      {chatOpen && (
-        <QueryChatPane
-          compact={compact}
-          messages={chat.messages}
-          pendingMessage={chat.pendingMessage}
-          error={chat.error}
-          onSend={chat.send}
-          draft={chat.draft}
-          onDraftChange={chat.setDraft}
-          disabled={busy || editingNickname}
-        />
-      )}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="min-w-0">
-          <div className="flex min-h-16 flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-4 py-3 [&_button]:shadow-none [&_input]:shadow-none">
-            {editingNickname ? (
-              <form
-                className="flex min-w-0 flex-1 items-center gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  updateNickname.mutate({
-                    queryId,
-                    connectionId: data.query.connectionId,
-                    nickname,
-                    revision: data.query._rev,
-                  });
-                }}
-              >
-                <Input
-                  aria-label="Query nickname"
-                  autoFocus
-                  disabled={busy}
-                  value={nickname}
-                  onChange={(event) => setNickname(event.target.value)}
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  aria-label="Save nickname"
-                  disabled={busy}
-                >
-                  <AiOutlineCheck />
-                </Button>
-              </form>
-            ) : (
-              <div className="flex min-w-0 flex-1 items-center gap-1">
-                <h1
-                  className="truncate text-sm font-medium"
-                  title={data.query.nickname}
-                >
-                  {data.query.nickname}
-                </h1>
-                <Hint content="Edit nickname">
-                  <Button
-                    size="icon"
-                    aria-label="Edit nickname"
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => {
-                      setEditingNickname(true);
-                      setNickname(data.query.nickname);
-                    }}
-                  >
-                    <AiFillEdit />
-                  </Button>
-                </Hint>
-              </div>
-            )}
+    <div className="flex h-full min-h-0 flex-col">
+      <QueryToolbar>
+        {editingNickname ? (
+          <form
+            className="flex min-w-0 flex-1 items-center gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateNickname.mutate({
+                queryId,
+                connectionId: data.connectionId,
+                nickname,
+                revision: data.query._rev,
+              });
+            }}
+          >
+            <Input
+              aria-label="Query nickname"
+              autoFocus
+              disabled={busy}
+              value={nickname}
+              onChange={(event) => setNickname(event.target.value)}
+            />
             <Button
-              variant="outline"
-              size="sm"
-              aria-expanded={chatOpen}
-              aria-controls="query-chat"
-              onClick={() => setChatOpen((open) => !open)}
+              type="submit"
+              size="icon"
+              aria-label="Save nickname"
+              disabled={busy}
             >
-              <MessageSquare aria-hidden="true" />
-              {chatOpen ? "Close AI chat" : "Open AI chat"}
+              <AiOutlineCheck />
             </Button>
-            {unsavedChanges && (
-              <Button
-                size="sm"
-                disabled={busy}
-                onClick={() =>
-                  updateQuery.mutate({
-                    queryId,
-                    connectionId: data.query.connectionId,
-                    query: queryHistory.present.query,
-                    queryHistory,
-                    revision: data.query._rev,
-                  })
-                }
-                aria-busy={updateQuery.isPending}
-              >
-                {updateQuery.isPending && <Spinner />}Save changes
-              </Button>
-            )}
-            <Hint
-              content={
-                showQueryText ? "Show query tree" : "Show raw query (JSON)"
-              }
+          </form>
+        ) : (
+          <div className="flex min-w-0 flex-1 items-center gap-1">
+            <h1
+              className="truncate text-sm font-medium"
+              title={data.query.nickname}
             >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground"
-                aria-label={
-                  showQueryText ? "Show query tree" : "Show raw query (JSON)"
-                }
-                aria-pressed={showQueryText}
-                onClick={() => setShowQueryText((show) => !show)}
-              >
-                <Code2 aria-hidden="true" />
-              </Button>
-            </Hint>
-            <Hint content="Delete query">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Delete query"
-                disabled={busy}
-                onClick={handleDeleteQuery}
-              >
-                <TbTrash aria-hidden="true" />
-              </Button>
-            </Hint>
+              {data.query.nickname}
+            </h1>
           </div>
-        </div>
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error.message}</AlertDescription>
-          </Alert>
         )}
+        <div className="flex items-center gap-1">
+          <ConnectionBadge />
+          <QueryActionsMenu
+            disabled={busy}
+            onRename={() => {
+              setEditingNickname(true);
+              setNickname(data.query.nickname);
+            }}
+            onDelete={handleDeleteQuery}
+          />
+        </div>
+        {unsavedChanges && (
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() =>
+              updateQuery.mutate({
+                queryId,
+                connectionId: data.connectionId,
+                query: queryHistory.present.query,
+                queryHistory,
+                revision: data.query._rev,
+              })
+            }
+            aria-busy={updateQuery.isPending}
+          >
+            {updateQuery.isPending && <Spinner />}Save changes
+          </Button>
+        )}
+      </QueryToolbar>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error.message}</AlertDescription>
+        </Alert>
+      )}
+      <div className="flex min-h-0 min-w-0 flex-1">
         <fieldset
           disabled={busy}
           className="min-h-0 min-w-0 flex-1 border-0 p-0"
@@ -282,15 +296,186 @@ function QueryEditor({
             <QueryView
               key={queryId}
               initialQuery={queryHistory.present.query}
+              connectionId={data.connectionId}
+              onConvertToSql={(query) =>
+                updateQuery.mutate({
+                  connectionId: data.connectionId,
+                  queryId,
+                  revision: data.query._rev,
+                  query,
+                })
+              }
               onQueryChange={handleQueryChange}
               onDeleteQuery={handleDeleteQuery}
-              showQueryText={showQueryText}
+              historyControls={{
+                canUndo: queryHistory.past.length > 0,
+                canRedo: queryHistory.future.length > 0,
+                onUndo: () =>
+                  setQueryHistory(
+                    (history) => moveQueryHistory(history, "undo") ?? history
+                  ),
+                onRedo: () =>
+                  setQueryHistory(
+                    (history) => moveQueryHistory(history, "redo") ?? history
+                  ),
+              }}
               width={width}
               height={height}
             />
           </div>
         </fieldset>
+        <QueryChatPane
+          collapsed={!chatOpen}
+          onToggle={() => setChatOpen((open) => !open)}
+          messages={chat.messages}
+          pendingMessage={chat.pendingMessage}
+          error={chat.error}
+          onSend={chat.send}
+          draft={chat.draft}
+          onDraftChange={chat.setDraft}
+          disabled={busy || editingNickname}
+        />
       </div>
+    </div>
+  );
+}
+
+function CustomSqlQueryEditor({
+  data,
+  queryId,
+}: {
+  data: Omit<ConnectedQueryData, "query"> & {
+    query: Extract<
+      ReturnType<typeof Route.useLoaderData>["query"],
+      { mode: "sql" }
+    >;
+  };
+  queryId: string;
+}) {
+  const [query, setQuery] = useState<CustomSqlQuery>({
+    mode: "sql",
+    sql: data.query.sql,
+    parameters: data.query.parameters,
+    dialect: data.query.dialect ?? data.dialect,
+  });
+  const [nickname, setNickname] = useState(data.query.nickname);
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [sqlValid, setSqlValid] = useState(true);
+  const router = useRouter();
+  const navigate = useNavigate();
+  const utils = trpc.useUtils();
+  const dirty =
+    query.sql !== data.query.sql ||
+    JSON.stringify(query.parameters ?? []) !==
+      JSON.stringify(data.query.parameters ?? []);
+  const update = trpc.queries.updateQuery.useMutation({
+    onSuccess: async () => {
+      await router.invalidate();
+    },
+  });
+  const rename = trpc.queries.updateQueryNickname.useMutation({
+    onSuccess: async () => {
+      setEditingNickname(false);
+      await router.invalidate();
+      await utils.projects.listQueries.invalidate();
+    },
+  });
+  const remove = trpc.queries.deleteQuery.useMutation({
+    onSuccess: async () => {
+      await utils.projects.listQueries.invalidate();
+      await navigate({ to: "/queries" });
+    },
+  });
+  const shouldBlock = () =>
+    dirty &&
+    !remove.isSuccess &&
+    !confirm("You have unsaved SQL changes. Leave without saving?");
+  useBlocker({ shouldBlockFn: shouldBlock });
+  const switching = useConnectionSwitchGuard(shouldBlock);
+  const busy =
+    switching || update.isPending || rename.isPending || remove.isPending;
+  const input = {
+    connectionId: data.connectionId,
+    queryId,
+    revision: data.query._rev,
+  };
+  const error = update.error ?? rename.error ?? remove.error;
+  return (
+    <div className="flex min-h-full flex-col bg-slate-50">
+      <QueryToolbar>
+        <span className="rounded border border-teal-200 bg-teal-50 px-1.5 py-0.5 font-mono text-xs font-medium text-teal-800">
+          SQL
+        </span>
+        {editingNickname ? (
+          <form
+            className="flex min-w-0 flex-1 items-center gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (nickname.trim() && nickname !== data.query.nickname)
+                rename.mutate({ ...input, nickname: nickname.trim() });
+            }}
+          >
+            <Input
+              aria-label="Query nickname"
+              autoFocus
+              value={nickname}
+              onChange={(event) => setNickname(event.target.value)}
+              disabled={busy}
+            />
+            {nickname !== data.query.nickname && (
+              <Button
+                type="submit"
+                size="sm"
+                disabled={busy || !nickname.trim()}
+              >
+                Save nickname
+              </Button>
+            )}
+          </form>
+        ) : (
+          <h1
+            className="min-w-0 flex-1 truncate text-sm font-medium"
+            title={data.query.nickname}
+          >
+            {data.query.nickname}
+          </h1>
+        )}
+        <div className="flex items-center gap-1">
+          <ConnectionBadge />
+          <QueryActionsMenu
+            disabled={busy}
+            onRename={() => {
+              setNickname(data.query.nickname);
+              setEditingNickname(true);
+            }}
+            onDelete={() => {
+              if (confirm("Permanently delete this SQL query?"))
+                remove.mutate(input);
+            }}
+          />
+        </div>
+        {dirty && (
+          <Button
+            size="sm"
+            disabled={busy || !sqlValid || !query.sql.trim()}
+            onClick={() => update.mutate({ ...input, query })}
+          >
+            {update.isPending && <Spinner />}Save changes
+          </Button>
+        )}
+      </QueryToolbar>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error.message}</AlertDescription>
+        </Alert>
+      )}
+      <SqlQueryWorkspace
+        connectionId={data.connectionId}
+        query={query}
+        onChange={setQuery}
+        onValidityChange={setSqlValid}
+        autoFocus
+      />
     </div>
   );
 }

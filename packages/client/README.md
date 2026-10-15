@@ -46,3 +46,40 @@ save automatically, including the conversation; clarification before an update
 stays in memory. Manual mode remains available without an AI key. Unsaved manual
 edits are included in the next chat amendment. The assistant supports the existing
 builder's read-only queries, not arbitrary SQL or database writes.
+
+## Projects and environments
+
+The app opens at project selection. Each project owns its saved queries and can
+have multiple named connections, such as Local, Staging, and Production. Queries
+are shared between those connections. Switching projects disconnects the current
+connection; deleting a connection leaves the project's queries intact. Existing
+connections and queries are migrated into an **Imported project** on first launch.
+
+When creating a project, choose either Quory's local app database or a project
+folder. **Browse…** opens the native directory picker. Select a repository folder
+or an existing `.quory` directory directly. Existing query files are loaded, and
+selecting the same folder again opens its existing local project registration.
+A cloned repository can have its own local connections.
+
+Folder projects use this layout:
+
+```text
+.quory/
+  project.json
+  .gitignore
+  queries/
+    <query-id>.json
+```
+
+Each query file contains `version: 1`, `id`, `nickname`, and the usual `base`,
+`limit`, and `offset` query fields. A file's `id` matches its filename without
+`.json`; IDs may contain letters, digits, underscores, and hyphens. Hand-authored
+files can omit `id`, `version`, `limit`, and `offset`. Commit `.quory` to share
+query definitions. Connection credentials, chat conversations, and edit history
+stay in the local app database.
+
+The saved-query list refreshes folder files while a project is open. Opening a
+query reads its latest contents. Saves use atomic file replacement and reject
+stale revisions if another editor or Git has changed the file. Reopen a query to
+load external changes before saving. Invalid JSON reports the affected filename
+without replacing the file.

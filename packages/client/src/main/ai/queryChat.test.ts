@@ -8,6 +8,8 @@ import type { SavedQuery } from "../repositories/queryRepo";
 
 const mocks = vi.hoisted(() => ({
   generation: 0,
+  project: "project-1",
+  projectGeneration: 0,
   get: vi.fn(),
   put: vi.fn(),
   session: vi.fn(),
@@ -27,6 +29,27 @@ vi.mock("../state/activeConnectionState", () => ({
 }));
 vi.mock("./queryAssistant", () => ({ runQueryAssistant: mocks.assistant }));
 vi.mock("./model", () => ({ getQueryModel: mocks.model }));
+vi.mock("../state/activeProjectState", async () => {
+  const { TRPCError } = await import("@trpc/server");
+  return {
+    activeProjectState: {
+      requireActiveProject: () => ({
+        _id: mocks.project,
+        _rev: "1-project",
+        name: "Test project",
+        storage: "database",
+      }),
+      getProjectGeneration: () => mocks.projectGeneration,
+      assertCurrent: (id: string, generation: number) => {
+        if (id !== mocks.project || generation !== mocks.projectGeneration)
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "The active project changed.",
+          });
+      },
+    },
+  };
+});
 import { queryChatProcedure } from "./queryChat";
 import { router } from "../util/trpc";
 import queryRouter from "../routers/queryRouter";
@@ -44,6 +67,8 @@ const input = () => ({
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.generation = 0;
+  mocks.project = "project-1";
+  mocks.projectGeneration = 0;
   docs = new Map();
   mocks.session.mockResolvedValue({ connectionId: "connection-1", schemas });
   mocks.connection.mockResolvedValue("connection-1");
@@ -178,11 +203,12 @@ describe("chat persistence", () => {
     expect(next.messages).toHaveLength(amended.messages.length + 2);
     expect(next.messages.at(-1)?.content).toBe("Which date range?");
   });
-  it("rejects a query owned by another connection and stale revisions", async () => {
+  it("rejects a query owned by another project and stale revisions", async () => {
     const initial = await caller.chat(input());
     await expect(
       caller.chat({ ...input(), queryId: initial.queryId!, revision: "stale" })
     ).rejects.toThrow("changed");
+    mocks.project = "other-project";
     mocks.connection.mockResolvedValue("another-connection");
     mocks.session.mockResolvedValue({
       connectionId: "another-connection",
@@ -195,7 +221,7 @@ describe("chat persistence", () => {
         queryId: initial.queryId!,
         revision: initial.revision!,
       })
-    ).rejects.toThrow("different connection");
+    ).rejects.toThrow("different project");
     expect(mocks.assistant).toHaveBeenCalledOnce();
   });
   it("does not overwrite an edit made during generation", async () => {
@@ -239,4 +265,37 @@ it("rejects switching away and back during chat generation", async () => {
     "active connection changed"
   );
   expect(mocks.put).not.toHaveBeenCalled();
+});
+
+it("allows a cloned query in another project while rejecting the superseded generation", async () => {
+  const initial = await caller.chat(input());
+  const source = docs.get(initial.queryId!)!;
+  let resume!: () => void;
+  mocks.assistant.mockImplementationOnce(async ({ upsert }) => {
+    await new Promise<void>((resolve) => {
+      resume = resolve;
+    });
+    await upsert(queryFromTool(orderQuery), "Old project query", "Updated.");
+  });
+  const pending = caller
+    .chat({
+      ...input(),
+      queryId: initial.queryId!,
+      revision: initial.revision!,
+    })
+    .catch((error: unknown) => error);
+  await vi.waitFor(() => expect(mocks.assistant).toHaveBeenCalledTimes(2));
+  mocks.project = "cloned-project";
+  ++mocks.projectGeneration;
+  docs.set(initial.queryId!, { ...source, projectId: "cloned-project" });
+  const cloned = await caller.chat({
+    ...input(),
+    queryId: initial.queryId!,
+    revision: initial.revision!,
+  });
+  expect(cloned.queryUpdated).toBe(true);
+  resume();
+  expect(await pending).toMatchObject({ code: "CONFLICT" });
+  expect(docs.get(initial.queryId!)!.projectId).toBe("cloned-project");
+  expect(docs.get(initial.queryId!)!.nickname).not.toBe("Old project query");
 });

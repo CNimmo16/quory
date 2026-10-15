@@ -2,7 +2,9 @@ import { QuoryProvider } from "@quory/stack/react";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ipcLink } from "trpc-electron/renderer";
+import { SidebarLayoutProvider } from "./hooks/useSidebarLayout";
 import trpc from "./util/tprc";
+import { NewQueryDraftProvider } from "./hooks/useNewQueryDraft";
 
 export const trpcClient = trpc.createClient({
   links: [ipcLink()],
@@ -18,7 +20,11 @@ export default function GlobalProviders({
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <ConnectedQuoryProvider>{children}</ConnectedQuoryProvider>
+        <NewQueryDraftProvider>
+          <SidebarLayoutProvider>
+            <ConnectedQuoryProvider>{children}</ConnectedQuoryProvider>
+          </SidebarLayoutProvider>
+        </NewQueryDraftProvider>
       </QueryClientProvider>
     </trpc.Provider>
   );

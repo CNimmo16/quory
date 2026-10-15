@@ -75,12 +75,14 @@ const query: PreparedQuery = {
 
 function renderNavigator(
   navigatorQuery: PreparedQuery = query,
-  showBreakdown = false
+  showBreakdown = false,
+  navigatorSchemas = schemas
 ) {
   type JoinActions = ComponentProps<typeof TableNavigator>["joinActions"];
   const setSelectedColumns = vi.fn();
   const setCondition = vi.fn();
   const removeCondition = vi.fn();
+  const addJoin = vi.fn();
   const joinActions = vi.fn<JoinActions>().mockReturnValue({
     join: navigatorQuery.base,
     getChildren: () => [],
@@ -91,7 +93,7 @@ function renderNavigator(
     removeCondition,
     orderBy: vi.fn(),
     removeJoin: vi.fn(),
-    addJoin: vi.fn(),
+    addJoin,
     addJoinOnForeignKey: vi.fn(),
     addJoinOnForeignKeyReference: vi.fn(),
     hasCondition: () => false,
@@ -109,7 +111,7 @@ function renderNavigator(
       <TableNavigator
         width={1000}
         query={navigatorQuery}
-        schemas={schemas}
+        schemas={navigatorSchemas}
         joinActions={joinActions}
         highlightedJoinAlias={null}
         onChangeHighlightedJoinAlias={vi.fn()}
@@ -117,10 +119,132 @@ function renderNavigator(
       />
     </TooltipProvider>
   );
-  return { setSelectedColumns, setCondition, removeCondition, view };
+  return { setSelectedColumns, setCondition, removeCondition, addJoin, view };
 }
 
 describe("TableNavigator", () => {
+  it("closes the add-table popup after adding a table", async () => {
+    const user = userEvent.setup();
+    const { addJoin } = renderNavigator();
+    await user.click(
+      screen.getByRole("button", { name: "Add related table to customers" })
+    );
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "orders" })
+    );
+    expect(addJoin).toHaveBeenCalledWith("public.orders");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("removes nonmatching rows when several relationships point to the same table", async () => {
+    const user = userEvent.setup();
+    const duplicateSchemas = structuredClone(schemas);
+    const references =
+      duplicateSchemas[0]!.tables[0]!.columns[0]!.foreignKeyReferences;
+    references.push({
+      ...references[0]!,
+      localColumnName: "billing_customer_id",
+    });
+    references.push({
+      ...references[0]!,
+      localColumnName: "shipping_customer_id",
+    });
+    references.push({ ...references[0]!, localTableName: "user_phone_number" });
+    duplicateSchemas[0]!.tables.push({
+      ...duplicateSchemas[0]!.tables[1]!,
+      name: "user_phone_number",
+    });
+    renderNavigator(query, false, duplicateSchemas);
+    await user.click(
+      screen.getByRole("button", { name: "Add related table to customers" })
+    );
+    const popup = screen.getByRole("dialog");
+    const search = within(popup).getByRole("searchbox", {
+      name: "Filter tables",
+    });
+    await user.type(search, "phone");
+    expect(
+      within(popup).queryAllByRole("button", { name: "orders" })
+    ).toHaveLength(0);
+    await user.clear(search);
+    expect(
+      within(popup).getAllByRole("button", { name: "orders" })
+    ).toHaveLength(1);
+  });
+
+  it("filters adjacent and indirectly related tables from the top of the add-table popup", async () => {
+    const user = userEvent.setup();
+    const relatedSchemas = structuredClone(schemas);
+    const orders = relatedSchemas[0]!.tables[1]!;
+    orders.columns[0]!.foreignKeyReferences.push({
+      localSchemaName: "public",
+      localTableName: "shipments",
+      localColumnName: "order_id",
+      hasForeignKeyConstraint: true,
+      confidence: 1,
+    });
+    relatedSchemas[0]!.tables.push({
+      name: "shipments",
+      columns: [
+        {
+          ...orders.columns[0]!,
+          name: "order_id",
+          foreignKeyReferences: [],
+          foreignKeys: [
+            {
+              foreignSchemaName: "public",
+              foreignTableName: "orders",
+              foreignColumnName: "customer_id",
+              hasForeignKeyConstraint: true,
+              confidence: 1,
+            },
+          ],
+        },
+      ],
+    });
+    renderNavigator(query, false, relatedSchemas);
+    await user.click(
+      screen.getByRole("button", { name: "Add related table to customers" })
+    );
+    const popup = screen.getByRole("dialog");
+    const search = within(popup).getByRole("searchbox", {
+      name: "Filter tables",
+    });
+    expect(popup.querySelector("input, button")).toBe(search);
+    expect(within(popup).getByRole("button", { name: "orders" })).toBeVisible();
+    expect(
+      within(popup).getByRole("button", { name: "shipments" })
+    ).toBeVisible();
+    await user.type(search, "s");
+    expect(
+      within(popup)
+        .getAllByRole("button")
+        .filter((button) =>
+          ["orders", "shipments"].includes(button.textContent ?? "")
+        )
+        .map((button) => button.textContent)
+    ).toEqual(["orders", "shipments"]);
+    await user.clear(search);
+    await user.type(search, "SHIP");
+    expect(
+      within(popup).queryByRole("button", { name: "orders" })
+    ).not.toBeInTheDocument();
+    expect(
+      within(popup).getByRole("button", { name: "shipments" })
+    ).toBeVisible();
+    await user.click(
+      within(popup).getByRole("button", { name: "Clear table search" })
+    );
+    await user.type(search, "public.orders");
+    expect(within(popup).getByRole("button", { name: "orders" })).toBeVisible();
+    expect(
+      within(popup).queryByRole("button", { name: "shipments" })
+    ).not.toBeInTheDocument();
+    await user.clear(search);
+    await user.type(search, "missing");
+    expect(within(popup).getByText("No matching tables")).toBeVisible();
+  });
+
   it("shows grouped filter values above the diagram and edits them without showing hidden columns", async () => {
     const user = userEvent.setup();
     const { setCondition, setSelectedColumns } = renderNavigator(

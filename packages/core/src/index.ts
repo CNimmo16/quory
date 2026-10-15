@@ -125,3 +125,5 @@ export { quoteIdentifier, parameterPlaceholder } from "./sqlDialect";
 export type { SqlDialect, SqlParameter } from "./sqlDialect";
 
 export type { ExecutionOptions } from "./DatabaseDriver";
+
+export type { SqlExecutionOptions, SqlExecutionResult } from "./DatabaseDriver";

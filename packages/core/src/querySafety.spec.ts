@@ -81,13 +81,13 @@ describe.each(["postgres", "mysql", "sqlite"] as const)(
       });
       if (dialect === "mysql") {
         expect(sql).toContain(
-          'FROM `pub"lic```.`Order.Items` AS `quory__join__1`'
+          'FROM `pub"lic```.`Order.Items` AS `pub"lic``__Order.Items`'
         );
         expect(sql).toContain('`select"``` DESC');
         expect(sql).toContain("IN (?,?,?)");
       } else {
         expect(sql).toContain(
-          'FROM "pub""lic`"."Order.Items" AS "quory__join__1"'
+          'FROM "pub""lic`"."Order.Items" AS "pub""lic`__Order.Items"'
         );
         expect(sql).toContain('"select""`" DESC');
         expect(sql).toContain(
@@ -98,8 +98,8 @@ describe.each(["postgres", "mysql", "sqlite"] as const)(
       expect(db.exec).toHaveBeenCalledWith(
         sql +
           (dialect === "mysql"
-            ? ", `quory__join__1`.`id` ASC"
-            : ', "quory__join__1"."id" ASC') +
+            ? ', `pub"lic``__Order.Items`.`id` ASC'
+            : ', "pub""lic`__Order.Items"."id" ASC') +
           (dialect === "postgres"
             ? " LIMIT $5 OFFSET $6"
             : " LIMIT ? OFFSET ?"),

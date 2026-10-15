@@ -1,5 +1,7 @@
 import type {
   DatabaseDriver,
+  SqlExecutionOptions,
+  SqlExecutionResult,
   ExecutionOptions,
   SqlParameter,
   Relationship,
@@ -7,7 +9,12 @@ import type {
   TableColumn,
 } from "@quory/core";
 import mysqlDatatypeToGenericDatatype from "./util/mysqlDatatypeToGenericDatatype";
-import mysql, { Pool, PoolOptions, RowDataPacket } from "mysql2/promise";
+import mysql, {
+  Pool,
+  PoolOptions,
+  RowDataPacket,
+  ResultSetHeader,
+} from "mysql2/promise";
 import { sortBy, uniqBy } from "lodash";
 
 export class MySQLDriver implements DatabaseDriver {
@@ -38,6 +45,43 @@ export class MySQLDriver implements DatabaseDriver {
       options.signal?.removeEventListener("abort", abort);
       if (options.signal?.aborted) connection.destroy();
       else connection.release();
+    }
+  }
+
+  async execSql(
+    sql: string,
+    parameters: SqlParameter[],
+    options: SqlExecutionOptions
+  ): Promise<SqlExecutionResult> {
+    options.signal?.throwIfAborted();
+    const connection = await this.pool.getConnection();
+    const abort = () => connection.destroy();
+    options.signal?.addEventListener("abort", abort, { once: true });
+    try {
+      options.signal?.throwIfAborted();
+      await connection.query(
+        options.readOnly ? "START TRANSACTION READ ONLY" : "START TRANSACTION"
+      );
+      const [result, fields] = await connection.execute<
+        RowDataPacket[] | ResultSetHeader
+      >({ sql, rowsAsArray: true }, parameters);
+      options.signal?.throwIfAborted();
+      await connection.commit();
+      return {
+        columns: fields?.map((field) => field.name) ?? [],
+        rows: Array.isArray(result)
+          ? (result.slice(0, 1000) as unknown[][])
+          : [],
+        affectedRows: Array.isArray(result) ? null : result.affectedRows,
+        truncated: Array.isArray(result) && result.length > 1000,
+      };
+    } catch (error) {
+      if (!options.signal?.aborted) await connection.rollback().catch(() => {});
+      throw error;
+    } finally {
+      options.signal?.removeEventListener("abort", abort);
+      // A custom statement may change session state. Never return it to the pool.
+      connection.destroy();
     }
   }
 

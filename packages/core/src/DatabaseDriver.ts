@@ -50,6 +50,15 @@ export type ExecutionOptions = {
   timeoutMs?: number | undefined;
 };
 
+export type SqlExecutionResult = {
+  columns: string[];
+  rows: unknown[][];
+  affectedRows: number | null;
+  truncated: boolean;
+};
+
+export type SqlExecutionOptions = ExecutionOptions & { readOnly: boolean };
+
 export interface DatabaseDriver {
   readonly dialect: SqlDialect;
   getAllColumnsInDatabase(): Promise<TableColumn[]>;
@@ -62,6 +71,13 @@ export interface DatabaseDriver {
     parameters?: SqlParameter[],
     options?: ExecutionOptions
   ): Promise<Row[]>;
+
+  /** Execute a single custom statement, using database-enforced read protection. */
+  execSql?(
+    sql: string,
+    parameters: SqlParameter[],
+    options: SqlExecutionOptions
+  ): Promise<SqlExecutionResult>;
 
   testConnection(): Promise<void>;
 

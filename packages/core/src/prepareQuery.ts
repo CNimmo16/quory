@@ -18,6 +18,7 @@ import normalizeVia, {
 import resolveRelationship, {
   type ResolvedRelationship,
 } from "./util/resolveRelationship";
+import createAliasAllocator from "./util/createAliasAllocator";
 
 export enum ConditionOperator {
   AND = "and",
@@ -174,10 +175,10 @@ export default async function prepareQuery(
   const [baseSchemaName, baseTableName] = splitTableRef(base.tableRef);
   findTableFromSchemas(databaseSchemas, baseSchemaName, baseTableName);
 
-  // Short opaque aliases stay unique even after database identifier-length
-  // limits, regardless of table name length, punctuation, or shared prefixes.
-  let joinAliasCount = 0;
-  const getAlias = (_tableRef: string) => `quory__join__${++joinAliasCount}`;
+  const allocateJoinAlias = createAliasAllocator();
+  const allocateResultAlias = createAliasAllocator();
+  const getAlias = (tableRef: string) =>
+    allocateJoinAlias(splitTableRef(tableRef).join("__"));
 
   const joinDefsWithAliases = (function addAlias(
     join: JoinDef
@@ -249,7 +250,6 @@ export default async function prepareQuery(
 
   // Build each requested branch under its actual parent instance. Shared table
   // names elsewhere in the tree must never identify a join instance.
-  let resultAliasCount = 0;
   function buildTree(
     join: JoinDefWithAlias,
     incoming?: ResolvedRelationship
@@ -269,9 +269,9 @@ export default async function prepareQuery(
     for (const column of table.columns.filter((candidateColumn) =>
       result.select.includes(candidateColumn.name)
     )) {
-      result.resultAliases[
-        column.name
-      ] = `quory__result__${++resultAliasCount}`;
+      result.resultAliases[column.name] = allocateResultAlias(
+        `${result.joinAlias}__${column.name}`
+      );
     }
     if (incoming) incomingRelationships.set(result, incoming);
     const paths = join.joins.map((child) => ({
@@ -347,7 +347,7 @@ export default async function prepareQuery(
                 table,
                 join.joinAlias,
                 column,
-                `quory__result__${++resultAliasCount}`,
+                allocateResultAlias(`${join.joinAlias}__${column.name}`),
                 dialect
               )
             )

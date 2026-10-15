@@ -1,7 +1,6 @@
 import { randomUUID } from "crypto";
 import { publicProcedure, router } from "../util/trpc";
 import { z } from "zod";
-import { validators } from "@quory/stack/server";
 import { splitTableRef } from "@quory/core";
 import { TRPCError } from "@trpc/server";
 import {
@@ -15,12 +14,25 @@ import { queryHistorySchema } from "../repositories/queryHistorySchema";
 import { savedQueryService } from "../repositories/savedQueryService";
 import { queryChatProcedure } from "../ai/queryChat";
 
+import { isSqlQuery } from "../../shared/sqlQuery";
+import { queryDefinitionSchema } from "../repositories/queryDefinitionSchema";
+import { sqlProcedures } from "./sqlProcedures";
+
 const queryRouter = router({
+  ...sqlProcedures,
   chat: queryChatProcedure,
   listSavedQueries: publicProcedure
-    .input(z.object({ connectionId: z.string() }))
+    .input(
+      z.object({
+        connectionId: z.string().optional(),
+        projectId: z.string().optional(),
+      })
+    )
     .query(async ({ input }) => ({
-      queries: await savedQueryService.list(input.connectionId),
+      queries: await savedQueryService.list(
+        input.connectionId,
+        input.projectId
+      ),
     })),
   fetchQuery: publicProcedure
     .input(
@@ -38,13 +50,15 @@ const queryRouter = router({
     .input(
       z.object({
         connectionId: z.string(),
-        query: validators.query,
+        query: queryDefinitionSchema,
       })
     )
     .mutation(async ({ input: { query, connectionId } }) => {
       const queryId = randomUUID();
 
-      const [_schemaName, tableName] = splitTableRef(query.base.tableRef);
+      const tableName = isSqlQuery(query)
+        ? "SQL query"
+        : splitTableRef(query.base.tableRef)[1];
       await savedQueryService.create(
         connectionId,
         queryId,
@@ -62,7 +76,7 @@ const queryRouter = router({
     .input(
       z.object({
         connectionId: z.string(),
-        query: validators.query,
+        query: queryDefinitionSchema,
         queryId: z.string(),
         revision: z.string(),
         queryHistory: queryHistorySchema.optional(),
@@ -99,6 +113,11 @@ const queryRouter = router({
         input.connectionId
       );
       const existing = await savedQueryService.fetch(context, input.queryId);
+      if (isSqlQuery(existing))
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "SQL conversion cannot be undone.",
+        });
       const queryHistory = moveQueryHistory(input.queryHistory, input.action);
       if (!queryHistory)
         throw new TRPCError({

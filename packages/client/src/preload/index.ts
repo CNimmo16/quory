@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import { exposeElectronTRPC } from "trpc-electron/main";
 
 export const api = {
+  platform: process.platform,
   quory: (body: unknown) => ipcRenderer.invoke("quory", body),
 };
 

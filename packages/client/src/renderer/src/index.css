@@ -40,3 +40,33 @@
     @apply m-0 h-full;
   }
 }
+
+/* Native controls remain above the renderer; reserve their platform-specific safe area. */
+.app-toolbar {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.app-toolbar-safe-area {
+  margin-left: env(titlebar-area-x, 0px);
+  width: env(titlebar-area-width, calc(100% - 144px));
+  padding-left: max(
+    16px,
+    calc(var(--toolbar-sidebar-width, 0px) + 16px - env(titlebar-area-x, 0px))
+  );
+}
+
+.app-toolbar[data-platform="darwin"] .app-toolbar-safe-area {
+  margin-left: 0;
+  width: 100%;
+  padding-left: max(92px, calc(var(--toolbar-sidebar-width, 0px) + 16px));
+}
+
+.app-toolbar
+  :is(button, input, select, textarea, a, [role="button"], [data-no-drag]) {
+  -webkit-app-region: no-drag;
+}
+
+.app-toolbar :is(input, textarea) {
+  user-select: text;
+}

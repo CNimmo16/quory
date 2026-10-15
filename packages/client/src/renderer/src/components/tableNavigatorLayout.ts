@@ -3,7 +3,9 @@ import type { PreparedJoinDef } from "@quory/core";
 export const TABLE_NODE_WIDTH = 208;
 export const TABLE_NODE_HEIGHT = 80;
 const COLUMN_GAP = 40;
-const ROW_GAP = 40;
+const ROW_GAP = 80;
+const ADD_NODE_GAP = 16;
+const ADD_NODE_HEIGHT = 32;
 const GUTTER = 16;
 
 export type DiagramPoint = { x: number; y: number };
@@ -75,7 +77,7 @@ export function layoutTableDiagram(
         ];
       } else if (wrapped) {
         const sourceX = parent.x + nodeWidth / 2;
-        const laneY = parent.y + TABLE_NODE_HEIGHT + ROW_GAP / 2;
+        const laneY = parent.y + TABLE_NODE_HEIGHT + ROW_GAP - 12;
         const targetY = node.y + TABLE_NODE_HEIGHT / 2;
         points = [
           { x: sourceX, y: parent.y + TABLE_NODE_HEIGHT },
@@ -152,10 +154,31 @@ export function layoutTableDiagram(
       else edge.points[1]!.x = edge.points[2]!.x = x;
     }
   }
+  const placeholders = nodes.map((node) => {
+    const placeholderWidth = Math.min(100, node.width / 2);
+    const x = node.x + node.width - placeholderWidth;
+    const y = node.y + node.height + ADD_NODE_GAP;
+    return {
+      join: node.join,
+      x,
+      y,
+      width: placeholderWidth,
+      height: ADD_NODE_HEIGHT,
+      points: [
+        { x: x + placeholderWidth / 2, y: node.y + node.height },
+        { x: x + placeholderWidth / 2, y },
+      ],
+    };
+  });
   return {
     nodes,
     edges,
+    placeholders,
     width,
-    height: Math.max(...nextRow) * (TABLE_NODE_HEIGHT + ROW_GAP) - ROW_GAP,
+    height:
+      Math.max(...nextRow) * (TABLE_NODE_HEIGHT + ROW_GAP) -
+      ROW_GAP +
+      ADD_NODE_GAP +
+      ADD_NODE_HEIGHT,
   };
 }

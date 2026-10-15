@@ -22,6 +22,11 @@
     "@ai-sdk/anthropic": "^3.0.127",
     "@ai-sdk/google": "^3.0.130",
     "@ai-sdk/openai": "^3.0.124",
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/language": "^6.13.1",
+    "@quory/sqlite": "workspace:*",
+    "@radix-ui/react-context-menu": "^2.4.1",
     "@radix-ui/react-dialog": "^1.2.0",
     "@radix-ui/react-dropdown-menu": "^2.1.25",
     "@radix-ui/react-label": "^2.1.16",
@@ -34,6 +39,7 @@
     "@trpc/client": "catalog:",
     "@trpc/react-query": "^11.0.0-rc.682",
     "@trpc/server": "catalog:",
+    "@uiw/react-codemirror": "^4.25.12",
     "ai": "^6.0.301",
     "class-variance-authority": "^0.7.1",
     "classnames": "catalog:",
@@ -46,9 +52,9 @@
     "pouchdb": "^9.0.0",
     "radash": "^12.1.0",
     "react-icons": "catalog:",
+    "sql-formatter": "^15.9.0",
     "tailwind-merge": "^2.6.1",
-    "zod": "catalog:",
-    "@quory/sqlite": "workspace:*"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-ts": "^2.0.0",

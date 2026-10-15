@@ -4,12 +4,41 @@ import { AppRouter } from "../../../../main/ipc";
 import { inferProcedureInput } from "@trpc/server";
 import { ConnectionForm } from "../../components/ConnectionForm";
 import trpc from "../../util/tprc";
+import { SelectConnectionScreen } from "../../components/SelectConnectionScreen";
+import { Button } from "../../components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/connections/")({
   component: RouteComponent,
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { queryId?: string; create?: boolean; select?: boolean } => ({
+    ...(typeof search.queryId === "string" ? { queryId: search.queryId } : {}),
+    ...(search.create === true || search.create === "true"
+      ? { create: true }
+      : {}),
+    ...(search.select === true || search.select === "true"
+      ? { select: true }
+      : {}),
+  }),
 });
 
 function RouteComponent() {
+  const { queryId, create, select } = Route.useSearch();
+  if ((queryId || select) && !create)
+    return <SelectConnectionScreen queryId={queryId} />;
+  return (
+    <CreateConnectionForm queryId={queryId} selecting={!!queryId || !!select} />
+  );
+}
+
+function CreateConnectionForm({
+  queryId,
+  selecting,
+}: {
+  queryId: string | undefined;
+  selecting: boolean;
+}) {
   const [config, setConfig] = useState<
     Partial<
       inferProcedureInput<AppRouter["connections"]["saveConnection"]>["config"]
@@ -32,6 +61,7 @@ function RouteComponent() {
       navigate({
         to: "/connections/$connectionId",
         params: { connectionId: data.connectionId },
+        search: queryId ? { queryId } : {},
       });
     },
   });
@@ -40,6 +70,23 @@ function RouteComponent() {
 
   return (
     <div className="mx-auto max-w-[600px] p-5">
+      {selecting && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-4"
+          onClick={() => {
+            void navigate({
+              ...(queryId
+                ? { to: "/queries/$queryId", params: { queryId } }
+                : { to: "/connections", search: { select: true } }),
+            });
+          }}
+        >
+          <ArrowLeft aria-hidden="true" />
+          Back to connections
+        </Button>
+      )}
       <h1 className="mb-5 text-2xl">New connection</h1>
       <ConnectionForm
         config={config}

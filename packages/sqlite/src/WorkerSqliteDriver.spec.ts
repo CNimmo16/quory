@@ -47,3 +47,37 @@ it("runs metadata and queries in a responsive worker; cancels, recovers, and clo
     rmSync(directory, { recursive: true, force: true });
   }
 }, 10_000);
+
+it("executes custom writes in an isolated worker connection and keeps ordinary queries read only", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "quory-worker-sql-"));
+  const filename = join(directory, "test.db");
+  const db = sqlite(filename);
+  db.exec(
+    "CREATE TABLE items(id INTEGER PRIMARY KEY, name TEXT); INSERT INTO items VALUES(1, 'Original')"
+  );
+  db.close();
+  const driver = new WorkerSqliteDriver(filename);
+  try {
+    await expect(
+      driver.execSql("UPDATE items SET name = 'Blocked'", [], {
+        readOnly: true,
+      })
+    ).rejects.toThrow();
+    expect(
+      await driver.execSql(
+        "UPDATE items SET name = ? RETURNING name",
+        ["Changed"],
+        { readOnly: false }
+      )
+    ).toMatchObject({ rows: [["Changed"]], affectedRows: 1 });
+    expect(await driver.exec("SELECT name FROM items")).toEqual([
+      { name: "Changed" },
+    ]);
+    await expect(
+      driver.exec("UPDATE items SET name = 'No' RETURNING name")
+    ).rejects.toThrow();
+  } finally {
+    await driver.teardown();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

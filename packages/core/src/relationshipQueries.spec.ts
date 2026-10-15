@@ -169,9 +169,11 @@ describe("constraint-aware query results", () => {
       await getSchemas(driver),
       { base: { tableRef: `main.${tableName}`, select: "*" } }
     );
-    expect(meta.preparedQuery.base.joinAlias.length).toBeLessThan(63);
+    expect(
+      new TextEncoder().encode(meta.preparedQuery.base.joinAlias).length
+    ).toBeLessThanOrEqual(63);
     const alias = meta.preparedQuery.base.resultAliases[columnName]!;
-    expect(alias.length).toBeLessThan(63);
+    expect(new TextEncoder().encode(alias).length).toBeLessThanOrEqual(63);
     expect(sql).toContain(`AS "${alias}"`);
     expect(rows[0]![0]!.data[columnName]).toBe("value");
   });

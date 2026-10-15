@@ -1,6 +1,8 @@
 import { quoteIdentifier } from "@quory/core";
 import type {
   DatabaseDriver,
+  SqlExecutionOptions,
+  SqlExecutionResult,
   SqlParameter,
   Relationship,
   Row,
@@ -40,6 +42,64 @@ export class SqliteDriver implements DatabaseDriver {
   async exec(sql: string, parameters: SqlParameter[] = []): Promise<Row[]> {
     const rows = this.db.prepare(sql).all(...parameters);
     return rows as Row[];
+  }
+
+  async execSql(
+    sql: string,
+    parameters: SqlParameter[],
+    options: SqlExecutionOptions
+  ): Promise<SqlExecutionResult> {
+    options.signal?.throwIfAborted();
+    const previouslyReadOnly = this.db.pragma("query_only", { simple: true });
+    if (options.readOnly) this.db.pragma("query_only = ON");
+    try {
+      return this.db.transaction(() => {
+        const statement = this.db.prepare(sql).safeIntegers(true);
+        if (options.readOnly && !statement.readonly)
+          throw new Error("This statement cannot run in read-only mode.");
+        if (statement.reader) {
+          const rows: unknown[][] = [];
+          let truncated = false;
+          for (const row of statement.raw().iterate(...parameters)) {
+            if (rows.length === 1000) {
+              truncated = true;
+              break;
+            }
+            rows.push(
+              (row as unknown[]).map((value) =>
+                typeof value === "bigint" &&
+                value <= BigInt(Number.MAX_SAFE_INTEGER) &&
+                value >= BigInt(Number.MIN_SAFE_INTEGER)
+                  ? Number(value)
+                  : value
+              )
+            );
+          }
+          return {
+            columns: statement.columns().map((column) => column.name),
+            rows,
+            affectedRows: statement.readonly
+              ? null
+              : (
+                  this.db.prepare("SELECT changes() AS count").get() as {
+                    count: number;
+                  }
+                ).count,
+            truncated,
+          };
+        }
+        const result = statement.run(...parameters);
+        return {
+          columns: [],
+          rows: [],
+          affectedRows: result.changes,
+          truncated: false,
+        };
+      })();
+    } finally {
+      if (options.readOnly && !previouslyReadOnly)
+        this.db.pragma("query_only = OFF");
+    }
   }
 
   async getAllColumnsInDatabase(): Promise<TableColumn[]> {

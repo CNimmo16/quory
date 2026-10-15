@@ -1,6 +1,8 @@
 import postgres from "postgres";
 import type {
   DatabaseDriver,
+  SqlExecutionOptions,
+  SqlExecutionResult,
   ExecutionOptions,
   SqlParameter,
   Relationship,
@@ -13,7 +15,7 @@ export class PostgresDriver implements DatabaseDriver {
   readonly dialect = "postgres" as const;
   sql: postgres.Sql;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(config: postgres.Options<Record<string, any>>) {
+  constructor(private config: postgres.Options<Record<string, any>>) {
     this.sql = postgres(config);
   }
 
@@ -36,6 +38,51 @@ export class PostgresDriver implements DatabaseDriver {
       return await query;
     } finally {
       options.signal?.removeEventListener("abort", abort);
+    }
+  }
+
+  async execSql(
+    sql: string,
+    parameters: SqlParameter[],
+    options: SqlExecutionOptions
+  ): Promise<SqlExecutionResult> {
+    options.signal?.throwIfAborted();
+    const isolated = postgres({ ...this.config, max: 1, connect_timeout: 15 });
+    try {
+      return await isolated.begin(
+        options.readOnly ? "READ ONLY" : "",
+        async (transaction) => {
+          options.signal?.throwIfAborted();
+          const query = transaction
+            .unsafe(sql, parameters, { prepare: true })
+            .values();
+          const abort = () => query.cancel();
+          options.signal?.addEventListener("abort", abort, { once: true });
+          try {
+            options.signal?.throwIfAborted();
+            const rows = await query;
+            options.signal?.throwIfAborted();
+            return {
+              columns: rows.columns.map((column) => column.name),
+              rows: Array.from(rows).slice(0, 1000),
+              affectedRows: [
+                "INSERT",
+                "UPDATE",
+                "DELETE",
+                "MERGE",
+                "COPY",
+              ].includes(rows.command)
+                ? rows.count
+                : null,
+              truncated: rows.length > 1000,
+            };
+          } finally {
+            options.signal?.removeEventListener("abort", abort);
+          }
+        }
+      );
+    } finally {
+      await isolated.end({ timeout: 1 });
     }
   }
 

@@ -82,7 +82,9 @@ function fixture() {
     visibleJoins,
     rows,
     actions,
-    joinActions: vi.fn<Props["joinActions"]>().mockReturnValue(actions),
+    joinActions: vi
+      .fn<NonNullable<Props["joinActions"]>>()
+      .mockReturnValue(actions),
   };
 }
 function show(data = fixture()) {
@@ -322,4 +324,88 @@ it("reorders headers and matching cells during dragging, without repeating the s
   expect(screen.getAllByRole("cell")[2]).toHaveAttribute("rowspan", "2");
   fireEvent.keyDown(handle, { key: "ArrowRight" });
   expect(screen.getAllByRole("row")[0]!.textContent).toMatch(/^customers/);
+});
+
+it("renders flat results with duplicate headers, nulls and scalars using shared cell inspection", async () => {
+  const user = userEvent.setup();
+  render(
+    <DataTable
+      columns={["value", "value", "active", "empty"]}
+      rows={[
+        ["First", 42, false, ""],
+        ["First", null, true, ""],
+      ]}
+    />
+  );
+  expect(screen.getAllByRole("columnheader", { name: "value" })).toHaveLength(
+    2
+  );
+  expect(screen.getAllByRole("row")).toHaveLength(3);
+  expect(screen.getAllByRole("cell").map((cell) => cell.textContent)).toEqual([
+    "First",
+    "42",
+    "false",
+    "",
+    "First",
+    "NULL",
+    "true",
+    "",
+  ]);
+  expect(
+    screen
+      .getAllByRole("cell")
+      .every((cell) => cell.getAttribute("rowspan") === "1")
+  ).toBe(true);
+  expect(
+    screen.queryByRole("button", {
+      name: /Sort by|Options for|Reorder|Follow relationship/,
+    })
+  ).not.toBeInTheDocument();
+  expect(
+    screen
+      .getAllByRole("columnheader")
+      .every((header) => !header.hasAttribute("aria-sort"))
+  ).toBe(true);
+  await user.click(screen.getByRole("button", { name: "value: 42" }));
+  expect(screen.getByRole("dialog")).toHaveTextContent("42");
+  expect(
+    screen.queryByRole("button", { name: "Filter on this value" })
+  ).not.toBeInTheDocument();
+  await user.keyboard("{Escape}");
+  await user.click(screen.getAllByRole("button", { name: "empty:" })[0]!);
+  expect(screen.getByRole("dialog")).toHaveTextContent("Empty value");
+});
+
+it("keeps flat results visible while loading and shares result summaries and empty states", () => {
+  const { rerender } = render(
+    <DataTable columns={["name"]} rows={[["Previous result"]]} />
+  );
+  rerender(
+    <DataTable
+      columns={["name"]}
+      rows={[["Previous result"]]}
+      isLoading
+      summary={<span>12 ms</span>}
+    />
+  );
+  expect(screen.getByRole("status")).toHaveTextContent("Running query");
+  expect(screen.getByRole("table")).toHaveTextContent("Previous result");
+  expect(screen.getByText("12 ms")).toBeVisible();
+  rerender(
+    <DataTable
+      columns={[]}
+      rows={[]}
+      summary={<span>3 affected rows</span>}
+      emptyMessage="Statement completed."
+    />
+  );
+  expect(screen.getByText("Statement completed.")).toBeVisible();
+  expect(screen.getByText("3 affected rows")).toBeVisible();
+});
+
+it("embeds the table without a duplicate results header while retaining its cells", () => {
+  render(<DataTable embedded columns={["name"]} rows={[["Order"]]} />);
+  expect(screen.getByRole("table")).toHaveTextContent("Order");
+  expect(screen.queryByText("Results")).not.toBeInTheDocument();
+  expect(screen.queryByText("1 rows")).not.toBeInTheDocument();
 });

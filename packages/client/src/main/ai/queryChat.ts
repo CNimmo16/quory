@@ -22,6 +22,8 @@ import {
 } from "../../shared/queryHistory";
 import { queryHistorySchema } from "../repositories/queryHistorySchema";
 
+import { isSqlQuery } from "../../shared/sqlQuery";
+
 const inFlight = new Set<string>();
 const conflict = () =>
   new TRPCError({
@@ -45,16 +47,17 @@ export const queryChatProcedure = publicProcedure
   )
   .mutation(async ({ input }): Promise<QueryChatResult> => {
     const id = input.queryId ?? input.requestId;
-    if (inFlight.has(id))
+    const context = await savedQueryService.assertConnection(
+      input.connectionId
+    );
+    const operationId = `${context.projectId}:${id}`;
+    if (inFlight.has(operationId))
       throw new TRPCError({
         code: "CONFLICT",
         message: "A query update is already in progress.",
       });
-    inFlight.add(id);
+    inFlight.add(operationId);
     try {
-      const context = await savedQueryService.assertConnection(
-        input.connectionId
-      );
       const session = await getQuorySession();
       if (session.connectionId !== input.connectionId)
         throw new TRPCError({
@@ -68,6 +71,12 @@ export const queryChatProcedure = publicProcedure
           if ((error as { status?: number }).status === 404 && !input.queryId)
             return undefined;
           throw error;
+        });
+      if (existing && isSqlQuery(existing))
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Custom SQL queries are edited in SQL mode, not the relationship assistant.",
         });
       if (existing?.lastChatRequestId === input.requestId) {
         return {
@@ -236,6 +245,6 @@ export const queryChatProcedure = publicProcedure
           "Could not complete the AI request. Check your provider and model settings, then try again. You can also use manual mode.",
       });
     } finally {
-      inFlight.delete(id);
+      inFlight.delete(operationId);
     }
   });

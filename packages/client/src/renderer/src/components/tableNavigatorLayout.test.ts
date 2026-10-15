@@ -25,7 +25,8 @@ const branch = table("root", [
   table("second", [table("second_a"), chain(4, "second_b"), table("second_c")]),
   ...Array.from({ length: 8 }, (_, i) => table(`sibling_${i}`)),
 ]);
-function overlaps(a: TableDiagramNode, b: TableDiagramNode) {
+type Rectangle = Pick<TableDiagramNode, "x" | "y" | "width" | "height">;
+function overlaps(a: Rectangle, b: Rectangle) {
   return (
     a.x < b.x + b.width &&
     a.x + a.width > b.x &&
@@ -44,6 +45,23 @@ describe("responsive relationship layout", () => {
           new Set(layout.nodes.map((node) => node.join.joinAlias)).size
         ).toBe(layout.nodes.length);
         expect(layout.edges).toHaveLength(layout.nodes.length - 1);
+        expect(layout.placeholders).toHaveLength(layout.nodes.length);
+        for (const placeholder of layout.placeholders) {
+          expect(placeholder.x).toBeGreaterThanOrEqual(0);
+          expect(placeholder.x + placeholder.width).toBeLessThanOrEqual(width);
+          expect(placeholder.y + placeholder.height).toBeLessThanOrEqual(
+            layout.height
+          );
+          const source = layout.nodes.find(
+            (node) => node.join.joinAlias === placeholder.join.joinAlias
+          )!;
+          expect(placeholder.points[0]!.y).toBe(source.y + source.height);
+          expect(placeholder.points[1]!.y).toBe(placeholder.y);
+          for (const node of [...layout.nodes, ...layout.placeholders]) {
+            if (node !== placeholder)
+              expect(overlaps(placeholder, node)).toBe(false);
+          }
+        }
         for (const [i, node] of layout.nodes.entries()) {
           expect(node.x).toBeGreaterThanOrEqual(0);
           expect(node.x + node.width).toBeLessThanOrEqual(width);
@@ -63,7 +81,7 @@ describe("responsive relationship layout", () => {
             expect(point.y).toBeLessThanOrEqual(layout.height);
             const next = edge.points[i + 1];
             if (!next) continue;
-            for (const node of layout.nodes) {
+            for (const node of [...layout.nodes, ...layout.placeholders]) {
               const crosses =
                 point.x === next.x
                   ? point.x > node.x &&

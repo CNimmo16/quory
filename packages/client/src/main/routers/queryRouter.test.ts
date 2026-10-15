@@ -8,6 +8,8 @@ import {
 const mocks = vi.hoisted(() => ({
   active: "a",
   generation: 0,
+  project: "a",
+  projectGeneration: 0,
   get: vi.fn(),
   put: vi.fn(),
   remove: vi.fn(),
@@ -24,6 +26,28 @@ vi.mock("../ai/queryChat", async () => {
   const { publicProcedure } = await import("../util/trpc");
   return { queryChatProcedure: publicProcedure.mutation(() => {}) };
 });
+vi.mock("../state/activeProjectState", async () => {
+  const { TRPCError } = await import("@trpc/server");
+  return {
+    activeProjectState: {
+      requireActiveProject: () => ({
+        _id: mocks.project,
+        _rev: "1-project",
+        name: "Test project",
+        storage: "database",
+      }),
+      getProjectGeneration: () => mocks.projectGeneration,
+      assertCurrent: (id: string, generation: number) => {
+        if (id !== mocks.project || generation !== mocks.projectGeneration)
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "The active project changed.",
+          });
+      },
+    },
+  };
+});
+vi.mock("./sqlProcedures", () => ({ sqlProcedures: {} }));
 import queryRouter from "./queryRouter";
 const caller = queryRouter.createCaller({});
 const query = {
@@ -35,6 +59,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.active = "a";
   mocks.generation = 0;
+  mocks.project = "a";
+  mocks.projectGeneration = 0;
   docs = new Map();
   mocks.get.mockImplementation(async (id) => {
     if (!docs.has(id)) throw { status: 404 };
@@ -58,6 +84,31 @@ async function create() {
   const { queryId } = await caller.createQuery({ connectionId: "a", query });
   return queryId;
 }
+
+it("lists project queries while disconnected without exposing another project's queries", async () => {
+  const queryId = await create();
+  mocks.active = "";
+  ++mocks.generation;
+  expect(
+    (await caller.listSavedQueries({ projectId: "a" })).queries.map(
+      ({ id }) => id
+    )
+  ).toEqual([queryId]);
+  await expect(caller.listSavedQueries({ projectId: "b" })).rejects.toThrow(
+    "project changed"
+  );
+});
+
+it("rejects a project-only list if the project changes during the read", async () => {
+  await create();
+  mocks.allDocs.mockImplementationOnce(async () => {
+    ++mocks.projectGeneration;
+    return { rows: [...docs].map(([id, doc]) => ({ id, doc })) };
+  });
+  await expect(caller.listSavedQueries({ projectId: "a" })).rejects.toThrow(
+    "project changed"
+  );
+});
 function historyInput(queryId: string, action: QueryHistoryAction = "undo") {
   const doc = docs.get(queryId)!;
   return {
@@ -188,7 +239,7 @@ it("supports create, fetch, list, edit, rename and delete without changing owner
     nickname: "Renamed",
   });
   expect(docs.get(queryId)).toMatchObject({
-    connectionId: "a",
+    projectId: "a",
     nickname: "Renamed",
     limit: 7,
   });
@@ -199,9 +250,10 @@ it("supports create, fetch, list, edit, rename and delete without changing owner
   });
   expect(docs.size).toBe(0);
 });
-it("rejects wrong-connection fetch, edit, rename and delete before any write", async () => {
+it("rejects wrong-project fetch, edit, rename and delete before any write", async () => {
   const queryId = await create();
   mocks.active = "b";
+  mocks.project = "b";
   mocks.put.mockClear();
   const input = { connectionId: "b", queryId, revision: "1-saved" };
   for (const operation of [
@@ -211,13 +263,13 @@ it("rejects wrong-connection fetch, edit, rename and delete before any write", a
     () => caller.deleteQuery(input),
     () => caller.changeQueryHistory({ ...historyInput(queryId), ...input }),
   ])
-    await expect(operation()).rejects.toThrow("different connection");
+    await expect(operation()).rejects.toThrow("different project");
   expect(
     (await caller.listSavedQueries({ connectionId: "b" })).queries
   ).toEqual([]);
   expect(mocks.put).not.toHaveBeenCalled();
   expect(mocks.remove).not.toHaveBeenCalled();
-  expect(docs.get(queryId)?.connectionId).toBe("a");
+  expect(docs.get(queryId)?.projectId).toBe("a");
 });
 it("rejects stale revisions for edits, renames and deletes", async () => {
   const queryId = await create();
@@ -325,3 +377,92 @@ it.each(["update", "rename", "delete", "history"] as const)(
     });
   }
 );
+
+it("shares saved queries between environments in the same project", async () => {
+  const queryId = await create();
+  mocks.active = "staging";
+  ++mocks.generation;
+  expect(
+    (await caller.listSavedQueries({ connectionId: "staging" })).queries.map(
+      ({ id }) => id
+    )
+  ).toEqual([queryId]);
+  const saved = await caller.fetchQuery({ connectionId: "staging", queryId });
+  expect(saved.query.projectId).toBe("a");
+  expect(saved.query).not.toHaveProperty("connectionId");
+  await caller.updateQueryNickname({
+    connectionId: "staging",
+    queryId,
+    revision: saved.query._rev,
+    nickname: "Shared query",
+  });
+  mocks.active = "a";
+  ++mocks.generation;
+  expect(
+    (await caller.fetchQuery({ connectionId: "a", queryId })).query.nickname
+  ).toBe("Shared query");
+});
+
+it("rejects a project switch away and back while reading a query", async () => {
+  const queryId = await create();
+  const get = mocks.get.getMockImplementation()!;
+  mocks.get.mockImplementation(async (id) => {
+    const doc = await get(id);
+    mocks.projectGeneration += 2;
+    return doc;
+  });
+  await expect(
+    caller.updateQueryNickname({
+      connectionId: "a",
+      queryId,
+      revision: "1-saved",
+      nickname: "Stale",
+    })
+  ).rejects.toThrow("active project changed");
+  expect(docs.get(queryId)!.nickname).not.toBe("Stale");
+});
+
+it("saves SQL definitions and makes conversion irreversible without retaining the relationship tree", async () => {
+  const queryId = await create();
+  const converted = await caller.updateQuery({
+    connectionId: "a",
+    queryId,
+    revision: "1-saved",
+    query: {
+      mode: "sql",
+      sql: "SELECT * FROM orders WHERE status = $1",
+      parameters: ["paid"],
+      dialect: "postgres",
+    },
+  });
+  const saved = docs.get(queryId)!;
+  expect(saved).toMatchObject({
+    mode: "sql",
+    sql: "SELECT * FROM orders WHERE status = $1",
+    parameters: ["paid"],
+  });
+  expect(saved).not.toHaveProperty("base");
+  expect(saved).not.toHaveProperty("queryHistory");
+  await expect(
+    caller.updateQuery({
+      connectionId: "a",
+      queryId,
+      revision: converted.revision,
+      query,
+    })
+  ).rejects.toThrow("cannot be converted back");
+  const created = await caller.createQuery({
+    connectionId: "a",
+    query: { mode: "sql", sql: "SELECT 42" },
+  });
+  expect(docs.get(created.queryId)).toMatchObject({
+    mode: "sql",
+    sql: "SELECT 42",
+  });
+  await caller.deleteQuery({
+    connectionId: "a",
+    queryId,
+    revision: converted.revision,
+  });
+  expect(docs.has(queryId)).toBe(false);
+});

@@ -1,4 +1,12 @@
+vi.mock("./ConnectionBadge", async () => {
+  const { createContext } = await import("react");
+  return {
+    ConnectionBadge: () => <span>Connection badge</span>,
+    ConnectionSelectorContext: createContext(null),
+  };
+});
 import type { ComponentType } from "react";
+import { WindowToolbarFrame } from "./WindowToolbar";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -15,8 +23,12 @@ import {
 const mocks = vi.hoisted(() => ({
   chat: vi.fn(),
   invalidate: vi.fn(),
+  remove: vi.fn(),
   refresh: () => {},
-  doc: {} as SavedQuery & { _id: string; _rev: string },
+  doc: {} as Extract<SavedQuery, { mode?: "relationship" | undefined }> & {
+    _id: string;
+    _rev: string;
+  },
 }));
 vi.mock("@tanstack/react-router", async () => {
   const { useState, useEffect } = await import("react");
@@ -29,7 +41,7 @@ vi.mock("@tanstack/react-router", async () => {
         useEffect(() => {
           mocks.refresh = () => refresh((value) => value + 1);
         }, []);
-        return { query: mocks.doc };
+        return { query: mocks.doc, connectionId: "connection-1" };
       },
     }),
     useNavigate: () => vi.fn(),
@@ -45,12 +57,12 @@ vi.mock("@quory/stack/react", () => ({
 vi.mock("../util/tprc", () => ({
   default: {
     useUtils: () => ({
-      queries: { listSavedQueries: { invalidate: async () => {} } },
+      projects: { listQueries: { invalidate: async () => {} } },
     }),
     queries: {
       chat: { useMutation: () => ({ mutateAsync: mocks.chat }) },
       deleteQuery: {
-        useMutation: () => ({ mutate: vi.fn(), isPending: false }),
+        useMutation: () => ({ mutate: mocks.remove, isPending: false }),
       },
       updateQuery: {
         useMutation: () => ({ mutate: vi.fn(), isPending: false }),
@@ -74,15 +86,34 @@ vi.mock("./QueryView", async () => {
       initialQuery,
       onQueryChange,
       showQueryText,
+      historyControls,
     }: {
       initialQuery: Query;
       onQueryChange: (query: PreparedQuery) => void;
       showQueryText?: boolean;
+      historyControls?: {
+        canUndo: boolean;
+        canRedo: boolean;
+        onUndo: () => void;
+        onRedo: () => void;
+      };
     }) {
       const [limit, setLimit] = useState(initialQuery.limit);
       useEffect(() => setLimit(initialQuery.limit), [initialQuery]);
       return (
         <>
+          <button
+            disabled={!historyControls?.canUndo}
+            onClick={historyControls?.onUndo}
+          >
+            Undo
+          </button>
+          <button
+            disabled={!historyControls?.canRedo}
+            onClick={historyControls?.onRedo}
+          >
+            Redo
+          </button>
           <p>View: {showQueryText ? "Raw query" : "Query tree"}</p>
           <p>Displayed row limit: {limit}</p>
           <button
@@ -137,7 +168,9 @@ beforeEach(() => {
 function mount() {
   return render(
     <TooltipProvider>
-      <Page />
+      <WindowToolbarFrame hasQueryHeader>
+        <Page />
+      </WindowToolbarFrame>
     </TooltipProvider>
   );
 }
@@ -147,6 +180,9 @@ it("opens manual queries with a placeholder and preserves drafts and edits when 
   delete mocks.doc.chatMessages;
   mount();
   expect(screen.getByText("Refine your query with AI")).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: /^(Open|Close) query assistant$/ })
+  ).not.toBeInTheDocument();
   expect(mocks.chat).not.toHaveBeenCalled();
   await user.click(
     screen.getByRole("button", { name: "Set manual row limit" })
@@ -155,20 +191,25 @@ it("opens manual queries with a placeholder and preserves drafts and edits when 
     screen.getByRole("textbox", { name: "Amend your query" }),
     "Show only paid orders"
   );
-  await user.click(screen.getByRole("button", { name: "Close AI chat" }));
+  await user.click(
+    screen.getByRole("button", { name: "Collapse query assistant" })
+  );
   expect(
-    screen.queryByRole("complementary", { name: "Query assistant" })
+    screen.getByRole("complementary", { name: "Query assistant" })
+  ).toBeVisible();
+  expect(
+    screen.queryByRole("textbox", { name: "Amend your query" })
   ).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Open AI chat" })).toHaveAttribute(
-    "aria-expanded",
-    "false"
-  );
+  expect(
+    screen.getByRole("button", { name: "Expand query assistant" })
+  ).toHaveAttribute("aria-expanded", "false");
   expect(screen.getByText("Displayed row limit: 7")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Open AI chat" }));
-  expect(screen.getByRole("button", { name: "Close AI chat" })).toHaveAttribute(
-    "aria-expanded",
-    "true"
+  await user.click(
+    screen.getByRole("button", { name: "Expand query assistant" })
   );
+  expect(
+    screen.getByRole("button", { name: "Collapse query assistant" })
+  ).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByText("Refine your query with AI")).toBeVisible();
   expect(screen.getByRole("textbox", { name: "Amend your query" })).toHaveValue(
     "Show only paid orders"
@@ -208,17 +249,24 @@ it("can close and reopen chat during a request without losing the conversation",
     screen.getByRole("textbox", { name: "Amend your query" }),
     "Show recent orders{Enter}"
   );
-  expect(screen.getByRole("button", { name: "Edit nickname" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Delete query" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Query actions" })).toBeDisabled();
   expect(
     screen.getByRole("button", { name: "Set manual row limit" })
   ).toBeDisabled();
-  await user.click(screen.getByRole("button", { name: "Close AI chat" }));
-  expect(screen.getByRole("button", { name: "Open AI chat" })).toBeEnabled();
-  await user.click(screen.getByRole("button", { name: "Open AI chat" }));
+  await user.click(
+    screen.getByRole("button", { name: "Collapse query assistant" })
+  );
+  expect(
+    screen.getByRole("button", { name: "Expand query assistant" })
+  ).toBeEnabled();
+  await user.click(
+    screen.getByRole("button", { name: "Expand query assistant" })
+  );
   expect(screen.getByText("Your orders query is ready.")).toBeVisible();
   expect(screen.getByRole("status")).toHaveTextContent("Working on your query");
-  await user.click(screen.getByRole("button", { name: "Close AI chat" }));
+  await user.click(
+    screen.getByRole("button", { name: "Collapse query assistant" })
+  );
   await act(async () => {
     finish({
       queryId: "query-1",
@@ -230,7 +278,9 @@ it("can close and reopen chat during a request without losing the conversation",
       ],
     });
   });
-  await user.click(screen.getByRole("button", { name: "Open AI chat" }));
+  await user.click(
+    screen.getByRole("button", { name: "Expand query assistant" })
+  );
   expect(screen.getByText("Your orders query is ready.")).toBeVisible();
   expect(screen.getByText("Which date range?")).toBeVisible();
   expect(screen.getByRole("textbox", { name: "Amend your query" })).toHaveValue(
@@ -287,7 +337,8 @@ it("keeps unsaved manual edits when renaming the saved query", async () => {
   await user.click(
     screen.getByRole("button", { name: "Set manual row limit" })
   );
-  await user.click(screen.getByRole("button", { name: "Edit nickname" }));
+  await user.click(screen.getByRole("button", { name: "Query actions" }));
+  await user.click(screen.getByRole("menuitem", { name: "Rename query" }));
   await user.clear(screen.getByRole("textbox", { name: "Query nickname" }));
   await user.type(
     screen.getByRole("textbox", { name: "Query nickname" }),
@@ -299,6 +350,57 @@ it("keeps unsaved manual edits when renaming the saved query", async () => {
   ).toBeVisible();
   expect(screen.getByText("Displayed row limit: 7")).toBeVisible();
   expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+});
+
+it("undoes and redoes query edits without adding chat messages, and clears redo after a new edit", async () => {
+  mount();
+  const user = userEvent.setup();
+  expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Redo" })).toBeDisabled();
+  await user.click(
+    screen.getByRole("button", { name: "Set manual row limit" })
+  );
+  await user.click(screen.getByRole("button", { name: "Undo" }));
+  expect(screen.getByText("Displayed row limit: 100")).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Save changes" })
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Redo" })).toBeEnabled();
+  await user.click(screen.getByRole("button", { name: "Redo" }));
+  expect(screen.getByText("Displayed row limit: 7")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+  await user.click(screen.getByRole("button", { name: "Undo" }));
+  await user.click(
+    screen.getByRole("button", { name: "Set manual row limit" })
+  );
+  expect(screen.getByRole("button", { name: "Redo" })).toBeDisabled();
+  expect(mocks.chat).not.toHaveBeenCalled();
+});
+
+it("places query actions after the connection badge and confirms deletion from the menu", async () => {
+  mount();
+  const user = userEvent.setup();
+  const actions = screen.getByRole("button", { name: "Query actions" });
+  expect(actions.previousElementSibling).toHaveTextContent("Connection badge");
+  expect(
+    screen.queryByRole("button", { name: "Edit nickname" })
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Delete query" })
+  ).not.toBeInTheDocument();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  await user.click(actions);
+  await user.click(screen.getByRole("menuitem", { name: "Delete query" }));
+  expect(mocks.remove).not.toHaveBeenCalled();
+  confirm.mockReturnValue(true);
+  await user.click(actions);
+  await user.click(screen.getByRole("menuitem", { name: "Delete query" }));
+  expect(mocks.remove).toHaveBeenCalledWith({
+    queryId: "query-1",
+    connectionId: "connection-1",
+    revision: "1-saved",
+  });
+  confirm.mockRestore();
 });
 
 it("hides legacy undo notices and sends only conversation plus the latest query", async () => {

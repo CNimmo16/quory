@@ -25,6 +25,16 @@ export async function recreateMainWindow(): Promise<void> {
     height: 800,
     show: false,
     autoHideMenuBar: true,
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
+    ...(process.platform === "darwin"
+      ? { trafficLightPosition: { x: 16, y: 15 } }
+      : {
+          titleBarOverlay: {
+            color: "#f8fafc",
+            symbolColor: "#334155",
+            height: 44,
+          },
+        }),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,

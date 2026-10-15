@@ -39,6 +39,24 @@ const savedConnection: ConnectionConfig = {
 };
 
 describe("ConnectionForm", () => {
+  it("offers ten colours and preserves the selected colour when saving", async () => {
+    const user = userEvent.setup();
+    const save = vi.fn();
+    render(
+      <SavedConnectionForm
+        initialConfig={{ ...savedConnection, colour: "blue" }}
+        save={save}
+      />
+    );
+    expect(screen.getAllByRole("radio")).toHaveLength(10);
+    expect(screen.getByRole("radio", { name: "Blue" })).toBeChecked();
+    await user.click(screen.getByRole("radio", { name: "Red" }));
+    expect(screen.getByRole("radio", { name: "Red" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Blue" })).not.toBeChecked();
+    expect(save).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Save connection" }));
+    expect(save).toHaveBeenCalledWith({ ...savedConnection, colour: "red" });
+  });
   it("selects database defaults, validates required fields and reveals passwords without submitting", async () => {
     const user = userEvent.setup();
     const save = vi.fn();
@@ -205,4 +223,27 @@ describe("ConnectionForm", () => {
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Connect" })).toBeDisabled();
   });
+});
+
+it("defaults write protection to read only and saves the selected policy", async () => {
+  const user = userEvent.setup();
+  const save = vi.fn();
+  render(<SavedConnectionForm initialConfig={savedConnection} save={save} />);
+  expect(
+    screen.getByRole("combobox", { name: "Write protection" })
+  ).toHaveTextContent("Read only");
+  await user.click(screen.getByRole("combobox", { name: "Write protection" }));
+  await user.click(
+    screen.getByRole("option", { name: "Confirm before write" })
+  );
+  await user.click(screen.getByRole("button", { name: "Save connection" }));
+  expect(save).toHaveBeenLastCalledWith(
+    expect.objectContaining({ writeProtection: "confirm-before-write" })
+  );
+  await user.click(screen.getByRole("combobox", { name: "Write protection" }));
+  await user.click(screen.getByRole("option", { name: "Dangerously write" }));
+  await user.click(screen.getByRole("button", { name: "Save connection" }));
+  expect(save).toHaveBeenLastCalledWith(
+    expect.objectContaining({ writeProtection: "dangerously-write" })
+  );
 });

@@ -3,6 +3,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
   DatabaseDriver,
+  SqlExecutionOptions,
+  SqlExecutionResult,
   ExecutionOptions,
   Row,
   SqlParameter,
@@ -26,7 +28,15 @@ process.on('disconnect', () => process.exit(0));
 const { SqliteDriver } = await import(require('node:url').pathToFileURL(process.argv[1]).href);
 const driver = new SqliteDriver(process.argv[2], { readonly: true });
 const handle = async ({ id, method, args }) => {
-  try { process.send({ id, result: await driver[method](...args) }); }
+  try {
+    let result;
+    if (method === 'execSql') {
+      const custom = new SqliteDriver(process.argv[2], { readonly: args[2].readOnly, fileMustExist: true });
+      try { result = await custom.execSql(...args); }
+      finally { await custom.teardown(); }
+    } else result = await driver[method](...args);
+    process.send({ id, result });
+  }
   catch (error) { process.send({ id, error: error.message }); }
 };
 process.removeListener('message', queue);
@@ -155,6 +165,17 @@ export class WorkerSqliteDriver implements DatabaseDriver {
     options?: ExecutionOptions
   ) {
     return this.call<Row[]>("exec", [sql, parameters], options);
+  }
+  execSql(
+    sql: string,
+    parameters: SqlParameter[],
+    options: SqlExecutionOptions
+  ) {
+    return this.call<SqlExecutionResult>(
+      "execSql",
+      [sql, parameters, { readOnly: options.readOnly }],
+      options
+    );
   }
   testConnection() {
     return this.call<void>("testConnection", []);

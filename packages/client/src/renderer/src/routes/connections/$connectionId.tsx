@@ -1,5 +1,9 @@
 import { ConnectionForm } from "../../components/ConnectionForm";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import trpc from "../../util/tprc";
 import { AppRouter } from "../../../../main/ipc";
 import { inferProcedureInput } from "@trpc/server";
@@ -11,6 +15,8 @@ import { TbTrash } from "react-icons/tb";
 
 export const Route = createFileRoute("/connections/$connectionId")({
   component: RouteComponent,
+  validateSearch: (search: Record<string, unknown>): { queryId?: string } =>
+    typeof search.queryId === "string" ? { queryId: search.queryId } : {},
   loader: async ({ params: { connectionId } }) => {
     const data = await trpcClient.connections.fetchConnectionById.query({
       connectionId,
@@ -22,6 +28,8 @@ export const Route = createFileRoute("/connections/$connectionId")({
 
 function RouteComponent() {
   const { connection } = Route.useLoaderData();
+  const { queryId } = Route.useSearch();
+  const router = useRouter();
 
   const navigate = useNavigate({
     from: "/connections/$connectionId",
@@ -38,6 +46,7 @@ function RouteComponent() {
       navigate({
         to: "/connections/$connectionId",
         params: { connectionId: connection._id },
+        search: queryId ? { queryId } : {},
       });
     },
   });
@@ -49,10 +58,17 @@ function RouteComponent() {
     isPending: isConnectingToDatabase,
     error: connectError,
   } = trpc.connections.connectToDatabase.useMutation({
-    onSuccess: () => {
-      utils.connections.fetchActiveConnection.invalidate();
-      utils.connections.listSavedConnections.invalidate();
-      navigate({ to: "/queries" });
+    onSuccess: async () => {
+      await Promise.all([
+        utils.connections.fetchActiveConnection.invalidate(),
+        utils.connections.listSavedConnections.invalidate(),
+      ]);
+      await router.invalidate();
+      await navigate(
+        queryId
+          ? { to: "/queries/$queryId", params: { queryId } }
+          : { to: "/queries" }
+      );
     },
   });
 
@@ -94,7 +110,7 @@ function RouteComponent() {
           onClick={(e) => {
             e.preventDefault();
             const confirmed = confirm(
-              `IMPORTANT: Are you sure you want to delete this connection?\n\nThis will also delete the queries associated with the connection.\n\nThis action is irreversible. Press OK to continue.`
+              `IMPORTANT: Are you sure you want to delete this connection?\n\nSaved project queries will remain available for other connections.\n\nThis action is irreversible. Press OK to continue.`
             );
             if (confirmed) {
               deleteConnection({ connectionId: connection._id });

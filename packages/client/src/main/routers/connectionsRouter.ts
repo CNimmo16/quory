@@ -12,8 +12,27 @@ export { connectionRepo } from "../state/connectionRepo";
 import { connectionRepo } from "../state/connectionRepo";
 import { refreshQuorySchema } from "../state/quorySession";
 
+import { activeProjectState } from "../state/activeProjectState";
+import { CONNECTION_COLOURS } from "../../shared/connectionColour";
+
+async function projectConnection(connectionId: string) {
+  const project = activeProjectState.requireActiveProject();
+  const generation = activeProjectState.getProjectGeneration();
+  const connection = await connectionRepo.get(connectionId);
+  activeProjectState.assertCurrent(project._id, generation);
+  if (connection.projectId !== project._id)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This connection belongs to a different project.",
+    });
+  return connection;
+}
+
 const connectionsRouter = router({
   listSavedConnections: publicProcedure.query(async () => {
+    const project = activeProjectState.getActiveProject();
+    if (!project) return { connections: [] };
+    const generation = activeProjectState.getProjectGeneration();
     const { rows } = await connectionRepo.allDocs({
       include_docs: true,
     });
@@ -21,19 +40,27 @@ const connectionsRouter = router({
     const activeConnectionId =
       await activeConnectionState.getActiveConnectionId();
 
+    activeProjectState.assertCurrent(project._id, generation);
     return {
-      connections: rows.map((row) => ({
-        id: row.id,
-        connection: row.doc!,
-        isActive: activeConnectionId === row.id,
-      })),
+      connections: rows
+        .filter((row) => row.doc?.projectId === project._id)
+        .map((row) => ({
+          id: row.id,
+          connection: row.doc!,
+          isActive: activeConnectionId === row.id,
+        })),
     };
   }),
   fetchActiveConnection: publicProcedure.query(async () => {
-    const connection = await activeConnectionState.getActiveConnection();
+    const project = activeProjectState.getActiveProject();
+    const generation = activeProjectState.getProjectGeneration();
+    const connection = project
+      ? await activeConnectionState.getActiveConnection()
+      : null;
+    if (project) activeProjectState.assertCurrent(project._id, generation);
 
     return {
-      connection,
+      connection: connection?.projectId === project?._id ? connection : null,
     };
   }),
   fetchConnectionById: publicProcedure
@@ -43,7 +70,7 @@ const connectionsRouter = router({
       })
     )
     .query(async ({ input: { connectionId } }) => {
-      const connection = await connectionRepo.get(connectionId);
+      const connection = await projectConnection(connectionId);
 
       return {
         connection,
@@ -56,6 +83,10 @@ const connectionsRouter = router({
         revision: z.string().optional(),
         config: z.object({
           nickname: z.string(),
+          colour: z.enum(CONNECTION_COLOURS).optional(),
+          writeProtection: z
+            .enum(["read-only", "confirm-before-write", "dangerously-write"])
+            .default("read-only"),
           type: z.enum(["postgres", "mysql", "sqlite"]),
           hostOrFilePath: z.string(),
           port: z.number().optional(),
@@ -77,6 +108,9 @@ const connectionsRouter = router({
       })
     )
     .mutation(async ({ input: { revision, connectionId, config } }) => {
+      const project = activeProjectState.requireActiveProject();
+      const generation = activeProjectState.getProjectGeneration();
+      if (connectionId) await projectConnection(connectionId);
       try {
         const test = await makeQuoryRequestHandler({ database: config });
         await test.dispose();
@@ -97,7 +131,9 @@ const connectionsRouter = router({
         .then(({ rows }) =>
           rows.filter(
             (row) =>
-              row.doc!.nickname === config.nickname && row.id !== connectionId
+              row.doc?.projectId === project._id &&
+              row.doc.nickname === config.nickname &&
+              row.id !== connectionId
           )
         );
       if (conflicts.length > 0) {
@@ -106,7 +142,9 @@ const connectionsRouter = router({
           message: `A database with the nickname "${config.nickname}" already exists. Please choose a different nickname.`,
         });
       }
+      activeProjectState.assertCurrent(project._id, generation);
       await connectionRepo.put({
+        projectId: project._id,
         _id: connectionId,
         _rev: revision,
         ...config,
@@ -123,6 +161,10 @@ const connectionsRouter = router({
       })
     )
     .mutation(async ({ input: { connectionId } }) => {
+      const project = activeProjectState.requireActiveProject();
+      const generation = activeProjectState.getProjectGeneration();
+      await projectConnection(connectionId);
+      activeProjectState.assertCurrent(project._id, generation);
       try {
         await activeConnectionState.setActiveConnection(connectionId);
       } catch (e) {
@@ -146,8 +188,10 @@ const connectionsRouter = router({
       })
     )
     .mutation(async ({ input: { connectionId } }) => {
-      const connection = await connectionRepo.get(connectionId);
-
+      const project = activeProjectState.requireActiveProject();
+      const generation = activeProjectState.getProjectGeneration();
+      const connection = await projectConnection(connectionId);
+      activeProjectState.assertCurrent(project._id, generation);
       await connectionRepo.remove(connection);
       await activeConnectionState.deleteActiveConnection(connectionId);
     }),

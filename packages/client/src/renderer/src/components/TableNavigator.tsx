@@ -53,10 +53,7 @@ function TableNavigator({
   );
 
   return (
-    <section
-      aria-label="Table relationships"
-      className="min-w-0 border-b border-slate-200 bg-slate-50"
-    >
+    <section aria-label="Table relationships" className="min-w-0 bg-white">
       <div className="flex items-center gap-2 px-4 pb-2 pt-3 text-xs">
         <Network aria-hidden="true" className="size-3.5 text-slate-500" />
         <h2 className="font-semibold text-slate-700">Relationships</h2>
@@ -72,8 +69,10 @@ function TableNavigator({
         style={{
           maxHeight,
           scrollbarGutter: "stable",
-          backgroundImage: "radial-gradient(#cbd5e1 0.6px, transparent 0.6px)",
-          backgroundSize: "16px 16px",
+          backgroundColor: "#ffffff",
+          backgroundImage:
+            "radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
+          backgroundSize: "11px 11px",
         }}
       >
         <div
@@ -87,6 +86,16 @@ function TableNavigator({
             width={layout.width}
             height={layout.height}
           >
+            {layout.placeholders.map(({ join, points }) => (
+              <polyline
+                key={`add-${join.joinAlias}`}
+                points={points.map(({ x, y }) => `${x},${y}`).join(" ")}
+                fill="none"
+                className="stroke-slate-400"
+                strokeWidth={1.5}
+                strokeDasharray="3 3"
+              />
+            ))}
             {[...layout.edges]
               .sort(
                 (a, b) =>
@@ -113,7 +122,7 @@ function TableNavigator({
                       fill="none"
                       strokeLinejoin="round"
                       strokeLinecap="round"
-                      className="stroke-slate-50"
+                      className="stroke-white"
                       strokeWidth={6}
                     />
                     <polyline
@@ -179,11 +188,11 @@ function TableNavigator({
                     parent ? `, joined from ${parent.tableRef}` : ", base table"
                   }`}
                   className={cn(
-                    "absolute flex flex-col justify-between rounded-lg border bg-white p-2.5 transition-colors",
+                    "absolute flex flex-col justify-between rounded-lg border p-2.5 transition-colors",
+                    hidden ? "bg-white" : "bg-slate-50",
                     highlightedJoinAlias === join.joinAlias
-                      ? "border-teal-600 bg-teal-50"
-                      : "border-slate-300",
-                    hidden && "bg-slate-50"
+                      ? "border-teal-600"
+                      : "border-slate-300"
                   )}
                   style={{ left: x, top: y, width: nodeWidth, height }}
                   onMouseEnter={() =>
@@ -230,12 +239,6 @@ function TableNavigator({
                         </span>
                       )}
                     </Hint>
-                    <JoinAnotherTableButton
-                      joinActions={joinActions}
-                      schemas={schemas}
-                      parentJoin={join}
-                      query={query}
-                    />
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -314,6 +317,22 @@ function TableNavigator({
                 </div>
               );
             }
+          )}
+          {layout.placeholders.map(
+            ({ join, x, y, width: placeholderWidth, height }) => (
+              <div
+                key={`add-${join.joinAlias}`}
+                className="absolute"
+                style={{ left: x, top: y, width: placeholderWidth, height }}
+              >
+                <JoinAnotherTableButton
+                  joinActions={joinActions}
+                  schemas={schemas}
+                  parentJoin={join}
+                  query={query}
+                />
+              </div>
+            )
           )}
         </div>
       </div>
