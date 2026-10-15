@@ -7,26 +7,35 @@ export function useOpenProject() {
   const router = useRouter();
   const navigate = useNavigate();
   const open = trpc.projects.open.useMutation();
+  const connect = trpc.connections.connectToDatabase.useMutation();
   const [isPending, setPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const running = useRef(false);
-  async function openProject(projectId: string, queryId: string) {
+  async function openProject(
+    projectId: string,
+    queryId: string,
+    connectionId?: string
+  ) {
     if (running.current) return;
     running.current = true;
     setPending(true);
     setError(null);
+    let attemptedOpen = false;
     try {
       // Run route blockers before changing the active project or disconnecting.
       await navigate({ to: "/queries" });
       if (router.state.location.pathname.replace(/\/$/, "") !== "/queries")
         return;
+      attemptedOpen = true;
       await open.mutateAsync({ projectId });
-      await Promise.all([
-        utils.projects.list.invalidate(),
-        utils.connections.invalidate(),
-        utils.projects.listQueries.invalidate(),
-      ]);
-      await navigate({ to: "/queries/$queryId", params: { queryId } });
+      if (connectionId) await connect.mutateAsync({ connectionId });
+      await refresh();
+      attemptedOpen = false;
+      await navigate(
+        connectionId
+          ? { to: "/queries/$queryId", params: { queryId } }
+          : { to: "/connections", search: { queryId, create: true } }
+      );
       await router.invalidate();
     } catch (cause) {
       const failure =
@@ -36,9 +45,20 @@ export function useOpenProject() {
       setError(failure);
       throw failure;
     } finally {
-      running.current = false;
-      setPending(false);
+      try {
+        if (attemptedOpen) await refresh();
+      } finally {
+        running.current = false;
+        setPending(false);
+      }
     }
+  }
+  function refresh() {
+    return Promise.all([
+      utils.projects.list.invalidate(),
+      utils.connections.invalidate(),
+      utils.projects.listQueries.invalidate(),
+    ]);
   }
   async function showCreatedProject(_projectId: string) {
     await utils.projects.list.invalidate();

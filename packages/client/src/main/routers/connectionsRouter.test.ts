@@ -83,6 +83,22 @@ it("rejects colours outside the preset list", async () => {
   expect(mocks.put).not.toHaveBeenCalled();
 });
 
+it("lists another project's connections without activating it", async () => {
+  mocks.allDocs.mockResolvedValue({
+    rows: [
+      { id: "current", doc: { ...config, projectId: "project-1" } },
+      { id: "other", doc: { ...config, projectId: "project-2" } },
+    ],
+  });
+  const result = await caller.listSavedConnections({ projectId: "project-2" });
+  expect(result.connections.map(({ id }) => id)).toEqual(["other"]);
+  expect(mocks.activate).not.toHaveBeenCalled();
+  expect(mocks.deactivate).not.toHaveBeenCalled();
+  expect(
+    (await caller.listSavedConnections()).connections.map(({ id }) => id)
+  ).toEqual(["current"]);
+});
+
 describe("SSL connection persistence", () => {
   it("validates, saves, reloads and reconnects with all SSL options", async () => {
     const ssl = {

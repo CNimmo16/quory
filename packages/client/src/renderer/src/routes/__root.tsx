@@ -99,12 +99,6 @@ function RootLayout() {
   const queryScreen = useRouterState({
     select: (state) => state.location.pathname.startsWith("/queries"),
   });
-  const connectionSelectionScreen = useRouterState({
-    select: (state) =>
-      state.location.pathname.replace(/\/$/, "") === "/connections" &&
-      (!!state.location.search?.queryId || !!state.location.search?.select) &&
-      !state.location.search?.create,
-  });
   const router = useRouter();
   const matchRoute = useMatchRoute();
   const opening = useOpenProject();
@@ -313,6 +307,7 @@ function RootLayout() {
                       project={project}
                       revision={project._rev}
                       active={id === activeProject?._id}
+                      hasActiveConnection={!!activeConnection}
                       initiallyExpanded={
                         id === expandedProject || id === activeProject?._id
                       }
@@ -345,13 +340,11 @@ function RootLayout() {
           className="relative h-full min-w-0 flex-1 overflow-auto"
         >
           <MainDimensionsContext.Provider value={{ width, height }}>
-            {!selectingProject &&
-              !queryScreen &&
-              !connectionSelectionScreen && (
-                <div className="flex justify-end border-b bg-white px-5 py-3">
-                  <ConnectionBadge />
-                </div>
-              )}
+            {!selectingProject && !queryScreen && (
+              <div className="flex justify-end border-b bg-white px-5 py-3">
+                <ConnectionBadge />
+              </div>
+            )}
             {opening.error && (
               <Alert variant="destructive" className="m-5">
                 <AlertDescription>{opening.error.message}</AlertDescription>

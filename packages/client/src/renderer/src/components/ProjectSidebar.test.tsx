@@ -267,6 +267,7 @@ beforeEach(() => {
 });
 
 it("nests saved queries under their project and removes the dedicated queries sidebar", () => {
+  mocks.connected = true;
   render(<Layout />);
   const sidebar = screen.getByRole("complementary", { name: "Projects" });
   expect(screen.getAllByRole("complementary")).toHaveLength(1);
@@ -343,6 +344,7 @@ it("renames a query from an inactive project without selecting a connection", as
 });
 
 it("does not delete the open query when leaving unsaved changes is blocked", async () => {
+  mocks.connected = true;
   mocks.pathname = "/queries/orders";
   mocks.navigate.mockImplementation(async () => {});
   const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -388,6 +390,7 @@ it("confirms project deletion and leaves the current query open when deleting an
 });
 
 it("collapses and expands the nested project queries", async () => {
+  mocks.connected = true;
   render(<Layout />);
   const user = userEvent.setup();
   await user.click(
@@ -397,7 +400,7 @@ it("collapses and expands the nested project queries", async () => {
     screen.queryByRole("link", { name: "Orders" })
   ).not.toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: "Connection: Select connection" })
+    screen.getByRole("button", { name: "Connection: Local" })
   ).toBeVisible();
   await user.click(
     screen.getByRole("button", { name: "Expand projects sidebar" })
@@ -467,7 +470,9 @@ it("toggles each project's queries independently without changing the current qu
       { name: "Orders" }
     )
   );
-  expect(mocks.openProject).toHaveBeenCalledWith("team", "orders");
+  expect(mocks.openProject).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("menuitem", { name: "Local" }));
+  expect(mocks.openProject).toHaveBeenCalledWith("team", "orders", "local");
 });
 
 it("shows the first-project screen without sidebars when there are no projects", () => {
@@ -508,7 +513,11 @@ it("shows the projects sidebar on launch without selecting a project or showing 
   await userEvent
     .setup()
     .click(within(queries).getByRole("button", { name: "Orders" }));
-  expect(mocks.openProject).toHaveBeenCalledWith("app", "orders");
+  expect(mocks.openProject).not.toHaveBeenCalled();
+  await userEvent
+    .setup()
+    .click(screen.getByRole("menuitem", { name: "Local" }));
+  expect(mocks.openProject).toHaveBeenCalledWith("app", "orders", "local");
 });
 
 it("expands a newly created project in the sidebar while waiting for query selection", () => {

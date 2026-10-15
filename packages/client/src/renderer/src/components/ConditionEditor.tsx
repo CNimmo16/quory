@@ -1,12 +1,6 @@
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { FilterFieldPicker } from "./FilterFieldPicker";
 import { TagsInput } from "./TagsInput";
 import { Hint } from "./Hint";
 import {
@@ -25,8 +19,8 @@ import {
   valueConditionOperators,
 } from "@quory/core";
 import { produce } from "immer";
-import { Fragment, useEffect, useState } from "react";
-import { AiOutlineDelete } from "react-icons/ai";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 
 export default function ConditionEditor({
   columns,
@@ -37,6 +31,10 @@ export default function ConditionEditor({
   onFocus,
   onBlur,
   maxDropdownHeight,
+  autoFocus = false,
+  focusColumnRequest,
+  onApply,
+  onNextFilter,
 }: {
   columns: DatabaseTableInfo["columns"];
   condition: Condition;
@@ -46,10 +44,31 @@ export default function ConditionEditor({
   onFocus?: () => void;
   onBlur?: () => void;
   maxDropdownHeight: number;
+  autoFocus?: boolean;
+  focusColumnRequest?: number | undefined;
+  onApply?: ((updated: Condition) => void) | undefined;
+  onNextFilter?: ((updated: Condition) => void) | undefined;
 }) {
   const [ghostFocused, setGhostFocused] = useState(false);
+  const [columnOpen, setColumnOpen] = useState(false);
+  const [operatorOpen, setOperatorOpen] = useState(false);
+  const [focusValue, setFocusValue] = useState(0);
+  const [focusChild, setFocusChild] = useState<{
+    index: number;
+    version: number;
+  } | null>(null);
+  const valueInput = useRef<HTMLInputElement>(null);
 
   const isBoolean = isBooleanCondition(condition);
+  useEffect(() => {
+    if (!isBoolean && (autoFocus || focusColumnRequest !== undefined))
+      setColumnOpen(true);
+  }, [autoFocus, focusColumnRequest, isBoolean]);
+  useEffect(() => {
+    if (!focusValue || isBoolean) return;
+    valueInput.current?.focus();
+    valueInput.current?.select();
+  }, [focusValue, isBoolean]);
 
   useEffect(() => {
     if (isBoolean && isConditionComplete(condition)) {
@@ -86,8 +105,8 @@ export default function ConditionEditor({
                   >
                     <Button
                       type="button"
-                      variant="link"
-                      className="h-auto p-0"
+                      variant="ghost"
+                      className="h-6 px-2 text-[10px] font-semibold uppercase text-slate-500 hover:bg-slate-100 hover:text-teal-700"
                       onClick={() => {
                         onConditionChange({
                           ...condition,
@@ -105,6 +124,52 @@ export default function ConditionEditor({
               )}
               <ConditionEditor
                 condition={subCondition}
+                autoFocus={autoFocus && index === 0}
+                focusColumnRequest={
+                  focusChild?.index === index ? focusChild.version : undefined
+                }
+                onApply={
+                  onApply
+                    ? (updated) =>
+                        onApply(
+                          produce(condition, (draft) => {
+                            draft.conditions[index] = updated;
+                          })
+                        )
+                    : undefined
+                }
+                onNextFilter={(updated) => {
+                  const next = produce(condition, (draft) => {
+                    draft.conditions[index] = updated;
+                  });
+                  let nextIndex = next.conditions.findIndex(
+                    (child, position) =>
+                      position > index &&
+                      isValueCondition(child) &&
+                      !child.column &&
+                      !child.value
+                  );
+                  let withNext = next;
+                  if (nextIndex < 0) {
+                    nextIndex = next.conditions.length;
+                    withNext = {
+                      ...next,
+                      conditions: [
+                        ...next.conditions,
+                        {
+                          column: "",
+                          operator: ConditionOperator.EQUALS,
+                          value: "",
+                        },
+                      ],
+                    };
+                  }
+                  onConditionChange(withNext);
+                  setFocusChild((current) => ({
+                    index: nextIndex,
+                    version: (current?.version ?? 0) + 1,
+                  }));
+                }}
                 columns={columns}
                 onConditionChange={(changedSubCondition) =>
                   onConditionChange(
@@ -137,40 +202,34 @@ export default function ConditionEditor({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <Select
+    <div className="flex flex-wrap items-center gap-2">
+      <FilterFieldPicker
+        label="Filter column"
+        searchLabel="Search columns"
         value={condition.column}
-        onValueChange={(column) => onConditionChange({ ...condition, column })}
-      >
-        <SelectTrigger
-          aria-label="Filter column"
-          className={`w-44 max-w-full shadow-none ${
-            isGhost ? "border-dashed" : ""
-          }`}
-          onFocus={onFocus}
-          onBlur={onBlur}
-        >
-          <SelectValue
-            placeholder={isGhost ? "Add a filter" : "Select column"}
-          />
-        </SelectTrigger>
-        <SelectContent
-          position="popper"
-          className="shadow-none"
-          style={{ maxHeight: maxDropdownHeight }}
-        >
-          {columns.map((column) => (
-            <SelectItem key={column.name} value={column.name}>
-              {column.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        placeholder={isGhost ? "Add a filter" : "Select column"}
+        options={columns.map((column) => column.name)}
+        open={columnOpen}
+        onOpenChange={setColumnOpen}
+        onSelect={(column) => {
+          onConditionChange({ ...condition, column });
+          setOperatorOpen(true);
+        }}
+        className={`w-40 max-w-full ${isGhost ? "border-dashed" : ""}`}
+        maxHeight={maxDropdownHeight}
+        onFocus={onFocus}
+        onBlur={onBlur}
+      />
       {!isGhost && (
         <>
-          <Select
+          <FilterFieldPicker
+            label="Filter operator"
+            searchLabel="Search operators"
             value={condition.operator}
-            onValueChange={(_value) => {
+            options={[...valueConditionOperators, ...listConditionOperators]}
+            open={operatorOpen}
+            onOpenChange={setOperatorOpen}
+            onSelect={(_value) => {
               const value = _value as ConditionOperator;
               if (
                 valueConditionOperators.includes(value) &&
@@ -200,34 +259,26 @@ export default function ConditionEditor({
                     : { ...condition, operator: value as ListConditionOperator }
                 );
               }
+              setFocusValue((current) => current + 1);
             }}
-          >
-            <SelectTrigger
-              aria-label="Filter operator"
-              className="w-28 shadow-none"
-              onFocus={onFocus}
-              onBlur={onBlur}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent
-              position="popper"
-              className="shadow-none"
-              style={{ maxHeight: maxDropdownHeight }}
-            >
-              {[...valueConditionOperators, ...listConditionOperators].map(
-                (operator) => (
-                  <SelectItem key={operator} value={operator}>
-                    {operator}
-                  </SelectItem>
-                )
-              )}
-            </SelectContent>
-          </Select>
+            className="w-24"
+            maxHeight={maxDropdownHeight}
+            onFocus={onFocus}
+            onBlur={onBlur}
+          />
           {isValueCondition(condition) && (
             <Input
+              ref={valueInput}
               aria-label="Filter value"
-              className="min-w-32 flex-1 shadow-none"
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" || event.nativeEvent.isComposing)
+                  return;
+                event.preventDefault();
+                if (!isConditionComplete(condition)) return;
+                if (event.shiftKey) onNextFilter?.(condition);
+                else onApply?.(condition);
+              }}
+              className="h-8 min-w-32 flex-1 border-slate-200 text-xs text-slate-700 shadow-none focus-visible:ring-teal-600"
               value={condition.value}
               onChange={(event) =>
                 onConditionChange({ ...condition, value: event.target.value })
@@ -238,6 +289,13 @@ export default function ConditionEditor({
           )}
           {isListCondition(condition) && (
             <TagsInput
+              inputRef={valueInput}
+              onSubmit={(values, next) => {
+                const updated = { ...condition, values };
+                if (!isConditionComplete(updated)) return;
+                if (next) onNextFilter?.(updated);
+                else onApply?.(updated);
+              }}
               value={condition.values}
               onChange={(values) => onConditionChange({ ...condition, values })}
               onFocus={onFocus}
@@ -249,10 +307,10 @@ export default function ConditionEditor({
             variant="ghost"
             size="icon"
             aria-label="Delete filter"
-            className="shrink-0 text-destructive hover:text-destructive"
+            className="size-8 shrink-0 text-slate-400 hover:bg-red-50 hover:text-red-700"
             onClick={onDelete}
           >
-            <AiOutlineDelete />
+            <Trash2 aria-hidden="true" className="size-3.5" />
           </Button>
         </>
       )}

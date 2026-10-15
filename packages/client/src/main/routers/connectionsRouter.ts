@@ -29,28 +29,32 @@ async function projectConnection(connectionId: string) {
 }
 
 const connectionsRouter = router({
-  listSavedConnections: publicProcedure.query(async () => {
-    const project = activeProjectState.getActiveProject();
-    if (!project) return { connections: [] };
-    const generation = activeProjectState.getProjectGeneration();
-    const { rows } = await connectionRepo.allDocs({
-      include_docs: true,
-    });
+  listSavedConnections: publicProcedure
+    .input(z.object({ projectId: z.string() }).optional())
+    .query(async ({ input }) => {
+      const project = activeProjectState.getActiveProject();
+      const projectId = input?.projectId ?? project?._id;
+      if (!projectId) return { connections: [] };
+      const generation = activeProjectState.getProjectGeneration();
+      const { rows } = await connectionRepo.allDocs({
+        include_docs: true,
+      });
 
-    const activeConnectionId =
-      await activeConnectionState.getActiveConnectionId();
+      const activeConnectionId =
+        await activeConnectionState.getActiveConnectionId();
 
-    activeProjectState.assertCurrent(project._id, generation);
-    return {
-      connections: rows
-        .filter((row) => row.doc?.projectId === project._id)
-        .map((row) => ({
-          id: row.id,
-          connection: row.doc!,
-          isActive: activeConnectionId === row.id,
-        })),
-    };
-  }),
+      if (!input && project)
+        activeProjectState.assertCurrent(project._id, generation);
+      return {
+        connections: rows
+          .filter((row) => row.doc?.projectId === projectId)
+          .map((row) => ({
+            id: row.id,
+            connection: row.doc!,
+            isActive: activeConnectionId === row.id,
+          })),
+      };
+    }),
   fetchActiveConnection: publicProcedure.query(async () => {
     const project = activeProjectState.getActiveProject();
     const generation = activeProjectState.getProjectGeneration();

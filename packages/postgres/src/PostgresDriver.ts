@@ -87,6 +87,8 @@ export class PostgresDriver implements DatabaseDriver {
   }
 
   async getAllColumnsInDatabase(): Promise<TableColumn[]> {
+    // information_schema.table_constraints hides keys from SELECT-only roles.
+    // Keep its column access filtering, but discover primary keys from pg_catalog.
     const columns = await this.sql`
     SELECT
     table_name,
@@ -94,19 +96,21 @@ export class PostgresDriver implements DatabaseDriver {
     column_name,
     is_nullable,
     data_type,
-    constraint_type
+    pk.column_name IS NOT NULL AS is_primary_key
 
     FROM information_schema.columns
     LEFT JOIN (
       SELECT
-      tc.table_schema, tc.table_name, column_name, constraint_type
-      FROM
-      information_schema.table_constraints AS tc
-      JOIN
-      information_schema.key_column_usage AS kcu
-      USING (constraint_schema, constraint_name)
-      WHERE constraint_type = 'PRIMARY KEY'
-    ) AS tc
+      ns.nspname AS table_schema,
+      tbl.relname AS table_name,
+      attr.attname AS column_name
+      FROM pg_catalog.pg_constraint AS con
+      JOIN pg_catalog.pg_class AS tbl ON tbl.oid = con.conrelid
+      JOIN pg_catalog.pg_namespace AS ns ON ns.oid = tbl.relnamespace
+      JOIN pg_catalog.pg_attribute AS attr
+        ON attr.attrelid = con.conrelid AND attr.attnum = ANY(con.conkey)
+      WHERE con.contype = 'p'
+    ) AS pk
     USING (table_schema, table_name, column_name)
 
     WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
@@ -119,7 +123,7 @@ export class PostgresDriver implements DatabaseDriver {
       dataType: columnInfo.data_type,
       genericDataType: postgresDatatypeToGenericDatatype(columnInfo.data_type),
       isNullable: columnInfo.is_nullable === "YES",
-      includedInPrimaryKey: columnInfo.constraint_type === "PRIMARY KEY",
+      includedInPrimaryKey: columnInfo.is_primary_key,
     }));
   }
 

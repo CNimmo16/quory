@@ -27,12 +27,14 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { LoadingState } from "./LoadingState";
 import { Alert, AlertDescription } from "./ui/alert";
+import { QueryConnectionMenu } from "./QueryConnectionMenu";
 
 export function ProjectQueries({
   projectId,
   project,
   revision,
   active = false,
+  hasActiveConnection = false,
   initiallyExpanded = active,
   busy = false,
   onOpenQuery,
@@ -41,9 +43,14 @@ export function ProjectQueries({
   project: Project;
   revision: string;
   active?: boolean;
+  hasActiveConnection?: boolean;
   initiallyExpanded?: boolean;
   busy?: boolean;
-  onOpenQuery: (projectId: string, queryId: string) => Promise<void>;
+  onOpenQuery: (
+    projectId: string,
+    queryId: string,
+    connectionId?: string
+  ) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
   const actions = useSidebarActions(projectId, project, revision, active);
@@ -57,7 +64,7 @@ export function ProjectQueries({
     }
   );
   function queryItem(queryId: string, children: React.ReactNode) {
-    return active ? (
+    return active && hasActiveConnection ? (
       <NavLink
         disabled={disabled}
         to="/queries/$queryId"
@@ -67,14 +74,13 @@ export function ProjectQueries({
         {children}
       </NavLink>
     ) : (
-      <button
-        type="button"
+      <QueryConnectionMenu
+        projectId={projectId}
         disabled={disabled}
-        className={`${navigationItemClassName} gap-2 pl-3`}
-        onClick={() => void onOpenQuery(projectId, queryId).catch(() => {})}
+        onOpen={(connectionId) => onOpenQuery(projectId, queryId, connectionId)}
       >
         {children}
-      </button>
+      </QueryConnectionMenu>
     );
   }
   return (

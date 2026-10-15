@@ -1,6 +1,3 @@
-import type { ComponentType } from "react";
-import { WindowToolbarFrame } from "./WindowToolbar";
-import { render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   data: {} as {
@@ -39,17 +36,11 @@ vi.mock("../GlobalProviders", () => ({
 vi.mock("./ConnectionBadge", () => ({
   ConnectionBadge: () => <button>Select connection badge</button>,
 }));
-vi.mock("./SelectConnectionScreen", () => ({
-  SelectConnectionScreen: ({ queryId }: { queryId: string }) => (
-    <section aria-label="Select connection">Connections for {queryId}</section>
-  ),
-}));
 vi.mock("./QueryView", () => ({ default: mocks.view }));
 vi.mock("./QueryChat", () => ({ QueryChatPane: mocks.assistant }));
 vi.mock("./SqlQueryWorkspace", () => ({ SqlQueryWorkspace: mocks.sql }));
 vi.mock("../util/tprc", () => ({ default: {} }));
 import { Route } from "../routes/queries/$queryId";
-const Page = Route.options.component as ComponentType;
 const load = Route.options.loader as (options: {
   params: { queryId: string };
 }) => Promise<unknown>;
@@ -62,56 +53,12 @@ beforeEach(() => {
     queries: [{ id: "orders", query: mocks.data.query }],
   });
 });
-it.each(["relationship", "sql"])(
-  "shows the %s query header above connection selection without results or assistant",
-  (mode) => {
-    mocks.data.query.mode = mode;
-    render(<Page />);
-    const header = screen
-      .getByRole("heading", { name: "Saved orders" })
-      .closest("header")!;
-    expect(
-      within(header).getByRole("button", { name: "Select connection badge" })
-    ).toBeVisible();
-    expect(
-      screen.getByRole("region", { name: "Select connection" })
-    ).toHaveTextContent("Connections for orders");
-    expect(header.nextElementSibling).toContainElement(
-      screen.getByRole("region", { name: "Select connection" })
-    );
-    expect(mocks.view).not.toHaveBeenCalled();
-    expect(mocks.assistant).not.toHaveBeenCalled();
-    expect(mocks.sql).not.toHaveBeenCalled();
-  }
-);
-it("loads the saved query from its project without requiring a connection or redirecting", async () => {
-  expect(await load({ params: { queryId: "orders" } })).toEqual(mocks.data);
-  expect(mocks.queries).toHaveBeenCalledWith({ projectId: "app" });
+it("redirects disconnected query URLs to the global query screen without loading the query", async () => {
+  await expect(load({ params: { queryId: "orders" } })).rejects.toEqual({
+    to: "/queries",
+  });
   expect(mocks.fetch).not.toHaveBeenCalled();
-});
-
-it("keeps the disconnected query header in the window toolbar above the connection screen", () => {
-  render(
-    <WindowToolbarFrame hasQueryHeader>
-      <Page />
-    </WindowToolbarFrame>
-  );
-  const toolbar = screen.getByRole("banner", { name: "App toolbar" });
-  expect(
-    within(toolbar).getByRole("heading", { name: "Saved orders" })
-  ).toBeVisible();
-  expect(
-    within(toolbar).getByRole("button", { name: "Select connection badge" })
-  ).toBeVisible();
-  expect(
-    within(toolbar).getByRole("button", { name: "Query actions" })
-  ).toBeDisabled();
-  expect(
-    within(toolbar).queryByRole("region", { name: "Select connection" })
-  ).not.toBeInTheDocument();
-  expect(
-    screen.getByRole("region", { name: "Select connection" })
-  ).toBeVisible();
+  expect(mocks.queries).not.toHaveBeenCalled();
 });
 it("loads the query against the chosen connection once connected", async () => {
   mocks.active.mockResolvedValue({
@@ -128,10 +75,4 @@ it("loads the query against the chosen connection once connected", async () => {
     queryId: "orders",
   });
   expect(mocks.queries).not.toHaveBeenCalled();
-});
-it("does not display a query from outside the open project", async () => {
-  mocks.queries.mockResolvedValue({ queries: [] });
-  await expect(load({ params: { queryId: "orders" } })).rejects.toThrow(
-    "could not be found in the project"
-  );
 });

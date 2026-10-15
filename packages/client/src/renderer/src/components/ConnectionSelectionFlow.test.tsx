@@ -32,11 +32,6 @@ vi.mock("@tanstack/react-router", () => ({
   useRouter: () => ({ invalidate: mocks.invalidate }),
 }));
 vi.mock("../GlobalProviders", () => ({ trpcClient: {} }));
-vi.mock("./SelectConnectionScreen", () => ({
-  SelectConnectionScreen: ({ queryId }: { queryId: string }) => (
-    <h1>Select connection for {queryId}</h1>
-  ),
-}));
 vi.mock("./ConnectionForm", () => ({
   ConnectionForm: ({
     onSave,
@@ -96,14 +91,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.search = { queryId: "orders", create: false };
 });
-it("opens selection instead of the connection form for a disconnected query", () => {
+it("opens the connection form directly without the removed selection screen", () => {
   render(<IndexPage />);
+  expect(screen.getByRole("heading", { name: "New connection" })).toBeVisible();
   expect(
-    screen.getByRole("heading", { name: "Select connection for orders" })
+    screen.getByRole("button", { name: "Create connection" })
   ).toBeVisible();
-  expect(
-    screen.queryByRole("button", { name: "Create connection" })
-  ).not.toBeInTheDocument();
 });
 it("preserves the target query through creation and connecting", async () => {
   mocks.search.create = true;
@@ -129,14 +122,11 @@ it("preserves the target query through creation and connecting", async () => {
   expect(mocks.invalidate).toHaveBeenCalledOnce();
 });
 
-it("returns to the disconnected query header when backing out of connection creation", async () => {
+it("returns to the global query screen when backing out of connection creation", async () => {
   mocks.search.create = true;
   render(<IndexPage />);
-  await userEvent
-    .setup()
-    .click(screen.getByRole("button", { name: "Back to connections" }));
+  await userEvent.setup().click(screen.getByRole("button", { name: "Back" }));
   expect(mocks.navigate).toHaveBeenCalledWith({
-    to: "/queries/$queryId",
-    params: { queryId: "orders" },
+    to: "/queries",
   });
 });

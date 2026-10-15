@@ -97,7 +97,6 @@ const props = () => ({
   initialQuery,
   connectionId: "connection-1",
   onQueryChange: vi.fn(),
-  onDeleteQuery: vi.fn(),
   width: 900,
   height: 700,
 });

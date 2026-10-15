@@ -4,7 +4,6 @@ import { AppRouter } from "../../../../main/ipc";
 import { inferProcedureInput } from "@trpc/server";
 import { ConnectionForm } from "../../components/ConnectionForm";
 import trpc from "../../util/tprc";
-import { SelectConnectionScreen } from "../../components/SelectConnectionScreen";
 import { Button } from "../../components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
@@ -24,9 +23,7 @@ export const Route = createFileRoute("/connections/")({
 });
 
 function RouteComponent() {
-  const { queryId, create, select } = Route.useSearch();
-  if ((queryId || select) && !create)
-    return <SelectConnectionScreen queryId={queryId} />;
+  const { queryId, select } = Route.useSearch();
   return (
     <CreateConnectionForm queryId={queryId} selecting={!!queryId || !!select} />
   );
@@ -76,15 +73,11 @@ function CreateConnectionForm({
           size="sm"
           className="mb-4"
           onClick={() => {
-            void navigate({
-              ...(queryId
-                ? { to: "/queries/$queryId", params: { queryId } }
-                : { to: "/connections", search: { select: true } }),
-            });
+            void navigate({ to: "/queries" });
           }}
         >
           <ArrowLeft aria-hidden="true" />
-          Back to connections
+          Back
         </Button>
       )}
       <h1 className="mb-5 text-2xl">New connection</h1>

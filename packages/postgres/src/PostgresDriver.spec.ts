@@ -129,6 +129,77 @@ describe("PostgresDriver", () => {
     ]);
   });
 
+  it("finds composite primary keys for SELECT-only roles without confusing schemas, unique keys or views", async () => {
+    await db.raw(`
+      CREATE ROLE quory_key_reader LOGIN PASSWORD 'quory_test_reader';
+      CREATE SCHEMA key_metadata_test;
+      CREATE TABLE public.records (
+        tenant_id INTEGER,
+        id INTEGER,
+        external_id TEXT UNIQUE,
+        PRIMARY KEY (tenant_id, id)
+      );
+      CREATE TABLE key_metadata_test.records (tenant_id INTEGER, id INTEGER UNIQUE);
+      CREATE VIEW public.records_view AS SELECT * FROM public.records;
+      GRANT USAGE ON SCHEMA public, key_metadata_test TO quory_key_reader;
+      GRANT SELECT ON public.records, public.records_view, key_metadata_test.records TO quory_key_reader;
+    `);
+    const reader = new PostgresDriver({
+      host: postgresContainer.getHost(),
+      port: postgresContainer.getPort(),
+      database: postgresContainer.getDatabase(),
+      user: "quory_key_reader",
+      password: "quory_test_reader",
+    });
+    try {
+      const constraints = await reader.exec(`
+        SELECT constraint_name FROM information_schema.table_constraints
+        WHERE table_schema = 'public' AND table_name = 'records'
+          AND constraint_type = 'PRIMARY KEY'
+      `);
+      expect(constraints).toEqual([]);
+      const columns = await reader.getAllColumnsInDatabase();
+      expect(
+        columns
+          .filter((column) => column.includedInPrimaryKey)
+          .map(
+            ({ schemaName, tableName, name }) =>
+              `${schemaName}.${tableName}.${name}`
+          )
+          .sort()
+      ).toEqual(["public.records.id", "public.records.tenant_id"]);
+      expect(columns).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            schemaName: "public",
+            tableName: "records",
+            name: "external_id",
+            includedInPrimaryKey: false,
+          }),
+          expect.objectContaining({
+            schemaName: "key_metadata_test",
+            tableName: "records",
+            name: "id",
+            includedInPrimaryKey: false,
+          }),
+          expect.objectContaining({
+            schemaName: "public",
+            tableName: "records_view",
+            name: "id",
+            includedInPrimaryKey: false,
+          }),
+        ])
+      );
+    } finally {
+      await reader.teardown();
+      await db.raw(`
+        DROP SCHEMA key_metadata_test CASCADE;
+        DROP OWNED BY quory_key_reader;
+        DROP ROLE quory_key_reader;
+      `);
+    }
+  });
+
   it("reads schemas containing internal PostgreSQL types without failing", async () => {
     await db.schema.createTable("metadata", (table) => {
       table.specificType("object_name", "name");

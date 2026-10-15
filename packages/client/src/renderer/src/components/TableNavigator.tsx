@@ -1,24 +1,27 @@
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import {
   findTableFromSchemas,
   splitTableRef,
   type PreparedQuery,
 } from "@quory/core";
 import type { useQuery, useFetchSchema } from "@quory/stack/react";
-import { Filter, MoreHorizontal, Network, Table2, Trash2 } from "lucide-react";
-import { Button } from "./ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+  Filter,
+  Network,
+  Table2,
+  Trash2,
+  Minus,
+  Plus,
+  RotateCcw,
+} from "lucide-react";
+import { Button } from "./ui/button";
 import { Hint } from "./Hint";
 import { cn } from "../lib/utils";
 import JoinAnotherTableButton from "./JoinAnotherTableButton";
 import { countFilters, QueryFilterPopover } from "./QueryFilters";
 import { layoutTableDiagram } from "./tableNavigatorLayout";
 import useElementSize from "../hooks/useElementSize";
+import { useRelationshipCanvas } from "../hooks/useRelationshipCanvas";
 
 import { TableColumnsMenu } from "./TableColumnsMenu";
 
@@ -34,7 +37,6 @@ function TableNavigator({
   schemas,
   highlightedJoinAlias,
   onChangeHighlightedJoinAlias,
-  onDeleteQuery,
 }: {
   width: number;
   maxHeight?: number;
@@ -43,10 +45,17 @@ function TableNavigator({
   schemas: NonNullable<ReturnType<typeof useFetchSchema>["data"]>["schemas"];
   highlightedJoinAlias: string | null;
   onChangeHighlightedJoinAlias: (joinAlias: string | null) => void;
-  onDeleteQuery: () => void;
 }) {
-  const diagramSize = useElementSize();
-  const availableWidth = diagramSize.width || Math.max(1, width - 48);
+  const { ref: measureRef, width: canvasWidth } = useElementSize();
+  const { ref: panRef, ...canvas } = useRelationshipCanvas();
+  const canvasRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      measureRef(element);
+      panRef(element);
+    },
+    [measureRef, panRef]
+  );
+  const availableWidth = Math.max(1, (canvasWidth || width) - 32);
   const layout = useMemo(
     () => layoutTableDiagram(query.base, availableWidth),
     [query, availableWidth]
@@ -60,25 +69,79 @@ function TableNavigator({
         <span className="text-slate-400">
           {layout.nodes.length} {layout.nodes.length === 1 ? "table" : "tables"}
         </span>
+        <div className="ml-auto flex items-center gap-1">
+          <Hint content="Zoom out">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-6"
+              aria-label="Zoom out relationships"
+              disabled={canvas.view.scale <= 0.35}
+              onClick={() => canvas.zoom(1 / 1.2)}
+            >
+              <Minus aria-hidden="true" className="size-3.5" />
+            </Button>
+          </Hint>
+          <span className="w-9 text-center text-[10px] tabular-nums text-slate-500">
+            {Math.round(canvas.view.scale * 100)}%
+          </span>
+          <Hint content="Zoom in">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-6"
+              aria-label="Zoom in relationships"
+              disabled={canvas.view.scale >= 2.5}
+              onClick={() => canvas.zoom(1.2)}
+            >
+              <Plus aria-hidden="true" className="size-3.5" />
+            </Button>
+          </Hint>
+          <Hint content="Reset view">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-6"
+              aria-label="Reset relationship canvas"
+              onClick={canvas.reset}
+            >
+              <RotateCcw aria-hidden="true" className="size-3.5" />
+            </Button>
+          </Hint>
+        </div>
       </div>
       <div
+        ref={canvasRef}
         role="region"
         aria-label="Relationship diagram"
         tabIndex={0}
-        className="overflow-y-auto overflow-x-hidden px-4 py-3 focus-visible:outline focus-visible:outline-1 focus-visible:outline-teal-600"
+        aria-description="Drag to pan. Scroll to zoom. Use arrow keys to pan, plus or minus to zoom, and Home to reset."
+        className={cn(
+          "relative touch-none select-none overflow-hidden focus-visible:outline focus-visible:outline-1 focus-visible:outline-teal-600",
+          canvas.dragging ? "cursor-grabbing" : "cursor-grab"
+        )}
+        {...canvas.handlers}
         style={{
-          maxHeight,
-          scrollbarGutter: "stable",
+          height: Math.min(maxHeight, layout.height + 24),
           backgroundColor: "#ffffff",
           backgroundImage:
             "radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
-          backgroundSize: "11px 11px",
+          backgroundSize: `${11 * canvas.view.scale}px ${
+            11 * canvas.view.scale
+          }px`,
+          backgroundPosition: `${canvas.view.x}px ${canvas.view.y}px`,
         }}
       >
         <div
-          ref={diagramSize.ref}
-          className="relative"
-          style={{ height: layout.height }}
+          className="relative origin-top-left"
+          style={{
+            width: layout.width,
+            height: layout.height,
+            transform: `translate(${canvas.view.x}px, ${canvas.view.y}px) scale(${canvas.view.scale})`,
+          }}
         >
           <svg
             aria-hidden="true"
@@ -184,11 +247,12 @@ function TableNavigator({
                 <div
                   key={join.joinAlias}
                   role="group"
+                  data-canvas-node
                   aria-label={`${join.tableRef}${instance}${
                     parent ? `, joined from ${parent.tableRef}` : ", base table"
                   }`}
                   className={cn(
-                    "absolute flex flex-col justify-between rounded-lg border p-2.5 transition-colors",
+                    "absolute flex cursor-auto flex-col justify-between rounded-lg border p-2.5 transition-colors",
                     hidden ? "bg-white" : "bg-slate-50",
                     highlightedJoinAlias === join.joinAlias
                       ? "border-teal-600"
@@ -239,46 +303,32 @@ function TableNavigator({
                         </span>
                       )}
                     </Hint>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                    {parent && (
+                      <Hint
+                        content={
+                          isRequiredBridge
+                            ? `This table is used to link to the descendant ${
+                                join.joins.length === 1 ? "table" : "tables"
+                              } ${linkedTables}. Remove the descendant ${
+                                join.joins.length === 1 ? "table" : "tables"
+                              } first.`
+                            : "Remove table from query"
+                        }
+                        side="left"
+                      >
                         <Button
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-6 shrink-0 rounded text-slate-400 shadow-none hover:bg-slate-100 hover:text-slate-800"
-                          aria-label={`Actions for ${tableName}`}
+                          disabled={isRequiredBridge}
+                          className="size-6 shrink-0 rounded text-slate-400 shadow-none hover:bg-red-50 hover:text-red-700"
+                          aria-label={`Remove ${tableName} from query`}
+                          onClick={() => actions.removeJoin()}
                         >
-                          <MoreHorizontal aria-hidden="true" />
+                          <Trash2 aria-hidden="true" className="size-3.5" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="border-slate-300 shadow-none"
-                      >
-                        <Hint
-                          disabled={!isRequiredBridge}
-                          content={`This table is used to link to the descendant ${
-                            join.joins.length === 1 ? "table" : "tables"
-                          } ${linkedTables}. Remove the descendant ${
-                            join.joins.length === 1 ? "table" : "tables"
-                          } first.`}
-                          side="left"
-                        >
-                          <DropdownMenuItem
-                            disabled={isRequiredBridge}
-                            className="text-red-700 focus:text-red-700"
-                            onSelect={() =>
-                              parent ? actions.removeJoin() : onDeleteQuery()
-                            }
-                          >
-                            <Trash2 aria-hidden="true" />
-                            {parent
-                              ? "Remove table from query"
-                              : "Delete query"}
-                          </DropdownMenuItem>
-                        </Hint>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      </Hint>
+                    )}
                   </div>
                   <div className="flex min-w-0 items-center justify-between gap-1">
                     <TableColumnsMenu
@@ -322,7 +372,8 @@ function TableNavigator({
             ({ join, x, y, width: placeholderWidth, height }) => (
               <div
                 key={`add-${join.joinAlias}`}
-                className="absolute"
+                data-canvas-node
+                className="absolute cursor-auto"
                 style={{ left: x, top: y, width: placeholderWidth, height }}
               >
                 <JoinAnotherTableButton

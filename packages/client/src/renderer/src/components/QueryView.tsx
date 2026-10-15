@@ -32,7 +32,6 @@ export default function QueryView({
   initialQuery,
   connectionId,
   onConvertToSql,
-  onDeleteQuery,
   onQueryChange,
   showQueryText: controlledShowQueryText,
   onShowQueryTextChange,
@@ -44,7 +43,6 @@ export default function QueryView({
   connectionId: string;
   onConvertToSql?: ((query: CustomSqlQuery) => void) | undefined;
   onQueryChange: (query: Query) => void;
-  onDeleteQuery: () => void;
   showQueryText?: boolean;
   onShowQueryTextChange?: ((sql: boolean) => void) | undefined;
   historyControls?: {
@@ -241,7 +239,6 @@ export default function QueryView({
               highlightedJoinAlias={highlightedJoinAlias}
               onChangeHighlightedJoinAlias={setHighlightedJoinAlias}
               joinActions={joinActions}
-              onDeleteQuery={onDeleteQuery}
             />
           ) : null}
         </fieldset>

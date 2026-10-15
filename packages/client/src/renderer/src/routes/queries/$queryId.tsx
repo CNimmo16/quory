@@ -20,7 +20,6 @@ import {
 import { AiOutlineCheck } from "react-icons/ai";
 import QueryView from "../../components/QueryView";
 import { ConnectionBadge } from "../../components/ConnectionBadge";
-import { SelectConnectionScreen } from "../../components/SelectConnectionScreen";
 import { QueryChatPane } from "../../components/QueryChat";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -38,17 +37,7 @@ export const Route = createFileRoute("/queries/$queryId")({
   component: RouteComponent,
   loader: async ({ params }) => {
     const res = await trpcClient.connections.fetchActiveConnection.query();
-    if (!res.connection) {
-      const { activeProject } = await trpcClient.projects.list.query();
-      if (!activeProject) throw redirect({ to: "/projects" });
-      const { queries } = await trpcClient.projects.listQueries.query({
-        projectId: activeProject._id,
-      });
-      const saved = queries.find(({ id }) => id === params.queryId);
-      if (!saved)
-        throw new Error("This query could not be found in the project.");
-      return { query: saved.query, connectionId: null, dialect: undefined };
-    }
+    if (!res.connection) throw redirect({ to: "/queries" });
     const result = await trpcClient.queries.fetchQuery.query({
       queryId: params.queryId,
       connectionId: res.connection._id,
@@ -69,33 +58,6 @@ type ConnectedQueryData = Extract<
 function RouteComponent() {
   const data = Route.useLoaderData();
   const { queryId } = Route.useParams();
-  if (!data.connectionId)
-    return (
-      <div className="flex h-full min-h-0 flex-col">
-        <QueryToolbar>
-          {isSqlQuery(data.query) && (
-            <span className="rounded border border-teal-200 bg-teal-50 px-1.5 py-0.5 font-mono text-xs font-medium text-teal-800">
-              SQL
-            </span>
-          )}
-          <div className="flex min-w-0 flex-1 items-center gap-1">
-            <h1
-              className="truncate text-sm font-medium"
-              title={data.query.nickname}
-            >
-              {data.query.nickname}
-            </h1>
-          </div>
-          <div className="flex items-center gap-1">
-            <ConnectionBadge />
-            <QueryActionsMenu disabled />
-          </div>
-        </QueryToolbar>
-        <div className="min-h-0 flex-1 overflow-auto">
-          <SelectConnectionScreen queryId={queryId} />
-        </div>
-      </div>
-    );
   if (isSqlQuery(data.query))
     return (
       <CustomSqlQueryEditor
@@ -306,7 +268,6 @@ function QueryEditor({
                 })
               }
               onQueryChange={handleQueryChange}
-              onDeleteQuery={handleDeleteQuery}
               historyControls={{
                 canUndo: queryHistory.past.length > 0,
                 canRedo: queryHistory.future.length > 0,

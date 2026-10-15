@@ -56,7 +56,10 @@ it("resizes during dragging and enforces the minimum and half-viewport limit", (
   const divider = screen.getByRole("separator", {
     name: "Resize projects sidebar",
   });
-  fireEvent.pointerDown(divider, { button: 0, clientX: 224 });
+  fireEvent.pointerDown(divider, {
+    button: 0,
+    clientX: Number(divider.getAttribute("aria-valuenow")),
+  });
   fireEvent.pointerMove(divider, { clientX: 500 });
   expect(divider).toHaveAttribute("aria-valuenow", "500");
   fireEvent.pointerMove(divider, { clientX: 1000 });

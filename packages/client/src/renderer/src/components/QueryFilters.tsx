@@ -67,6 +67,14 @@ export function QueryFilterPopover({
 }) {
   const [open, setOpen] = useState(false);
   const [condition, setCondition] = useState<Condition | null>(null);
+  function apply(updated = condition) {
+    if (!updated || !isBooleanCondition(updated)) return;
+    const complete = completeCondition(updated);
+    if (complete && isBooleanCondition(complete))
+      joinActions(join.joinAlias).setCondition(complete);
+    else joinActions(join.joinAlias).removeCondition();
+    setOpen(false);
+  }
   return (
     <Popover
       open={open}
@@ -95,37 +103,51 @@ export function QueryFilterPopover({
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent
         align="start"
-        className="flex max-h-[var(--radix-popover-content-available-height)] w-[650px] max-w-[calc(100vw-2rem)] flex-col gap-4 overflow-auto border-slate-300 bg-white shadow-none [&_button]:shadow-none [&_input]:shadow-none"
+        className="flex max-h-[var(--radix-popover-content-available-height)] w-[650px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border-slate-200 bg-white p-0 shadow-none [&_button]:shadow-none [&_input]:shadow-none"
       >
-        <div className="border-b border-slate-200 pb-3">
-          <p className="text-sm font-semibold text-slate-900">Filters</p>
-          <p className="mt-0.5 break-all font-mono text-xs text-slate-500">
-            {join.tableRef}
-          </p>
-        </div>
-        {condition && (
-          <ConditionEditor
-            columns={columns}
-            condition={condition}
-            maxDropdownHeight={500}
-            onConditionChange={setCondition}
+        <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-slate-50/60 px-3 py-2.5">
+          <SlidersHorizontal
+            aria-hidden="true"
+            className="size-3.5 shrink-0 text-slate-500"
           />
-        )}
-        <div className="flex justify-end gap-2 border-t border-slate-200 pt-3">
-          <Button variant="ghost" onClick={() => setOpen(false)}>
+          <h3 className="text-xs font-semibold text-slate-700">Filters</h3>
+          <span
+            className="ml-auto truncate text-[11px] text-slate-400"
+            title={join.tableRef}
+          >
+            {join.tableRef}
+          </span>
+        </div>
+        <div className="min-h-0 overflow-y-auto overscroll-contain p-3">
+          {condition && (
+            <ConditionEditor
+              columns={columns}
+              condition={condition}
+              maxDropdownHeight={500}
+              onConditionChange={setCondition}
+              autoFocus={!join.where}
+              onApply={apply}
+            />
+          )}
+        </div>
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/60 px-3 py-2">
+          <span className="mr-auto text-[10px] text-slate-400">
+            Enter to apply · Shift+Enter for another filter · ⌘/Ctrl+Enter to
+            apply lists
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            onClick={() => setOpen(false)}
+          >
             Cancel
           </Button>
           <Button
+            size="sm"
             disabled={!condition}
-            className="bg-slate-900 text-white hover:bg-slate-800"
-            onClick={() => {
-              if (!condition || !isBooleanCondition(condition)) return;
-              const complete = completeCondition(condition);
-              if (complete && isBooleanCondition(complete))
-                joinActions(join.joinAlias).setCondition(complete);
-              else joinActions(join.joinAlias).removeCondition();
-              setOpen(false);
-            }}
+            className="h-7 bg-slate-900 px-3 text-xs text-white hover:bg-slate-800"
+            onClick={() => apply()}
           >
             Apply
           </Button>

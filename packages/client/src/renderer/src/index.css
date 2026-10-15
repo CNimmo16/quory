@@ -31,7 +31,14 @@
   }
 
   body {
-    @apply overflow-hidden bg-background font-sans text-foreground;
+    @apply select-none overflow-hidden bg-background font-sans text-foreground;
+  }
+
+  input,
+  textarea,
+  [contenteditable]:not([contenteditable="false"]),
+  .cm-content {
+    @apply select-text;
   }
 
   html,
