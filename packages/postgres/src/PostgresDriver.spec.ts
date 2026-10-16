@@ -11,13 +11,15 @@ describe("PostgresDriver", () => {
   let db: Knex;
   let driver: PostgresDriver;
   beforeAll(async () => {
-    postgresContainer = await new PostgreSqlContainer().start();
+    postgresContainer = await new PostgreSqlContainer()
+      .withStartupTimeout(120_000)
+      .start();
 
     db = knex({
       client: "pg",
       connection: `postgresql://${postgresContainer.getUsername()}:${postgresContainer.getPassword()}@${postgresContainer.getHost()}:${postgresContainer.getPort()}/${postgresContainer.getDatabase()}`,
     });
-  }, 25000);
+  }, 180_000);
 
   beforeEach(async () => {
     await db.raw(`

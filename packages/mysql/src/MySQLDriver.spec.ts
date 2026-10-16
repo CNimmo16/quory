@@ -8,15 +8,19 @@ describe("MySQLDriver", () => {
   let db: Knex;
   let driver: MySQLDriver;
   beforeAll(async () => {
-    mysqlContainer = await new MySqlContainer("mysql:8.0.32").start();
+    mysqlContainer = await new MySqlContainer("mysql:8.0.32")
+      .withStartupTimeout(120_000)
+      .start();
 
     db = knex({
       client: "mysql2",
       connection: `mysql://${mysqlContainer.getUsername()}:${mysqlContainer.getUserPassword()}@${mysqlContainer.getHost()}:${mysqlContainer.getPort()}/${mysqlContainer.getDatabase()}`,
     });
-  }, 25000);
+    // Cold image pulls and MySQL initialization take longer on shared CI runners.
+  }, 180_000);
 
   beforeEach(async () => {
+    await driver?.teardown();
     await mysqlContainer.executeQuery(
       `DROP database test; CREATE database test;`,
     );
@@ -217,8 +221,11 @@ describe("MySQLDriver", () => {
   });
 
   afterAll(async () => {
-    await mysqlContainer?.stop();
-    await db?.destroy();
-    await driver?.teardown();
-  });
+    try {
+      await driver?.teardown();
+      await db?.destroy();
+    } finally {
+      await mysqlContainer?.stop();
+    }
+  }, 30_000);
 });

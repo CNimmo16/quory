@@ -1,5 +1,11 @@
 import { type ComponentProps } from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -198,11 +204,11 @@ describe("TableNavigator", () => {
     operator: string,
   ) {
     expect(
-      screen.getByRole("combobox", { name: "Search columns" }),
+      await screen.findByRole("combobox", { name: "Search columns" }),
     ).toHaveFocus();
     await user.keyboard(`${column}{Enter}`);
     expect(
-      screen.getByRole("combobox", { name: "Search operators" }),
+      await screen.findByRole("combobox", { name: "Search operators" }),
     ).toHaveFocus();
     await user.keyboard(`${operator}{Enter}`);
   }
@@ -778,6 +784,10 @@ describe("TableNavigator", () => {
         name: "Edit displayed columns for customers",
       }),
     );
+    // Radix enables pointer events in an effect after mounting its modal menu.
+    await waitFor(() =>
+      expect(screen.getByRole("menu")).toHaveStyle({ pointerEvents: "auto" }),
+    );
     await user.click(screen.getByRole("menuitemcheckbox", { name: "name" }));
     expect(
       screen.getByRole("menuitemcheckbox", { name: "id" }),
@@ -794,6 +804,9 @@ describe("TableNavigator", () => {
     expect(
       screen.getByRole("menuitemcheckbox", { name: "name" }),
     ).toBeChecked();
+    await waitFor(() =>
+      expect(screen.getByRole("menu")).toHaveStyle({ pointerEvents: "auto" }),
+    );
     await user.click(
       screen.getByRole("menuitemcheckbox", { name: "Select all" }),
     );
@@ -840,7 +853,7 @@ describe("TableNavigator", () => {
     await user.click(
       screen.getByRole("button", { name: "Add filter for customers" }),
     );
-    await user.click(screen.getByRole("option", { name: "name" }));
+    await user.click(await screen.findByRole("option", { name: "name" }));
     await user.click(screen.getByRole("option", { name: "in" }));
     await user.type(
       screen.getByRole("textbox", { name: "Filter values" }),
