@@ -42,6 +42,7 @@ nodeLinker: hoisted
 
 # Preserve the native modules and Electron installation steps used by the app.
 allowBuilds:
+  workerd: true
   better-sqlite3: true
   cpu-features: true
   electron: true
@@ -69,3 +70,6 @@ minimumReleaseAgeExclude:
   - pnpm@12.10.1
   - react-dom@19.2.9
   - react@19.2.9
+  - '@cloudflare/workers-types@5.20261016.1'
+  - miniflare@5.20261012.1-beta
+  - wrangler@4.151.1

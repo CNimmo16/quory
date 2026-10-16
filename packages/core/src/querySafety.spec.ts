@@ -103,7 +103,7 @@ describe.each(["postgres", "mysql", "sqlite"] as const)(
           (dialect === "postgres"
             ? " LIMIT $5 OFFSET $6"
             : " LIMIT ? OFFSET ?"),
-        [...parameters, 25, 42],
+        [...parameters, ...(dialect === "mysql" ? ["25", "42"] : [25, 42])],
         expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
       const { sql: countSql } = await prepareQuery(schemas, filtered, dialect, {

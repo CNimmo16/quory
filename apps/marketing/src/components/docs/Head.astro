@@ -1,0 +1,37 @@
+---
+import DefaultHead from "@astrojs/starlight/components/Head.astro";
+import palette from "../../../../../packages/config/theme/palette.json";
+
+// Adapt the shared palette to Starlight without loading marketing's Tailwind reset.
+function theme(tokens: typeof palette.light, dark = false) {
+  return Object.entries({
+    "accent-low": tokens["primary-subtle"],
+    accent: tokens.primary,
+    "accent-high": tokens["primary-emphasis"],
+    white: tokens.foreground,
+    "gray-1": tokens.foreground,
+    "gray-2": tokens["muted-foreground"],
+    "gray-3": tokens["muted-foreground"],
+    "gray-4": tokens.border,
+    "gray-5": tokens.muted,
+    "gray-6": tokens.card,
+    black: tokens.background,
+    bg: tokens.background,
+    "bg-nav": tokens.card,
+    "bg-sidebar": tokens.background,
+    "hairline-light": tokens.border,
+    "hairline-shade": tokens.border,
+    text: tokens.foreground,
+    "text-accent": tokens["primary-emphasis"],
+    "text-invert": dark ? tokens.background : tokens["primary-foreground"],
+  })
+    .map(([name, value]) => `--sl-color-${name}: ${value};`)
+    .join("\n");
+}
+---
+
+<DefaultHead />
+<style
+  is:inline
+  set:html={`:root { ${theme(palette.dark, true)} } :root[data-theme="light"] { ${theme(palette.light)} }`}
+></style>

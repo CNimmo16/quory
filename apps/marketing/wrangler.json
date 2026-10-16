@@ -1,0 +1,47 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "quory-marketing-local",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-16",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "SITE_URL": "http://localhost:8787",
+    "SITE_DOMAIN": "quory.example"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "quory-marketing-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "SIGNUP_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 5, "period": 60 }
+    }
+  ],
+  "env": {
+    "production": {
+      "name": "quory-marketing-production",
+      "workers_dev": true,
+      "preview_urls": false,
+      "vars": {},
+      "d1_databases": [],
+      "ratelimits": [
+        {
+          "name": "SIGNUP_LIMITER",
+          "namespace_id": "1001",
+          "simple": { "limit": 5, "period": 60 }
+        }
+      ]
+    }
+  }
+}

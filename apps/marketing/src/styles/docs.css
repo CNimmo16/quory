@@ -1,0 +1,35 @@
+@import "../../../../packages/config/theme/fonts.css";
+
+:root {
+  --sl-font: var(--font-body);
+  --sl-font-mono: var(--font-mono);
+  --sl-content-width: 48rem;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+h1 {
+  font-size: clamp(2.75rem, 5vw, 3.75rem);
+}
+.sl-markdown-content h2 {
+  font-size: 2.25rem;
+}
+.sl-markdown-content h3 {
+  font-size: 1.75rem;
+}
+.sl-markdown-content .card {
+  border-radius: 0.5rem;
+}
+.sl-markdown-content table {
+  font-size: var(--sl-text-sm);
+}
+::selection {
+  background: var(--sl-color-accent-low);
+}

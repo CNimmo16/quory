@@ -29,7 +29,7 @@ jobs:
 
       - name: Check download flow
         run: |
-          pnpm exec vitest run --config apps/marketing/vitest.config.ts
+          pnpm --filter @quory/marketing test:worker
           node --test scripts/downloads/release.test.mjs
           pnpm --filter @quory/marketing build
 

@@ -1,5 +1,6 @@
 ---
 import DownloadButton from "./DownloadButton.astro";
+import SignupVerification from "./SignupVerification.astro";
 import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
 ---
 
@@ -80,7 +81,7 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
     We’re building Quory Cloud. We’ll let you know when it’s ready for your
     team.
   </p>
-  <form>
+  <form method="dialog">
     <label for="cloud-interest-email">Email address</label>
     <input
       id="cloud-interest-email"
@@ -91,16 +92,14 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
       required
       autofocus
     />
-    <button
-      class="interest-button"
-      type="submit"
-      disabled
-      aria-describedby="interest-status">Register your interest</button
+    <SignupVerification />
+    <button class="interest-button" type="submit">Register your interest</button
     >
   </form>
 </dialog>
 
 <script>
+  import { signupForm } from "../lib/signup";
   const dialog = document.querySelector<HTMLDialogElement>(
     "#cloud-interest-dialog",
   );
@@ -108,7 +107,22 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
     "#cloud-interest-open",
   );
   if (dialog && trigger) {
-    trigger.addEventListener("click", () => dialog.showModal());
+    const form = dialog.querySelector<HTMLFormElement>("form")!;
+    const signup = signupForm(form);
+    const submit = form.querySelector<HTMLButtonElement>("[type=submit]")!;
+    let sending = false;
+    let generation = 0;
+    trigger.addEventListener("click", () => {
+      signup.message("");
+      dialog.showModal();
+      void signup.prepare();
+    });
+    dialog.addEventListener("close", () => {
+      generation++;
+      sending = false;
+      submit.disabled = false;
+      form.reset();
+    });
     dialog
       .querySelector(".dialog-close")
       ?.addEventListener("click", () => dialog.close());
@@ -123,10 +137,38 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
       )
         dialog.close();
     });
-    // Keep the preview form local until registration is connected.
-    dialog
-      .querySelector("form")
-      ?.addEventListener("submit", (event) => event.preventDefault());
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (sending) return;
+      const current = generation;
+      sending = true;
+      submit.disabled = true;
+      signup.message("Sending your confirmation email…");
+      try {
+        const message = await signup.submit(
+          form.querySelector<HTMLInputElement>("input[type=email]")!.value,
+          "cloud",
+        );
+        if (current === generation && dialog.open) {
+          signup.message(message);
+          form.reset();
+        }
+      } catch (error) {
+        if (current === generation && dialog.open)
+          signup.message(
+            error instanceof Error
+              ? error.message
+              : "Signup failed. Please try again.",
+            true,
+          );
+      } finally {
+        if (current === generation) {
+          sending = false;
+          submit.disabled = false;
+          void signup.prepare();
+        }
+      }
+    });
   }
 </script>
 

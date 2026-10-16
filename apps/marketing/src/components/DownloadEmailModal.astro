@@ -1,3 +1,7 @@
+---
+import SignupVerification from "./SignupVerification.astro";
+---
+
 <dialog
   id="download-email-dialog"
   aria-labelledby="download-email-title"
@@ -8,7 +12,9 @@
   >
   <h2 id="download-email-title">Pre-register for Quory cloud?</h2>
   <p id="download-email-description">
-    We’re working hard to build a cloud-hosted version of Quory. Enter your email to stay in the loop. No spam, no data sharing, just updates from us about Quory.
+    We’re working hard to build a cloud-hosted version of Quory. Enter your
+    email to stay in the loop. No spam, no data sharing, just updates from us
+    about Quory.
   </p>
   <form method="dialog">
     <label for="download-email">Email address</label>
@@ -17,9 +23,9 @@
       type="email"
       autocomplete="email"
       placeholder="you@company.com"
-      aria-describedby="download-email-note"
       autofocus
     />
+    <SignupVerification />
     <div class="actions">
       <button class="continue" type="submit">
         <span>Continue to download</span>
@@ -32,11 +38,16 @@
 
 <script>
   import { targets, osNames, type OS } from "../lib/downloads";
+  import { signupForm } from "../lib/signup";
 
   const dialog = document.querySelector<HTMLDialogElement>(
     "#download-email-dialog",
   )!;
   const form = dialog.querySelector<HTMLFormElement>("form")!;
+  const signup = signupForm(form);
+  const submit = form.querySelector<HTMLButtonElement>("[type=submit]")!;
+  let sending = false;
+  let generation = 0;
   let destination: string | undefined;
   let returnFocus: HTMLElement | undefined;
 
@@ -73,7 +84,9 @@
     dialog.querySelector("[data-selected-installer]")!.textContent =
       `${osNames[target.os as OS]} · ${target.label}`;
     form.reset();
+    signup.message("");
     dialog.showModal();
+    void signup.prepare();
   });
 
   function continueDownload() {
@@ -83,10 +96,39 @@
     window.location.assign(href);
   }
 
-  // UI-only signup: deliberately do not read, store, or transmit the email.
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    continueDownload();
+    if (sending) return;
+    const email = form
+      .querySelector<HTMLInputElement>("#download-email")!
+      .value.trim();
+    if (!email) {
+      continueDownload();
+      return;
+    }
+    const current = generation;
+    sending = true;
+    submit.disabled = true;
+    signup.message("Sending your confirmation email…");
+    try {
+      await signup.submit(email, "download");
+      if (current === generation && dialog.open) continueDownload();
+    } catch (error) {
+      if (current === generation && dialog.open) {
+        signup.message(
+          error instanceof Error
+            ? error.message
+            : "Signup failed. Please try again, or skip to download.",
+          true,
+        );
+        void signup.prepare();
+      }
+    } finally {
+      if (current === generation) {
+        sending = false;
+        submit.disabled = false;
+      }
+    }
   });
   dialog.querySelector(".skip")!.addEventListener("click", continueDownload);
   dialog
@@ -104,6 +146,9 @@
       dialog.close();
   });
   dialog.addEventListener("close", () => {
+    generation++;
+    sending = false;
+    submit.disabled = false;
     form.reset();
     destination = undefined;
     returnFocus?.focus({ preventScroll: true });

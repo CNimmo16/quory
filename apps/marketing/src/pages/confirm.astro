@@ -1,0 +1,53 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Confirm your email — Quory">
+  <section class="mx-auto max-w-xl px-6 py-24 text-center">
+    <h1 class="font-display text-5xl">One last step.</h1>
+    <p class="my-6 text-muted-foreground" role="status" data-confirm-status>
+      Confirm your email to receive updates about Quory Cloud.
+    </p>
+    <button
+      class="rounded-lg bg-primary px-6 py-3 text-primary-foreground disabled:opacity-50"
+      type="button"
+      data-confirm>Confirm my email</button
+    >
+    <a href="/" class="mt-8 block text-sm underline underline-offset-4"
+      >Back to Quory</a
+    >
+    <noscript><p>Enable JavaScript to confirm your email.</p></noscript>
+  </section>
+</Layout>
+<script>
+  // Fragments are not sent in HTTP requests or referrers. Requiring a button
+  // click prevents email link previews from confirming a subscription.
+  const token = location.hash.slice(1);
+  history.replaceState(history.state, "", location.pathname);
+  const button = document.querySelector<HTMLButtonElement>("[data-confirm]")!;
+  const status = document.querySelector<HTMLElement>("[data-confirm-status]")!;
+  if (!/^[a-f0-9]{64}$/.test(token)) {
+    button.hidden = true;
+    status.textContent =
+      "Open the confirmation link in your email to finish signing up.";
+  }
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    status.textContent = "Confirming your email…";
+    try {
+      const response = await fetch("/api/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const result = await response.json();
+      status.textContent = result.message || result.error;
+      if (response.ok) button.hidden = true;
+    } catch {
+      status.textContent = "We couldn’t confirm your email. Please try again.";
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>

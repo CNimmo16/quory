@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "id": "film-cast",
+  "nickname": "Academy Dinosaur - cast and category",
+  "base": {
+    "tableRef": "sakila.film",
+    "select": ["film_id", "title", "description", "release_year", "rating"],
+    "where": {
+      "column": "film_id",
+      "operator": "=",
+      "value": "1"
+    },
+    "joins": [
+      {
+        "tableRef": "sakila.actor",
+        "select": ["actor_id", "first_name", "last_name"],
+        "via": [
+          {
+            "tableRef": "sakila.film_actor"
+          },
+          {
+            "tableRef": "sakila.actor"
+          }
+        ],
+        "orderBy": [
+          {
+            "column": "last_name",
+            "direction": "asc"
+          }
+        ]
+      },
+      {
+        "tableRef": "sakila.category",
+        "select": ["name"],
+        "via": [
+          {
+            "tableRef": "sakila.film_category"
+          },
+          {
+            "tableRef": "sakila.category"
+          }
+        ]
+      }
+    ]
+  },
+  "limit": 100,
+  "offset": 0
+}

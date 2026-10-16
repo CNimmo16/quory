@@ -1,0 +1,54 @@
+---
+title: "Quick Start"
+description: "Find the right way to use Quory: a desktop client, a TypeScript library, or a React integration."
+sidebar:
+  order: 1
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+Quory helps you answer a specific question about a customer, order, or account, even when the answer is spread across several database tables. Start with a record, follow its relationships, and bring the relevant information together without writing every join yourself.
+
+Quory comes in several flavours. Use the desktop app to investigate your data, or use the same query engine to build your own tools.
+
+## Pick a starting point
+
+<CardGrid>
+  <LinkCard
+    title="I want to explore my database"
+    description="Use the desktop client. Connect a database, build a query, and save it for the next investigation."
+    href="/docs/client/getting-started/"
+  />
+  <LinkCard
+    title="I want to build a data tool"
+    description="Use @quory/core. Discover relationships and run queries from your own server-side TypeScript code."
+    href="/docs/core/getting-started/"
+  />
+  <LinkCard
+    title="I want to build a custom dashboard using Quory"
+    description="Use @quory/stack. Connect a server handler to React hooks and build an interface inside your existing app."
+    href="/docs/stack/getting-started/"
+  />
+</CardGrid>
+
+## What each flavour gives you
+
+|                | Desktop client                         | Core library                                     | Stack integrations                                  |
+| -------------- | -------------------------------------- | ------------------------------------------------ | --------------------------------------------------- |
+| Best for       | Support investigations                 | Custom tools and backend code                    | An existing React web app                           |
+| What you get   | An Electron app with a query workspace | Schema discovery and a relationship query engine | A server request handler, provider, and React hooks |
+| What you build | Nothing to get started                 | Your interface and application logic             | Your interface, HTTP route, and access controls     |
+| Where it runs  | Your computer                          | A Node.js process                                | Node.js backend and React frontend                  |
+| Start with     | [Download Quory](/downloads/)          | `@quory/core` + a driver                         | `@quory/stack/server` + `@quory/stack/react`        |
+
+All three use the same underlying relationship engine. Core is useful without React; stack adds the request and state-management layer for a web app. Stack currently exports hooks rather than a complete embeddable copy of the desktop UI.
+
+## Supported databases
+
+Quory includes drivers for **PostgreSQL, MySQL, and SQLite**. The desktop client includes them; library users choose the driver that matches their database. See [database connections](/docs/drivers/databases/) for configuration examples.
+
+Automatic joins use declared foreign keys. A column called `customer_id` does not establish a relationship by itself. Read [how Quory works](/docs/concepts/) before planning an integration.
+
+## What about Quory Cloud?
+
+Quory Cloud is planned and is not currently an available deployment option. Use the desktop client today, or host a stack integration in your own application. The current open-source stack does not provide Cloud's proposed row- and column-level access controls.

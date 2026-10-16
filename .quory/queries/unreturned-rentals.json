@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "unreturned-rentals",
+  "nickname": "Unreturned rentals before March 2006",
+  "mode": "sql",
+  "sql": "SELECT r.rental_id, r.rental_date,\n       DATE_ADD(r.rental_date, INTERVAL f.rental_duration DAY) AS due_date,\n       c.customer_id, c.first_name, c.last_name, c.email,\n       f.title, i.store_id\nFROM sakila.rental AS r\nJOIN sakila.customer AS c ON c.customer_id = r.customer_id\nJOIN sakila.inventory AS i ON i.inventory_id = r.inventory_id\nJOIN sakila.film AS f ON f.film_id = i.film_id\nWHERE r.return_date IS NULL AND r.rental_date < ?\nORDER BY r.rental_date, r.rental_id\nLIMIT 100",
+  "parameters": ["2006-03-01"],
+  "dialect": "mysql"
+}

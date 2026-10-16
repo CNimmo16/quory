@@ -182,6 +182,49 @@ Run `pnpm serve` to launch the Electron app locally. Keep `pnpm dev` running in 
 
 `pnpm serve` and the client preview check that Electron is installed and that its native bindings load before launching. They restore a missing runtime and rebuild incompatible bindings automatically after dependency reinstalls. To rebuild the bindings manually, run `pnpm rebuild:native`. This rebuilds the database and SSH native modules for the client's pinned Electron version and your current architecture. A plain `pnpm rebuild` targets Node.js instead; after rebuilding modules for Node.js tests, run `pnpm rebuild:native` before launching Electron.
 
+#### MySQL Sakila sample database
+
+With Docker running (including the Docker Compose plugin), run `pnpm sakila:up` to start MySQL 8.4 with the [official Sakila sample database](https://dev.mysql.com/doc/sakila/en/). The command waits until the import is complete and MySQL is ready. The first run pulls the MySQL image; subsequent starts reuse the database volume.
+
+Create a MySQL connection in Quory with:
+
+| Setting  | Value       |
+| -------- | ----------- |
+| Host     | `127.0.0.1` |
+| Port     | `3307`      |
+| Database | `sakila`    |
+| Username | `quory`     |
+| Password | `quory`     |
+
+The port is bound only to localhost. To use a different port, run `SAKILA_PORT=3308 pnpm sakila:up` and enter that port in Quory. These credentials are for local development; the container's root password is `sakila-root`.
+
+- `pnpm sakila:down` stops the database and keeps your data.
+- `pnpm sakila:up` starts it again with your changes preserved.
+- `pnpm sakila:reset` **deletes the Sakila volume and all changes**, then recreates the original sample database. Use this to retry a failed first import too.
+- `pnpm sakila:logs` follows MySQL's logs.
+
+Configuration lives in `compose.sakila.yml`. The compressed SQL fixtures in `docker/sakila/` are unmodified Sakila 1.5 schema and data from the [official archive](https://downloads.mysql.com/docs/sakila-db.tar.gz), downloaded on 2026-10-16 (archive SHA-256: `683e957d456341e48cccd66135ddb0d5701a8436523ed0a6366279f8e8719a68`). Their license is retained in the SQL headers and `docker/sakila/LICENSE`. Seeding runs only when the database volume is empty.
+
+##### Load the sample project
+
+The repository includes a ready-to-load [Sakila project](.quory/project.json) with six saved queries.
+
+1. Run `pnpm sakila:up`.
+2. In Quory, create a project named **Sakila**, choose **Project folder**, and browse to this repository (or its `.quory` directory).
+3. Add a MySQL connection using the connection details above. Connections are stored locally in Quory and are not imported from the project folder.
+4. Open a saved query from the project sidebar.
+
+| Query                                | What it demonstrates                                                 |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| Customers and addresses              | Customer → address → city → country relationships                    |
+| Customer 1 - rental history          | A customer filter, rental history, inventory, and film details       |
+| Academy Dinosaur - cast and category | Many-to-many relationships through `film_actor` and `film_category`  |
+| Rentals since August 2005            | Date filtering, sorting, and customer, film, and staff relationships |
+| Unreturned rentals before March 2006 | Custom SQL with a bound cutoff-date parameter                        |
+| Most rented films by store           | Custom SQL aggregation with a bound store-ID parameter               |
+
+The first four queries are editable in the relationship builder. The last two open in the SQL editor. Dates use Sakila's historical data so results remain useful regardless of today's date. Change the customer/film filters or SQL parameters to explore other records. Saving query edits updates `.quory/queries/` for review in Git.
+
 #### Saved filtersets
 
 In a saved relationship query, choose **Save current filters** in the Filters header to name the current filters. Recent filtersets appear in a single row as space allows; **View more** lists the rest. Choose a filterset to replace the current filters and return to the first results page while preserving columns, joins, and ordering. Applying a filterset is a normal query edit and can be undone.
@@ -202,4 +245,4 @@ Run `pnpm changeset` to build the packages and record a change for release. CI i
 
 ## Marketing website
 
-The static Astro marketing site lives in [`apps/marketing`](apps/marketing/README.md). Run `pnpm marketing:dev` to start it at http://127.0.0.1:4321. Edit copy directly in its Astro pages and shared layout.
+The static Astro marketing site lives in [`apps/marketing`](apps/marketing/README.md). Run `pnpm marketing:dev` to start it at http://127.0.0.1:4321. Edit marketing copy in its Astro pages and shared layout. The Starlight documentation is at `/docs/`, with Markdown and MDX guides in [`apps/marketing/src/content/docs/docs`](apps/marketing/src/content/docs/docs).

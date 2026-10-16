@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "id": "customer-rental-history",
+  "nickname": "Customer 1 - rental history",
+  "base": {
+    "tableRef": "sakila.customer",
+    "select": ["customer_id", "first_name", "last_name", "email"],
+    "where": {
+      "column": "customer_id",
+      "operator": "=",
+      "value": "1"
+    },
+    "joins": [
+      {
+        "tableRef": "sakila.rental",
+        "select": ["rental_id", "rental_date", "return_date"],
+        "orderBy": [
+          {
+            "column": "rental_date",
+            "direction": "desc"
+          }
+        ],
+        "joins": [
+          {
+            "tableRef": "sakila.inventory",
+            "select": ["inventory_id", "store_id"],
+            "joins": [
+              {
+                "tableRef": "sakila.film",
+                "select": ["title", "rating", "rental_duration", "rental_rate"]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "limit": 100,
+  "offset": 0
+}

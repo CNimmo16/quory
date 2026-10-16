@@ -1,0 +1,7 @@
+# Copy to .dev.vars for local Wrangler development only.
+# Use a separate development widget that allows localhost.
+TURNSTILE_SECRET_KEY=replace-with-development-widget-secret
+# Opt in only when intentionally testing real email delivery. Local Wrangler
+# will send real emails with a valid Resend key and verified SITE_DOMAIN.
+# RESEND_API_KEY=replace-with-development-resend-key
+# SITE_DOMAIN=your-verified-domain.com

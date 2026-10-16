@@ -58,12 +58,16 @@ export default async function runQuery(
     sql += `${
       joinsList.some((join) => join.orderBy?.length) ? ", " : " ORDER BY "
     }${keyOrder.join(", ")}`;
-  parameters.push(query.limit ?? 100);
+  // mysql2 encodes JS numbers as DOUBLE, which MySQL 8.4 rejects for LIMIT/OFFSET.
+  // Bind validated pagination integers as decimal strings for that dialect.
+  const pageParameter = (value: number) =>
+    databaseDriver.dialect === "mysql" ? String(value) : value;
+  parameters.push(pageParameter(query.limit ?? 100));
   sql += ` LIMIT ${parameterPlaceholder(
     parameters.length,
     databaseDriver.dialect,
   )}`;
-  parameters.push(query.offset ?? 0);
+  parameters.push(pageParameter(query.offset ?? 0));
   sql += ` OFFSET ${parameterPlaceholder(
     parameters.length,
     databaseDriver.dialect,

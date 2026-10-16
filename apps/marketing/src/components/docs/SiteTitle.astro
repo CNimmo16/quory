@@ -1,0 +1,47 @@
+---
+import logoUrl from "../../../../../packages/config/branding/quory-logo.svg?url";
+---
+
+<div class="docs-brand">
+  <a href="/" aria-label="Quory home" class="brand">
+    <img src={logoUrl} width="120" height="40" alt="" />
+  </a>
+  <a class="docs-link" href="/docs/">Docs</a>
+</div>
+
+<style>
+  .docs-brand,
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+  .brand {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+  .brand img {
+    width: auto;
+    height: 40px;
+  }
+  @media (max-width: 780px) {
+    .brand img {
+      height: 34px;
+    }
+  }
+  @media (max-width: 520px) {
+    .brand img {
+      height: 30px;
+    }
+  }
+  .docs-link {
+    color: var(--sl-color-text-accent);
+    border-inline-start: 1px solid var(--sl-color-hairline-light);
+    padding-inline-start: 0.8rem;
+    font-size: var(--sl-text-sm);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+</style>
