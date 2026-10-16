@@ -29,8 +29,9 @@ production.d1_databases = [
     migrations_dir: "migrations",
   },
 ];
-// Custom domains are attached manually in Cloudflare; this workflow only needs
-// account-scoped access, not permission to edit zone DNS or routes.
+// Attach the root hostname to this same Worker on deploy. Cloudflare manages
+// the Custom Domain's DNS record and TLS certificate.
+production.routes = [{ pattern: site.SITE_DOMAIN, custom_domain: true }];
 await writeFile(
   new URL("../wrangler.deploy.json", import.meta.url),
   JSON.stringify(config, null, 2),

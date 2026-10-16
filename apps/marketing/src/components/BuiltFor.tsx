@@ -7,19 +7,37 @@ const stories = [
     description:
       "A failed payment. A missing order. A customer waiting for an answer. Follow the relationships in your database to understand what happened and get back to the customer with the full picture.",
     tone: "teal",
-  },
-  {
-    title: "Explore with\nconfidence.",
-    description:
-      "Get the answers you need with read-only connections that keep writes off the table. Give your team the confidence to explore, with row-level security coming soon for more granular control.",
-    tone: "plum",
-    note: "Row-level security · Coming soon",
+    image: "/screenshots/query-view-complex.png",
+    imageFrame: "window",
+    imageAlt:
+      "Quory’s SQL editor and results for a query showing the most rented films by store.",
+    imageWidth: 1742,
+    imageHeight: 1125,
   },
   {
     title: "Move faster with\na small team.",
     description:
       "Small teams shouldn’t need a custom dashboard for every question. Surface answers from the data you already have, and spend more time building your product than wiring up internal tools.",
     tone: "amber",
+    image: "/screenshots/prompt-box.png",
+    imageFrame: "card",
+    imageAlt:
+      "Quory’s query prompt, with a database selector and a note that row data stays in Quory.",
+    imageWidth: 717,
+    imageHeight: 473,
+  },
+  {
+    title: "Explore with\nconfidence.",
+    description:
+      "Get the answers you need with read-only connections that keep writes off the table. Give your team the confidence to explore, with row-level security coming soon for more granular control.",
+    tone: "plum",
+    image: "/screenshots/confirm-write.png",
+    imageFrame: "card",
+    imageAlt:
+      "Quory showing related customer, address, city, and country tables with query results.",
+    imageWidth: 694,
+    imageHeight: 395,
+    note: "Row-level security · Coming soon",
   },
 ];
 
@@ -156,12 +174,18 @@ export default function BuiltFor() {
               <h2 id={`built-for-${story.tone}`}>{story.title}</h2>
               <p>{story.description}</p>
             </div>
-            {/* Place the screenshot inside this gradient surface when it is ready. */}
-            <div
-              className={styles.visual}
-              data-tone={story.tone}
-              aria-hidden="true"
-            />
+            <div className={styles.visual} data-tone={story.tone}>
+              <img
+                className={styles.screenshot}
+                data-frame={story.imageFrame}
+                src={story.image}
+                alt={story.imageAlt}
+                width={story.imageWidth}
+                height={story.imageHeight}
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
           </article>
         ))}
       </div>

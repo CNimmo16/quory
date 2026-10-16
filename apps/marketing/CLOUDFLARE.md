@@ -18,12 +18,15 @@ Both forms collect interest in **Quory Cloud**, matching their copy;
 4. Create a **Managed Turnstile** widget with your website hostname allowed.
    Copy its site key and secret. This protects the public endpoint from being
    used to send unwanted confirmation emails.
-5. Add the production settings below, then run the Marketing workflow on `main`.
-6. For a custom website domain, attach it to `quory-marketing-production` under
-   Workers → Settings → Domains & Routes → Add → Custom Domain. Set `SITE_DOMAIN`
-   to that hostname, without `https://` or a trailing slash. The deployment
-   derives `SITE_URL` as `https://SITE_DOMAIN` for the Worker and Astro build.
-   The signup API accepts only the configured origin.
+5. Set `SITE_DOMAIN` to the root hostname, without `https://` or a trailing slash.
+   Its DNS zone must be active in the same Cloudflare account as the Worker.
+   The deployment derives `SITE_URL` as `https://SITE_DOMAIN` for the Worker and
+   Astro build. The signup API accepts only the configured origin.
+6. Add the production settings below, then run the Marketing workflow on `main`.
+   Deployment attaches `SITE_DOMAIN` as a Worker Custom Domain and Cloudflare
+   provisions its DNS record and TLS certificate. The root domain serves the
+   same Worker as its `workers.dev` address, which remains enabled. No manual
+   CNAME to `workers.dev` or dashboard domain attachment is needed.
 7. Submit your own email once on the deployed site and follow the confirmation
    link. Verify `confirmed_at` is set in D1. Check the Resend email logs
    if the message does not arrive. This live check requires your account setup;
@@ -40,11 +43,11 @@ See [Resend pricing](https://resend.com/pricing) and
 
 Environment **secrets**:
 
-| Name                   | Value                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN` | Account-scoped token with Workers Scripts: Edit and D1: Edit. Already supplied. |
-| `RESEND_API_KEY`       | Resend API key with sending access to `SITE_DOMAIN`. Already supplied.          |
-| `TURNSTILE_SECRET_KEY` | Secret for the production Turnstile widget.                                     |
+| Name                   | Value                                                                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN` | Workers Scripts: Edit and D1: Edit for the account, plus Workers Routes: Edit for the site's zone. Update the supplied token's zone permissions. |
+| `RESEND_API_KEY`       | Resend API key with sending access to `SITE_DOMAIN`. Already supplied.                                                                           |
+| `TURNSTILE_SECRET_KEY` | Secret for the production Turnstile widget.                                                                                                      |
 
 Environment **variables** (not secrets):
 
@@ -58,8 +61,11 @@ Environment **variables** (not secrets):
 The deploy script generates an ignored `wrangler.deploy.json` from these values.
 The Turnstile and Resend secrets are placed in a temporary file and uploaded with
 `wrangler deploy --secrets-file`, then the file is removed. Only the public
-Turnstile key is included in browser code. The deployment token needs no DNS
-permissions because custom domains and email-domain onboarding are manual.
+Turnstile key is included in browser code. Scope Workers Routes permissions to
+the site's zone so deployment can attach and update its Custom Domain. Resend
+email-domain DNS verification remains a one-time manual step.
+See [Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)
+and [Workers permissions](https://developers.cloudflare.com/workers/authorization/workers/).
 `SITE_URL` is an internal derived value, not a GitHub setting. There is no
 `EMAIL_FROM` setting. Remove either old environment variable if previously added.
 

@@ -1,9 +1,11 @@
 {
+  "mode": "sql",
+  "sql": "UPDATE `sakila`.`rental` SET `length` = 500",
+  "parameters": [
+    500
+  ],
+  "dialect": "mysql",
   "version": 1,
   "id": "most-rented-films",
-  "nickname": "Most rented films by store",
-  "mode": "sql",
-  "sql": "SELECT f.film_id, f.title, f.rating,\n       COUNT(*) AS rental_count,\n       COUNT(DISTINCT r.customer_id) AS unique_customers\nFROM sakila.rental AS r\nJOIN sakila.inventory AS i ON i.inventory_id = r.inventory_id\nJOIN sakila.film AS f ON f.film_id = i.film_id\nWHERE i.store_id = ?\nGROUP BY f.film_id, f.title, f.rating\nORDER BY rental_count DESC, f.film_id\nLIMIT 20",
-  "parameters": [1],
-  "dialect": "mysql"
+  "nickname": "set rental lengths to 500"
 }

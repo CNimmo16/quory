@@ -138,11 +138,25 @@
 .visual {
   position: relative;
   isolation: isolate;
+  display: grid;
+  place-items: center;
   width: 85%;
   margin-inline: auto;
   aspect-ratio: 1.1;
   overflow: hidden;
   border-radius: 20px;
+}
+.screenshot {
+  display: block;
+  width: 84%;
+  height: auto;
+  border-radius: 8px;
+  filter: drop-shadow(0 16px 24px rgb(var(--foreground) / 0.2));
+}
+.screenshot[data-frame="window"] {
+  /* This capture already includes transparent space around the window. */
+  width: 100%;
+  border-radius: 0;
 }
 .visual[data-tone="teal"] {
   background:
