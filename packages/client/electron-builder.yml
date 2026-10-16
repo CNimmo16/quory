@@ -18,6 +18,7 @@ asarUnpack:
 
 # windows targets:
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch: [x64]
@@ -30,6 +31,7 @@ nsis:
 
 # mac targets:
 mac:
+  icon: build/icon.icns
   target: [dmg]
   sign: scripts/sign-adhoc.cjs
   hardenedRuntime: false
@@ -46,6 +48,7 @@ dmg:
 
 # linux targets:
 linux:
+  icon: build/icon.png
   target:
     - AppImage
     - deb

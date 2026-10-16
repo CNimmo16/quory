@@ -10,6 +10,7 @@ import {
 } from "electron-devtools-installer";
 
 let mainWindow: BrowserWindow | null = null;
+const icon = join(app.getAppPath(), "resources/icon.png");
 
 if (!app.isPackaged) loadAIEnvironment();
 
@@ -21,6 +22,7 @@ export async function recreateMainWindow(): Promise<void> {
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
+    icon,
     width: 1200,
     height: 800,
     show: false,
@@ -65,6 +67,9 @@ export async function recreateMainWindow(): Promise<void> {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+  if (process.platform === "darwin" && !app.isPackaged) {
+    app.dock?.setIcon(icon);
+  }
   if (is.dev) {
     installExtension(REACT_DEVELOPER_TOOLS);
   }
