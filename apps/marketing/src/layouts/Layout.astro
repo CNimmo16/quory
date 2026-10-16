@@ -1,6 +1,7 @@
 ---
 import "../styles/global.css";
 import GitHubLink from "../components/GitHubLink.astro";
+import DownloadEmailModal from "../components/DownloadEmailModal.astro";
 import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
 import logoUrl from "../../../../packages/config/branding/quory-logo.svg?url";
 import palette from "../../../../packages/config/theme/palette.json";
@@ -60,7 +61,7 @@ const {
         />
       </a>
       <nav
-        class="flex items-center gap-[34px] text-[14px] font-medium max-[780px]:gap-[18px] max-[780px]:text-[12px] max-[520px]:gap-4"
+        class="flex items-center gap-[34px] text-[14px] font-medium max-[780px]:gap-[18px] max-[780px]:text-[12px] max-[520px]:gap-3"
         aria-label="Main navigation"
       >
         <a
@@ -78,6 +79,13 @@ const {
         >
           Docs
         </a>
+        <a
+          href="/downloads/"
+          class="hover:text-primary-emphasis hover:underline hover:underline-offset-[5px]"
+          aria-current={Astro.url.pathname === "/downloads/"
+            ? "page"
+            : undefined}>Downloads</a
+        >
         <a href="/#cloud" class="group relative hover:text-primary-emphasis">
           <span class="underline-offset-[5px] group-hover:underline">Cloud</span
           >
@@ -88,7 +96,7 @@ const {
           </span>
         </a>
       </nav>
-      <GitHubLink />
+      <GitHubLink compactOnMobile />
     </header>
     <main id="main">
       <slot />
@@ -100,9 +108,6 @@ const {
         <a class="inline-flex items-center" href="/" aria-label="Quory home">
           <img class="h-8 w-auto" src={logoUrl} width="96" height="32" alt="" />
         </a>
-        <p class="mx-0 mt-3 mb-0 text-[10px] text-muted-foreground">
-          A little more context. A better answer.
-        </p>
       </div>
       <div class="text-right max-[520px]:text-left">
         <div
@@ -122,9 +127,10 @@ const {
           </a>
         </div>
         <p class="mx-0 mt-3 mb-0 text-[10px] text-muted-foreground">
-          Open source, built for the people behind support.
+          Open source, built for engineers by engineers.
         </p>
       </div>
     </footer>
+    <DownloadEmailModal />
   </body>
 </html>

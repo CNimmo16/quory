@@ -1,0 +1,42 @@
+[
+  {
+    "id": "macos-arm64-dmg",
+    "os": "macos",
+    "arch": "arm64",
+    "format": "dmg",
+    "label": "Apple Silicon",
+    "suffix": "mac-arm64.dmg"
+  },
+  {
+    "id": "macos-x64-dmg",
+    "os": "macos",
+    "arch": "x64",
+    "format": "dmg",
+    "label": "Intel",
+    "suffix": "mac-x64.dmg"
+  },
+  {
+    "id": "windows-x64-exe",
+    "os": "windows",
+    "arch": "x64",
+    "format": "exe",
+    "label": "Intel / AMD · 64-bit",
+    "suffix": "win-x64-setup.exe"
+  },
+  {
+    "id": "linux-x64-appimage",
+    "os": "linux",
+    "arch": "x64",
+    "format": "AppImage",
+    "label": "AppImage · 64-bit",
+    "suffix": "linux-x64.AppImage"
+  },
+  {
+    "id": "linux-x64-deb",
+    "os": "linux",
+    "arch": "x64",
+    "format": "deb",
+    "label": "Debian / Ubuntu · 64-bit",
+    "suffix": "linux-x64.deb"
+  }
+]

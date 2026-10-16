@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "version": "1.0.6",
+  "publishedAt": "2025-01-26T13:04:04Z",
+  "assets": [
+    {
+      "id": "windows-x64-exe",
+      "filename": "quory-1.0.6-setup.exe",
+      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory/client%401.0.6/quory-1.0.6-setup.exe",
+      "size": 103378990,
+      "sha256": null
+    },
+    {
+      "id": "linux-x64-appimage",
+      "filename": "quory-1.0.6.AppImage",
+      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory/client%401.0.6/quory-1.0.6.AppImage",
+      "size": 142358778,
+      "sha256": null
+    },
+    {
+      "id": "linux-x64-deb",
+      "filename": "quory-1.0.6.deb",
+      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory/client%401.0.6/quory-1.0.6.deb",
+      "size": 90579052,
+      "sha256": null
+    },
+    {
+      "id": "macos-arm64-dmg",
+      "filename": "quory-1.0.6.dmg",
+      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory/client%401.0.6/quory-1.0.6.dmg",
+      "size": 129868234,
+      "sha256": null
+    }
+  ]
+}

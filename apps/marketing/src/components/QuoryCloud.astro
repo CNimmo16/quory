@@ -1,4 +1,5 @@
 ---
+import DownloadButton from "./DownloadButton.astro";
 import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
 ---
 
@@ -14,7 +15,7 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
       to explore customer data, with less setup to manage.
     </p>
     <div class="download">
-      <p>Quory cloud is coming soon. The desktop app is available today.</p>
+      <p>Quory Cloud is coming soon. The desktop app is available today.</p>
       <div class="cloud-actions">
         <button
           class="interest-button"
@@ -23,11 +24,9 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
           aria-haspopup="dialog"
           aria-controls="cloud-interest-dialog"
         >
-          Register your interest
+          Pre-register for Quory Cloud
         </button>
-        <a href="https://github.com/CNimmo16/quory/releases/latest">
-          Get the desktop app
-        </a>
+        <DownloadButton compact variant="secondary" />
       </div>
     </div>
   </div>
@@ -77,7 +76,10 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
   >
   <p class="eyebrow">Quory Cloud</p>
   <h2 id="interest-title">Register your interest</h2>
-  <p id="interest-description">We’re building Quory Cloud. We’ll let you know when it’s ready for your team.</p>
+  <p id="interest-description">
+    We’re building Quory Cloud. We’ll let you know when it’s ready for your
+    team.
+  </p>
   <form>
     <label for="cloud-interest-email">Email address</label>
     <input
@@ -131,6 +133,7 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
 <style>
   .cloud-actions {
     display: flex;
+    align-items: flex-start;
     flex-wrap: wrap;
     gap: 12px;
   }

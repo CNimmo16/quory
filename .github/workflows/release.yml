@@ -22,10 +22,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20.x
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Check download flow
+        run: |
+          pnpm exec vitest run --config apps/marketing/vitest.config.ts
+          node --test scripts/downloads/release.test.mjs
+          pnpm --filter @quory/marketing build
 
       - name: Publish to npm
         id: changesets
@@ -53,7 +59,7 @@ jobs:
         with:
           result-encoding: string
           script: |
-            const publishedPackages = JSON.parse(process.env.PUBLISHED_PACKAGES);
+            const publishedPackages = JSON.parse(process.env.PUBLISHED_PACKAGES || '[]');
             const clientPackage = publishedPackages.find((pkg) => pkg.name === '@quory/client');
             if (!clientPackage) {
               return '';
@@ -66,61 +72,93 @@ jobs:
 
   electron:
     needs: determine-client-version
-
     if: needs.determine-client-version.outputs.publishedClientVersion != ''
-
-    name: Build and distribute Electron packages for Mac, Windows and Linux
-
+    name: Package ${{ matrix.platform }} ${{ matrix.arch }}
+    permissions:
+      contents: read
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-      fail-fast: false # keep going with other operating systems if one fails
-
+        include:
+          - os: macos-15
+            platform: mac
+            arch: arm64
+          - os: macos-15-intel
+            platform: mac
+            arch: x64
+          - os: windows-latest
+            platform: win
+            arch: x64
+          - os: ubuntu-22.04
+            platform: linux
+            arch: x64
     runs-on: ${{ matrix.os }}
-
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v3
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js 20.x
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: "@quory/client@${{ needs.determine-client-version.outputs.publishedClientVersion }}"
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: 20.x
-          cache: 'pnpm'
-
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
-
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify release version
+        env:
+          RELEASE_VERSION: ${{ needs.determine-client-version.outputs.publishedClientVersion }}
+        run: node -e "if(require('./packages/client/package.json').version !== process.env.RELEASE_VERSION) process.exit(1)"
       - name: Build JS packages
         run: pnpm run build
-
-      - name: Build Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: pnpm --filter @quory/client run build:linux
-
-      - name: Build Mac
-        if: matrix.os == 'macos-latest'
-        run: pnpm --filter @quory/client run build:mac
-
-      - name: Build Windows
-        if: matrix.os == 'windows-latest'
-        run: pnpm --filter @quory/client run build:win
-
-      - name: Upload to release
-        uses: softprops/action-gh-release@v1
+      - name: Prepare Electron native modules
+        working-directory: packages/client
+        run: node scripts/prepare-electron.mjs
+      - name: Package installers (no automatic publishing)
+        working-directory: packages/client
+        run: pnpm exec electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+      - name: Verify packaged runtime and native modules
+        working-directory: packages/client
+        run: node scripts/verify-package.cjs ${{ matrix.platform }} ${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
         with:
-          tag_name: '@quory/client@${{ needs.determine-client-version.outputs.publishedClientVersion }}'
-          append_body: true
-          make_latest: true
-          files: |
-            packages/client/dist/*.exe
-            packages/client/dist/*.zip
+          name: desktop-${{ matrix.platform }}-${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
             packages/client/dist/*.dmg
+            packages/client/dist/*.exe
             packages/client/dist/*.AppImage
-            packages/client/dist/*.snap
             packages/client/dist/*.deb
-            packages/client/dist/*.rpm
-            packages/client/dist/*.tar.gz
+
+  desktop-downloads:
+    name: Publish complete desktop download set
+    needs: [determine-client-version, electron]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: installers
+      - name: Validate complete set and generate checksums
+        env:
+          RELEASE_VERSION: ${{ needs.determine-client-version.outputs.publishedClientVersion }}
+        run: node scripts/downloads/release.mjs installers "$RELEASE_VERSION"
+      - name: Attach installers and metadata to the desktop release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.determine-client-version.outputs.publishedClientVersion }}
+        run: gh release upload "@quory/client@$RELEASE_VERSION" installers/* --clobber
+      - name: Promote the website manifest only after every upload succeeds
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const manifest = require('./installers/downloads.json');
+            await require('./scripts/downloads/publish-manifest.cjs')({ github, context, manifest });

@@ -1,13 +1,15 @@
 ---
 interface Props {
   label?: string;
+  compactOnMobile?: boolean;
 }
-const { label = "GitHub" } = Astro.props;
+const { label = "GitHub", compactOnMobile = false } = Astro.props;
 ---
 
 <a
   class="group inline-flex min-h-11 shrink-0 items-center justify-center gap-2.5 text-[14px] font-medium text-black hover:text-primary-emphasis max-[520px]:text-[12px]"
   href="https://github.com/CNimmo16/quory"
+  aria-label={label}
   target="_blank"
   rel="noopener noreferrer"
 >
@@ -26,7 +28,9 @@ const { label = "GitHub" } = Astro.props;
     alt=""
   />
   <span
-    class="underline decoration-current/40 underline-offset-[5px] group-hover:decoration-current"
-    >{label}</span
+    class:list={[
+      "underline decoration-current/40 underline-offset-[5px] group-hover:decoration-current",
+      { "max-[520px]:hidden": compactOnMobile },
+    ]}>{label}</span
   >
 </a>

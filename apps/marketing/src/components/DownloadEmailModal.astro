@@ -1,0 +1,233 @@
+<dialog
+  id="download-email-dialog"
+  aria-labelledby="download-email-title"
+  aria-describedby="download-email-description"
+>
+  <button class="close" type="button" aria-label="Close download dialog"
+    >×</button
+  >
+  <h2 id="download-email-title">Pre-register for Quory cloud?</h2>
+  <p id="download-email-description">
+    We’re working hard to build a cloud-hosted version of Quory. Enter your email to stay in the loop. No spam, no data sharing, just updates from us about Quory.
+  </p>
+  <form method="dialog">
+    <label for="download-email">Email address</label>
+    <input
+      id="download-email"
+      type="email"
+      autocomplete="email"
+      placeholder="you@company.com"
+      aria-describedby="download-email-note"
+      autofocus
+    />
+    <div class="actions">
+      <button class="continue" type="submit">
+        <span>Continue to download</span>
+        <p class="platform" data-selected-installer></p>
+      </button>
+      <button class="skip" type="button">No thanks - just download</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  import { targets, osNames, type OS } from "../lib/downloads";
+
+  const dialog = document.querySelector<HTMLDialogElement>(
+    "#download-email-dialog",
+  )!;
+  const form = dialog.querySelector<HTMLFormElement>("form")!;
+  let destination: string | undefined;
+  let returnFocus: HTMLElement | undefined;
+
+  document.addEventListener("click", (event) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+    const link =
+      event.target instanceof Element
+        ? event.target.closest<HTMLAnchorElement>("a[data-download-email]")
+        : null;
+    if (!link?.hasAttribute("href")) return;
+    const url = new URL(link.href);
+    const target = targets.find(
+      (target) => url.pathname === `/downloads/install/${target.id}/`,
+    );
+    if (url.origin !== window.location.origin || !target) return;
+
+    event.preventDefault();
+    destination = link.href;
+    const picker = link.closest<HTMLElement>("[data-download-picker]");
+    returnFocus = picker
+      ? (picker
+          .closest("[data-download-widget]")
+          ?.querySelector<HTMLElement>("[data-download-toggle]") ?? link)
+      : link;
+    if (picker?.matches(":popover-open")) picker.hidePopover();
+    dialog.querySelector("[data-selected-installer]")!.textContent =
+      `${osNames[target.os as OS]} · ${target.label}`;
+    form.reset();
+    dialog.showModal();
+  });
+
+  function continueDownload() {
+    if (!destination) return;
+    const href = destination;
+    dialog.close();
+    window.location.assign(href);
+  }
+
+  // UI-only signup: deliberately do not read, store, or transmit the email.
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    continueDownload();
+  });
+  dialog.querySelector(".skip")!.addEventListener("click", continueDownload);
+  dialog
+    .querySelector(".close")!
+    .addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", (event) => {
+    if (event.target !== dialog) return;
+    const bounds = dialog.getBoundingClientRect();
+    if (
+      event.clientX < bounds.left ||
+      event.clientX > bounds.right ||
+      event.clientY < bounds.top ||
+      event.clientY > bounds.bottom
+    )
+      dialog.close();
+  });
+  dialog.addEventListener("close", () => {
+    form.reset();
+    destination = undefined;
+    returnFocus?.focus({ preventScroll: true });
+    returnFocus = undefined;
+  });
+</script>
+
+<style>
+  dialog {
+    width: min(600px, calc(100% - 40px));
+    max-height: calc(100svh - 40px);
+    margin: auto;
+    padding: 36px;
+    border: 1px solid rgb(var(--border));
+    border-radius: 20px;
+    background: rgb(var(--background));
+    color: rgb(var(--foreground));
+    box-shadow: 0 24px 80px rgb(var(--foreground) / 0.18);
+  }
+  dialog::backdrop {
+    background: rgb(var(--foreground) / 0.35);
+    backdrop-filter: blur(5px);
+  }
+  .close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: rgb(var(--muted-foreground));
+    font-size: 26px;
+    line-height: 1;
+  }
+  .close:hover {
+    background: rgb(var(--primary-subtle) / 0.5);
+  }
+  .eyebrow {
+    margin: 0 0 12px;
+    color: rgb(var(--primary-emphasis));
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+  }
+  h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 38px;
+    line-height: 1.1;
+  }
+  #download-email-description {
+    margin: 16px 0;
+    color: rgb(var(--muted-foreground));
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .platform {
+    color: rgb(var(--primary-subtle));
+    font-size: 12px;
+    font-weight: 500;
+  }
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid rgb(var(--border));
+    border-radius: 8px;
+    background: rgb(var(--background));
+    color: rgb(var(--foreground));
+    font: inherit;
+    font-size: 14px;
+  }
+  .note {
+    margin: 10px 0 24px;
+    color: rgb(var(--muted-foreground));
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .actions button {
+    padding: 6px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .continue {
+    flex: 1;
+    border: 1px solid transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: rgb(var(--primary));
+    color: rgb(var(--primary-foreground));
+  }
+  .continue:hover {
+    background: rgb(var(--primary-hover));
+  }
+  .skip {
+    border: 1px solid rgb(var(--border));
+    background: transparent;
+    color: rgb(var(--muted-foreground));
+  }
+  .skip:hover {
+    background: rgb(var(--primary-subtle) / 0.5);
+    color: rgb(var(--foreground));
+  }
+  @media (max-width: 520px) {
+    dialog {
+      padding: 32px 24px 24px;
+    }
+    h2 {
+      font-size: 34px;
+    }
+  }
+</style>

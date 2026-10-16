@@ -1,0 +1,349 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import PlatformIcon from "../../../components/PlatformIcon.astro";
+import {
+  targets,
+  fallbackManifest,
+  osNames,
+  type OS,
+} from "../../../lib/downloads";
+export function getStaticPaths() {
+  return targets.map((target) => ({
+    params: { installer: target.id },
+    props: { target },
+  }));
+}
+const { target } = Astro.props;
+const asset = fallbackManifest.assets.find((a) => a.id === target.id);
+const platform = osNames[target.os as OS];
+---
+
+<Layout
+  title={`Install Quory for ${platform}`}
+  description={`Installation instructions for Quory on ${platform}.`}
+>
+  <section class="install-page" data-installer={target.id}>
+    <a class="back-link" href="/downloads/">← Choose another download</a>
+    <header>
+      <div class="platform-mark"><PlatformIcon os={target.os} /></div>
+      <p class="eyebrow">{platform} · {target.label}</p>
+      <h1>Let’s get Quory<br /><span>up and running.</span></h1>
+      <p class="download-status" role="status" data-download-status>
+        {
+          asset
+            ? "Your installer is ready to download."
+            : "This installer is not available yet."
+        }
+      </p>
+      <a
+        class="retry-link"
+        href={asset?.url}
+        hidden={!asset}
+        data-installer-link>Download installer</a
+      >
+      <p class="version" data-installer-version>
+        {asset ? `Version ${fallbackManifest.version}` : ""}
+      </p>
+      <noscript
+        ><p>Use the download link above to start your download.</p></noscript
+      >
+    </header>
+    <div class="steps">
+      <h2>Installing on {platform}</h2>
+      {
+        target.os === "macos" && (
+          <>
+            <ol>
+              <>
+                <li>
+                  <>
+                    <strong>Open the download.</strong>
+                    <p>
+                      Open the .dmg file, then drag Quory into Applications.
+                    </p>
+                  </>
+                </li>
+                <li>
+                  <>
+                    <strong>Launch Quory.</strong>
+                    <p>
+                      Open it from Applications. This early-access build is not
+                      notarized, so macOS may block the first launch.
+                    </p>
+                  </>
+                </li>
+                <li>
+                  <>
+                    <strong>Review the security prompt.</strong>
+                    <p>
+                      If you trust the download, go to System Settings → Privacy
+                      &amp; Security and choose Open Anyway for Quory, when
+                      available.
+                    </p>
+                  </>
+                </li>
+              </>
+            </ol>
+            <p class="note">
+              On a managed Mac, your organization may prevent installation. If
+              macOS reports the app as damaged or malicious, stop and report the
+              issue instead of disabling protections.
+            </p>
+            <a href="https://support.apple.com/en-us/102445">
+              Apple’s installation guidance ↗
+            </a>
+          </>
+        )
+      }
+      {
+        target.os === "windows" && (
+          <>
+            <ol>
+              <>
+                <li>
+                  <>
+                    <strong>Open the installer.</strong>
+                    <p>
+                      Run the downloaded .exe file on your Intel or AMD 64-bit
+                      PC.
+                    </p>
+                  </>
+                </li>
+                <li>
+                  <>
+                    <strong>Review the publisher warning.</strong>
+                    <p>
+                      This early-access installer isn’t publisher-signed. If
+                      SmartScreen appears, review the source before proceeding.
+                      When permitted, More info → Run anyway lets you continue.
+                    </p>
+                  </>
+                </li>
+                <li>
+                  <>
+                    <strong>Follow the setup steps.</strong>
+                    <p>
+                      Complete the installer, then open Quory from the Start
+                      menu.
+                    </p>
+                  </>
+                </li>
+              </>
+            </ol>
+            <p class="note">
+              Smart App Control or your organization’s policies may block
+              unsigned apps. Ask your IT team for help rather than disabling
+              those protections.
+            </p>
+          </>
+        )
+      }
+      {
+        target.os === "linux" && (
+          <>
+            <ol>
+              <>
+                <li>
+                  <>
+                    <strong>Find your download.</strong>
+                    <p>
+                      This{" "}
+                      {target.format === "deb" ? "Debian package" : "AppImage"}{" "}
+                      is for Intel and AMD 64-bit Linux systems.
+                    </p>
+                  </>
+                </li>
+                <li>
+                  <>
+                    <strong>
+                      {target.format === "deb"
+                        ? "Install the package."
+                        : "Allow the file to run."}
+                    </strong>
+                    <p>
+                      {target.format === "deb"
+                        ? "Open the .deb with your software installer on Debian or Ubuntu and follow the installation prompts."
+                        : "Open the AppImage’s file properties and enable permission to run it as a program."}
+                    </p>
+                  </>
+                </li>
+                <li>
+                  <>
+                    <strong>Open Quory.</strong>
+                    <p>
+                      {target.format === "deb"
+                        ? "Launch Quory from your application menu."
+                        : "Launch the AppImage. Some distributions need FUSE compatibility packages."}
+                    </p>
+                  </>
+                </li>
+              </>
+            </ol>
+            <p class="note">
+              Library and sandbox requirements vary between distributions.
+              Report launch errors rather than disabling the sandbox.
+            </p>
+          </>
+        )
+      }
+      <div class="next">
+        <p>Once Quory is open, connect your database to start exploring.</p><a
+          href="/docs/">Explore the docs →</a
+        ><a href="https://github.com/CNimmo16/quory/issues"
+          >Get installation help ↗</a
+        >
+      </div>
+    </div>
+  </section>
+</Layout>
+<script>
+  import { fallbackManifest, loadManifest } from "../../../lib/downloads";
+  const page = document.querySelector<HTMLElement>("[data-installer]")!;
+  const link = page.querySelector<HTMLAnchorElement>("[data-installer-link]")!;
+  const status = page.querySelector<HTMLElement>("[data-download-status]")!;
+  const url = new URL(window.location.href);
+  const start = url.searchParams.get("start") === "1";
+  // Consume the request before downloading, so refreshing/back won't download again.
+  if (start) {
+    url.searchParams.delete("start");
+    history.replaceState(history.state, "", url);
+    status.textContent = "Preparing your download…";
+  }
+  function showInstaller(manifest: typeof fallbackManifest) {
+    const asset = manifest.assets.find((a) => a.id === page.dataset.installer);
+    link.hidden = !asset;
+    if (!asset) {
+      link.removeAttribute("href");
+      status.textContent =
+        "This installer is not available yet. Please choose another download.";
+      return;
+    }
+    link.href = asset.url;
+    page.querySelector("[data-installer-version]")!.textContent =
+      `Version ${manifest.version}`;
+    status.textContent = start
+      ? "Your download should start shortly. Follow the steps below to install Quory."
+      : "Your installer is ready to download.";
+    link.textContent = start
+      ? "Download not starting? Try again"
+      : "Download installer";
+    if (start) {
+      // GitHub serves an attachment, leaving this instructions page in place.
+      window.location.assign(asset.url);
+    }
+  }
+  void loadManifest().then(showInstaller);
+</script>
+<style>
+  .install-page {
+    width: min(760px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 40px 0 88px;
+  }
+  .back-link {
+    font-size: 12px;
+    color: rgb(var(--muted-foreground));
+  }
+  header {
+    text-align: center;
+    padding: 44px 0 36px;
+  }
+  .platform-mark {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 20px;
+    border-radius: 14px;
+    background: rgb(var(--primary-subtle));
+    color: rgb(var(--primary-emphasis));
+  }
+  .eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgb(var(--primary-emphasis));
+  }
+  h1 {
+    margin: 20px 0 24px;
+    font-family: var(--font-display);
+    font-size: clamp(44px, 6vw, 64px);
+    font-weight: 500;
+    line-height: 1.05;
+  }
+  h1 span {
+    color: rgb(var(--primary));
+  }
+  .download-status {
+    max-width: 440px;
+    margin: 0 auto 12px;
+    font-size: 14px;
+    color: rgb(var(--muted-foreground));
+  }
+  .retry-link,
+  .steps a {
+    color: rgb(var(--primary-emphasis));
+    font-size: 13px;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .version {
+    font-size: 11px;
+    color: rgb(var(--muted-foreground));
+  }
+  .steps {
+    padding: 32px;
+    border: 1px solid rgb(var(--border));
+    border-radius: 16px;
+  }
+  h2 {
+    margin: 0 0 24px;
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 500;
+  }
+  ol {
+    padding-left: 22px;
+    margin: 0;
+  }
+  li {
+    padding-left: 8px;
+    margin-bottom: 24px;
+    font-size: 14px;
+  }
+  li::marker {
+    color: rgb(var(--primary));
+  }
+  li strong {
+    font-weight: 500;
+  }
+  li p {
+    margin: 6px 0 0;
+    color: rgb(var(--muted-foreground));
+    line-height: 1.85;
+  }
+  .note {
+    padding: 16px;
+    border-radius: 8px;
+    background: rgb(var(--primary-subtle) / 0.4);
+    color: rgb(var(--muted-foreground));
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .next {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid rgb(var(--border));
+    font-size: 13px;
+  }
+  .next a {
+    display: inline-block;
+    margin-right: 20px;
+    margin-top: 8px;
+  }
+  @media (max-width: 520px) {
+    .steps {
+      padding: 24px 20px;
+    }
+  }
+</style>
