@@ -1,5 +1,11 @@
 # @quory/client
 
+## 1.0.8
+
+### Patch Changes
+
+- df9024a: Use the Quory icon across desktop platforms and adopt Apple's native Icon Composer format on macOS, with an automatically generated fallback for older systems.
+
 ## 1.0.7
 
 ### Patch Changes
