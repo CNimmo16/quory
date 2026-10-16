@@ -47,7 +47,7 @@ export class SqliteDriver implements DatabaseDriver {
   async execSql(
     sql: string,
     parameters: SqlParameter[],
-    options: SqlExecutionOptions
+    options: SqlExecutionOptions,
   ): Promise<SqlExecutionResult> {
     options.signal?.throwIfAborted();
     const previouslyReadOnly = this.db.pragma("query_only", { simple: true });
@@ -71,8 +71,8 @@ export class SqliteDriver implements DatabaseDriver {
                 value <= BigInt(Number.MAX_SAFE_INTEGER) &&
                 value >= BigInt(Number.MIN_SAFE_INTEGER)
                   ? Number(value)
-                  : value
-              )
+                  : value,
+              ),
             );
           }
           return {
@@ -111,8 +111,8 @@ export class SqliteDriver implements DatabaseDriver {
           .prepare(
             `SELECT * FROM ${quoteIdentifier(
               schema.name,
-              "sqlite"
-            )}.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';`
+              "sqlite",
+            )}.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';`,
           )
           .all() as { name: string }[]
       ).flatMap((table) => {
@@ -121,8 +121,8 @@ export class SqliteDriver implements DatabaseDriver {
             .prepare(
               `PRAGMA ${quoteIdentifier(
                 schema.name,
-                "sqlite"
-              )}.table_info(${quoteIdentifier(table.name, "sqlite")});`
+                "sqlite",
+              )}.table_info(${quoteIdentifier(table.name, "sqlite")});`,
             )
             .all() as {
             name: string;
@@ -137,15 +137,15 @@ export class SqliteDriver implements DatabaseDriver {
             .prepare(
               `SELECT typeof(${quoteIdentifier(
                 column.name,
-                "sqlite"
+                "sqlite",
               )}) FROM ${quoteIdentifier(
                 schema.name,
-                "sqlite"
-              )}.${quoteIdentifier(table.name, "sqlite")};`
+                "sqlite",
+              )}.${quoteIdentifier(table.name, "sqlite")};`,
             )
             .get() as { [key: string]: string } | null;
           const affinity = getAffinityForType(
-            typeRes ? Object.values(typeRes)[0]! : column.type
+            typeRes ? Object.values(typeRes)[0]! : column.type,
           );
           return {
             schemaName: schema.name,
@@ -172,8 +172,8 @@ export class SqliteDriver implements DatabaseDriver {
           .prepare(
             `SELECT * FROM ${quoteIdentifier(
               schema.name,
-              "sqlite"
-            )}.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';`
+              "sqlite",
+            )}.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';`,
           )
           .all() as { name: string }[]
       ).flatMap((table) => {
@@ -182,8 +182,8 @@ export class SqliteDriver implements DatabaseDriver {
             .prepare(
               `PRAGMA ${quoteIdentifier(
                 schema.name,
-                "sqlite"
-              )}.foreign_key_list(${quoteIdentifier(table.name, "sqlite")});`
+                "sqlite",
+              )}.foreign_key_list(${quoteIdentifier(table.name, "sqlite")});`,
             )
             .all() as {
             id: number;
@@ -194,29 +194,27 @@ export class SqliteDriver implements DatabaseDriver {
             on_update: string;
             on_delete: string;
           }[]
-        ).map(
-          (fk): Relationship => ({
-            constraintId: String(fk.id),
-            columnPosition: fk.seq + 1,
-            localSchema: schema.name,
-            localTable: table.name,
-            localColumn: fk.from,
-            foreignSchema: schema.name,
-            foreignTable: fk.table,
-            foreignColumn:
-              fk.to ??
-              (
-                this.db
-                  .prepare(
-                    `PRAGMA ${quoteIdentifier(
-                      schema.name,
-                      "sqlite"
-                    )}.table_info(${quoteIdentifier(fk.table, "sqlite")});`
-                  )
-                  .all() as { name: string; pk: number }[]
-              ).find((column) => column.pk === fk.seq + 1)!.name,
-          })
-        );
+        ).map((fk): Relationship => ({
+          constraintId: String(fk.id),
+          columnPosition: fk.seq + 1,
+          localSchema: schema.name,
+          localTable: table.name,
+          localColumn: fk.from,
+          foreignSchema: schema.name,
+          foreignTable: fk.table,
+          foreignColumn:
+            fk.to ??
+            (
+              this.db
+                .prepare(
+                  `PRAGMA ${quoteIdentifier(
+                    schema.name,
+                    "sqlite",
+                  )}.table_info(${quoteIdentifier(fk.table, "sqlite")});`,
+                )
+                .all() as { name: string; pk: number }[]
+            ).find((column) => column.pk === fk.seq + 1)!.name,
+        }));
       });
     });
     return foreignKeys;

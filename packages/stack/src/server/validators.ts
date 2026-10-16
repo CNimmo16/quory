@@ -16,7 +16,7 @@ export const condition: z.ZodType<Condition> = z.union([
     .object({
       column: z.string(),
       operator: z.enum(
-        valueConditionOperators as unknown as readonly [ValueConditionOperator]
+        valueConditionOperators as unknown as readonly [ValueConditionOperator],
       ),
       value: z.string(),
     })
@@ -25,8 +25,8 @@ export const condition: z.ZodType<Condition> = z.union([
     .object({
       operator: z.enum(
         booleanConditionOperators as unknown as readonly [
-          BooleanConditionOperator
-        ]
+          BooleanConditionOperator,
+        ],
       ),
       conditions: z.lazy(() => z.array(condition).min(1)),
     })
@@ -35,7 +35,7 @@ export const condition: z.ZodType<Condition> = z.union([
     .object({
       column: z.string(),
       operator: z.enum(
-        listConditionOperators as unknown as readonly [ListConditionOperator]
+        listConditionOperators as unknown as readonly [ListConditionOperator],
       ),
       values: z.array(z.string()).min(1),
     })
@@ -70,7 +70,7 @@ export const joinDef: z.ZodType<JoinDef> = z.object({
           direction: z.enum(["asc", "desc"]),
           priority: z.number().int().nonnegative().optional(),
         })
-        .strict()
+        .strict(),
     )
     .optional(),
 });

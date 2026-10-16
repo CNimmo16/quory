@@ -88,7 +88,7 @@ it("does not open the query before connecting completes", async () => {
   mocks.connect.mockReturnValue(
     new Promise<void>((resolve) => {
       finish = resolve;
-    })
+    }),
   );
   const { result } = renderHook(() => useOpenProject());
   let opening!: Promise<void>;
@@ -96,7 +96,7 @@ it("does not open the query before connecting completes", async () => {
     opening = result.current.openProject("team", "orders", "staging");
   });
   expect(mocks.navigate).not.toHaveBeenCalledWith(
-    expect.objectContaining({ to: "/queries/$queryId" })
+    expect.objectContaining({ to: "/queries/$queryId" }),
   );
   expect(result.current.isPending).toBe(true);
   await act(async () => {
@@ -113,11 +113,11 @@ it("keeps failed connections out of the query view", async () => {
   const { result } = renderHook(() => useOpenProject());
   await act(async () => {
     await expect(
-      result.current.openProject("team", "orders", "staging")
+      result.current.openProject("team", "orders", "staging"),
     ).rejects.toThrow("Connection unavailable");
   });
   expect(mocks.navigate).not.toHaveBeenCalledWith(
-    expect.objectContaining({ to: "/queries/$queryId" })
+    expect.objectContaining({ to: "/queries/$queryId" }),
   );
   expect(mocks.refreshConnections).toHaveBeenCalledOnce();
 });

@@ -15,7 +15,7 @@ export default function makeGraphForDatabase(
   ignoreTables: {
     schemaName: string;
     tableName: string;
-  }[] = []
+  }[] = [],
 ) {
   const links = databaseSchemas.flatMap(({ name: schemaName, tables }) =>
     tables
@@ -23,8 +23,8 @@ export default function makeGraphForDatabase(
         ({ name: tableName }) =>
           !ignoreTables.some(
             (table) =>
-              table.schemaName === schemaName && table.tableName === tableName
-          )
+              table.schemaName === schemaName && table.tableName === tableName,
+          ),
       )
       .flatMap(({ name: tableName, columns }) => {
         return [
@@ -32,19 +32,19 @@ export default function makeGraphForDatabase(
             column.foreignKeys.map((key) => ({
               source: `${schemaName}.${tableName}`,
               target: `${key.foreignSchemaName}.${key.foreignTableName}`,
-            }))
+            })),
           ),
           ...columns.flatMap((column) =>
             column.foreignKeyReferences.map((key) => ({
               source: `${schemaName}.${tableName}`,
               target: `${key.localSchemaName}.${key.localTableName}`,
-            }))
+            })),
           ),
         ];
-      })
+      }),
   );
   const nodes = databaseSchemas.flatMap(({ name: schemaName, tables }) =>
-    tables.map(({ name: tableName }) => `${schemaName}.${tableName}`)
+    tables.map(({ name: tableName }) => `${schemaName}.${tableName}`),
   );
   const graph = new Graph();
   nodes.forEach((node) => graph.addNode(node));

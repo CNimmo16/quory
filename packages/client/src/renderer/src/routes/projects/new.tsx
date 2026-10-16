@@ -1,4 +1,8 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { ProjectForm } from "../../components/ProjectForm";
 import { Button } from "../../components/ui/button";
@@ -25,7 +29,7 @@ function NewProjectScreen() {
         Back
       </Button>
       <h1 className="mb-3 text-2xl font-semibold">New project</h1>
-      <p className="mb-8 text-sm text-slate-500">
+      <p className="mb-8 text-sm text-muted-foreground">
         Choose where to store the queries shared by this project’s connections.
       </p>
       <ProjectForm onCreated={showCreatedProject} />

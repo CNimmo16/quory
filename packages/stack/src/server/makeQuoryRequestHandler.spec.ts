@@ -47,7 +47,7 @@ it("drains accepted requests, rejects new work and disposes exactly once", async
   const dispose = handler.dispose();
   expect(handler.dispose()).toBe(dispose);
   await expect(handler({ path: "schema", data: {} })).rejects.toThrow(
-    "disposed"
+    "disposed",
   );
   expect(teardown).not.toHaveBeenCalled();
   release();
@@ -61,7 +61,7 @@ it("refreshes schema without replacing the driver and retries failed invalidatio
   jest.mocked(getSchemas).mockRejectedValueOnce(new Error("metadata failed"));
   handler.invalidateSchema();
   await expect(handler({ path: "schema", data: {} })).rejects.toThrow(
-    "metadata failed"
+    "metadata failed",
   );
   const schemas = [{ name: "updated", tables: [] }];
   jest.mocked(getSchemas).mockResolvedValue(schemas);
@@ -78,7 +78,7 @@ it("deduplicates concurrent refresh and waits for it during disposal", async () 
   jest.mocked(getSchemas).mockReturnValue(
     new Promise((resolve) => {
       release = resolve;
-    })
+    }),
   );
   const handler = await makeQuoryRequestHandler(config);
   const first = handler.refreshSchema(),
@@ -119,8 +119,8 @@ it.each(["execution-id", undefined])(
               once: true,
             });
             started();
-          })
-      )
+          }),
+      ),
     );
     const handler = await makeQuoryRequestHandler(config);
     const request = handler({ path: "schema", data: {} });
@@ -129,5 +129,5 @@ it.each(["execution-id", undefined])(
     await handler.dispose();
     await rejected;
     expect(teardown).toHaveBeenCalledTimes(1);
-  }
+  },
 );

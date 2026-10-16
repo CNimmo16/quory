@@ -154,27 +154,27 @@ it("requires a project and connection before building a query", async () => {
   mocks.connectionId = "";
   mount();
   expect(screen.getByRole("button", { name: /^Project:/ })).toHaveTextContent(
-    "Choose project"
+    "Choose project",
   );
   expect(
-    screen.getByRole("button", { name: "Connection badge" })
+    screen.getByRole("button", { name: "Connection badge" }),
   ).toBeDisabled();
   expect(screen.getByRole("button", { name: /^Project:/ })).toHaveAttribute(
     "aria-invalid",
-    "true"
+    "true",
   );
   expect(
-    screen.getByRole("button", { name: "Connection badge" })
+    screen.getByRole("button", { name: "Connection badge" }),
   ).toHaveAttribute("aria-invalid", "true");
   expect(
-    screen.getByRole("textbox", { name: "Describe your query" })
+    screen.getByRole("textbox", { name: "Describe your query" }),
   ).toBeEnabled();
   expect(screen.getByRole("button", { name: "Build query" })).toBeDisabled();
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: /^Project:/ }));
   await user.click(screen.getByRole("menuitem", { name: "Team" }));
   await waitFor(() =>
-    expect(mocks.open).toHaveBeenCalledWith({ projectId: "team" })
+    expect(mocks.open).toHaveBeenCalledWith({ projectId: "team" }),
   );
   await waitFor(() => expect(mocks.invalidateRouter).toHaveBeenCalledOnce());
   expect(mocks.chat).not.toHaveBeenCalled();
@@ -185,10 +185,10 @@ it("keeps creation disabled when a project is selected without a connection", ()
   mocks.connectionId = "";
   mount();
   expect(screen.getByRole("button", { name: /^Project:/ })).toHaveTextContent(
-    "Application"
+    "Application",
   );
   expect(
-    screen.getByRole("button", { name: "Connection badge" })
+    screen.getByRole("button", { name: "Connection badge" }),
   ).toBeEnabled();
   expect(screen.getByRole("button", { name: "Build query" })).toBeDisabled();
   expect(screen.getByText("Select a connection.")).toBeVisible();
@@ -199,19 +199,21 @@ it("offers only AI creation with selectors inside the prompt form", async () => 
   expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Go" })).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("button", { name: "Run SQL" })
+    screen.queryByRole("button", { name: "Run SQL" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: /^Project:/ }).closest("form")
+    screen.getByRole("button", { name: /^Project:/ }).closest("form"),
   ).toBe(
-    screen.getByRole("textbox", { name: "Describe your query" }).closest("form")
+    screen
+      .getByRole("textbox", { name: "Describe your query" })
+      .closest("form"),
   );
   expect(screen.getByRole("button", { name: "Build query" })).toBeDisabled();
   await userEvent
     .setup()
     .type(
       screen.getByRole("textbox", { name: "Describe your query" }),
-      "Latest orders"
+      "Latest orders",
     );
   expect(screen.getByRole("button", { name: "Build query" })).toBeEnabled();
 });
@@ -223,13 +225,13 @@ it("explains missing selectors on the disabled submit button and blocks Enter su
   const user = userEvent.setup();
   await user.type(
     screen.getByRole("textbox", { name: "Describe your query" }),
-    "Latest orders{Enter}"
+    "Latest orders{Enter}",
   );
   const submit = screen.getByRole("button", { name: "Build query" });
   expect(submit).toBeDisabled();
   await user.hover(submit.parentElement!);
   expect(await screen.findByRole("tooltip")).toHaveTextContent(
-    "Select a project and connection to create a query."
+    "Select a project and connection to create a query.",
   );
   expect(mocks.chat).not.toHaveBeenCalled();
 });
@@ -242,17 +244,17 @@ it("preserves an unsent prompt while selecting a project and connection", async 
     .setup()
     .type(
       screen.getByRole("textbox", { name: "Describe your query" }),
-      "Latest orders"
+      "Latest orders",
     );
   mocks.projectId = "team";
   view.rerender(queryPage());
   expect(
-    screen.getByRole("textbox", { name: "Describe your query" })
+    screen.getByRole("textbox", { name: "Describe your query" }),
   ).toHaveValue("Latest orders");
   mocks.connectionId = "connection-2";
   view.rerender(queryPage());
   expect(
-    screen.getByRole("textbox", { name: "Describe your query" })
+    screen.getByRole("textbox", { name: "Describe your query" }),
   ).toHaveValue("Latest orders");
   expect(screen.getByRole("button", { name: "Build query" })).toBeEnabled();
 });
@@ -277,7 +279,7 @@ it("asks for clarification in the query assistant before navigating to the creat
   mount();
   await user.type(
     screen.getByRole("textbox", { name: "Describe your query" }),
-    "Latest orders"
+    "Latest orders",
   );
   await user.click(screen.getByRole("button", { name: "Build query" }));
   expect(await screen.findByText("Which date should I use?")).toBeVisible();
@@ -286,19 +288,19 @@ it("asks for clarification in the query assistant before navigating to the creat
   expect(input).toHaveValue("");
   await user.type(input, "Use created_at");
   await user.click(
-    screen.getByRole("button", { name: "Collapse query assistant" })
+    screen.getByRole("button", { name: "Collapse query assistant" }),
   );
   expect(
-    screen.getByRole("complementary", { name: "Query assistant" })
+    screen.getByRole("complementary", { name: "Query assistant" }),
   ).toBeVisible();
   expect(
-    screen.queryByRole("textbox", { name: "Amend your query" })
+    screen.queryByRole("textbox", { name: "Amend your query" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: "Expand query assistant" })
+    screen.getByRole("button", { name: "Expand query assistant" }),
   ).toHaveFocus();
   await user.click(
-    screen.getByRole("button", { name: "Expand query assistant" })
+    screen.getByRole("button", { name: "Expand query assistant" }),
   );
   expect(screen.getByText("Which date should I use?")).toBeVisible();
   const restoredInput = screen.getByRole("textbox", {
@@ -310,7 +312,7 @@ it("asks for clarification in the query assistant before navigating to the creat
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/queries/$queryId",
       params: { queryId: "saved-query" },
-    })
+    }),
   );
   expect(mocks.chat.mock.calls[1]![0].history).toEqual(clarification.messages);
 });
@@ -320,18 +322,18 @@ it("retains the description on failure and retries with the same request id", as
   mount();
   await user.type(
     screen.getByRole("textbox", { name: "Describe your query" }),
-    "Latest orders"
+    "Latest orders",
   );
   await user.click(screen.getByRole("button", { name: "Build query" }));
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Provider unavailable"
+    "Provider unavailable",
   );
   expect(screen.getByRole("textbox", { name: "Amend your query" })).toHaveValue(
-    "Latest orders"
+    "Latest orders",
   );
   await user.click(screen.getByRole("button", { name: "Send" }));
   expect(mocks.chat.mock.calls[1]![0].requestId).toBe(
-    mocks.chat.mock.calls[0]![0].requestId
+    mocks.chat.mock.calls[0]![0].requestId,
   );
 });
 
@@ -342,23 +344,23 @@ it("discards an old chat response and draft after switching connections", async 
     () =>
       new Promise<QueryChatResult>((resolve) => {
         finish = resolve;
-      })
+      }),
   );
   const view = mount();
   await user.type(
     screen.getByRole("textbox", { name: "Describe your query" }),
-    "Latest orders"
+    "Latest orders",
   );
   await user.click(screen.getByRole("button", { name: "Build query" }));
   expect(mocks.chat.mock.calls[0]![0].connectionId).toBe("connection-1");
   expect(
-    screen.getByRole("heading", { name: "Finding the right query" })
+    screen.getByRole("heading", { name: "Finding the right query" }),
   ).toBeVisible();
   expect(
-    screen.queryByRole("heading", { name: "What would you like to explore?" })
+    screen.queryByRole("heading", { name: "What would you like to explore?" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByText(/Your request and database schema are shared/)
+    screen.queryByText(/Your request and database schema are shared/),
   ).not.toBeInTheDocument();
   mocks.connectionId = "connection-2";
   view.rerender(queryPage());
@@ -370,17 +372,17 @@ it("discards an old chat response and draft after switching connections", async 
   });
   await waitFor(() =>
     expect(
-      screen.getByRole("textbox", { name: "Describe your query" })
-    ).toHaveValue("")
+      screen.getByRole("textbox", { name: "Describe your query" }),
+    ).toHaveValue(""),
   );
   expect(mocks.navigate).not.toHaveBeenCalled();
   await user.type(
     screen.getByRole("textbox", { name: "Describe your query" }),
-    "New orders"
+    "New orders",
   );
   await user.click(screen.getByRole("button", { name: "Build query" }));
   expect(mocks.chat.mock.calls[1]![0].connectionId).toBe("connection-2");
   expect(mocks.chat.mock.calls[1]![0].requestId).not.toBe(
-    mocks.chat.mock.calls[0]![0].requestId
+    mocks.chat.mock.calls[0]![0].requestId,
   );
 });

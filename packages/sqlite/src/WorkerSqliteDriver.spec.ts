@@ -10,7 +10,7 @@ it("runs metadata and queries in a responsive worker; cancels, recovers, and clo
   const filename = join(directory, "test.db");
   const db = sqlite(filename);
   db.exec(
-    "CREATE TABLE items(id INTEGER PRIMARY KEY); INSERT INTO items VALUES(1)"
+    "CREATE TABLE items(id INTEGER PRIMARY KEY); INSERT INTO items VALUES(1)",
   );
   db.close();
   const driver = new WorkerSqliteDriver(filename);
@@ -29,7 +29,7 @@ it("runs metadata and queries in a responsive worker; cancels, recovers, and clo
         ticked = true;
         controller.abort();
         resolve();
-      }, 30)
+      }, 30),
     );
     await rejection;
     expect(ticked).toBe(true);
@@ -37,7 +37,7 @@ it("runs metadata and queries in a responsive worker; cancels, recovers, and clo
       { id: 1 },
     ]);
     await expect(driver.exec(slow, [], { timeoutMs: 30 })).rejects.toThrow(
-      "timed out"
+      "timed out",
     );
     expect(await driver.exec("SELECT 1 AS n")).toEqual([{ n: 1 }]);
     await driver.teardown();
@@ -53,7 +53,7 @@ it("executes custom writes in an isolated worker connection and keeps ordinary q
   const filename = join(directory, "test.db");
   const db = sqlite(filename);
   db.exec(
-    "CREATE TABLE items(id INTEGER PRIMARY KEY, name TEXT); INSERT INTO items VALUES(1, 'Original')"
+    "CREATE TABLE items(id INTEGER PRIMARY KEY, name TEXT); INSERT INTO items VALUES(1, 'Original')",
   );
   db.close();
   const driver = new WorkerSqliteDriver(filename);
@@ -61,20 +61,20 @@ it("executes custom writes in an isolated worker connection and keeps ordinary q
     await expect(
       driver.execSql("UPDATE items SET name = 'Blocked'", [], {
         readOnly: true,
-      })
+      }),
     ).rejects.toThrow();
     expect(
       await driver.execSql(
         "UPDATE items SET name = ? RETURNING name",
         ["Changed"],
-        { readOnly: false }
-      )
+        { readOnly: false },
+      ),
     ).toMatchObject({ rows: [["Changed"]], affectedRows: 1 });
     expect(await driver.exec("SELECT name FROM items")).toEqual([
       { name: "Changed" },
     ]);
     await expect(
-      driver.exec("UPDATE items SET name = 'No' RETURNING name")
+      driver.exec("UPDATE items SET name = 'No' RETURNING name"),
     ).rejects.toThrow();
   } finally {
     await driver.teardown();

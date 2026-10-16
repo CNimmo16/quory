@@ -79,7 +79,7 @@ export function useQueryChat({
       setError(
         cause instanceof Error
           ? cause.message
-          : "Could not complete the request. Please try again."
+          : "Could not complete the request. Please try again.",
       );
       return false;
     } finally {

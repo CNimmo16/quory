@@ -13,7 +13,7 @@ import findJoinRecursively from "../../util/findJoinRecursively";
 export async function fetchDataForQuery(
   database: DatabaseService.ClientDatabase,
   query: Parameters<typeof runQuery>[2],
-  options?: ExecutionOptions
+  options?: ExecutionOptions,
 ) {
   const { driver, schemas, semantics } = database;
 
@@ -37,7 +37,7 @@ export async function fetchDataForQuery(
               referencingColumnName: ref.localColumnName,
               referencingSchemaName: ref.localSchemaName,
               referencingTableName: ref.localTableName,
-            }))
+            })),
           );
           const found = findJoinRecursively(preparedQuery.base, joinAlias);
           if (!found) {
@@ -49,14 +49,14 @@ export async function fetchDataForQuery(
             table,
             columns: rowKeys.map((columnName) => {
               const column = table.columns.find(
-                (col) => col.name === columnName
+                (col) => col.name === columnName,
               )!;
               return {
                 isPrimaryKey: column.includedInPrimaryKey,
                 name: columnName,
                 readableName:
                   semantics?.lexicon.find(
-                    (x) => x.columnRef === `${tableRef}.${columnName}`
+                    (x) => x.columnRef === `${tableRef}.${columnName}`,
                   )?.readableName ?? columnName,
               };
             }),
@@ -75,13 +75,13 @@ export async function fetchDataForQuery(
           const entries = Object.entries(data);
           return entries.map(([columnName, value]) => {
             const lexiconEntry = semantics?.lexicon.find(
-              (x) => x.columnRef === `${tableRef}.${columnName}`
+              (x) => x.columnRef === `${tableRef}.${columnName}`,
             );
             const [schemaName, tableName] = splitTableRef(tableRef);
             const column = findTableFromSchemas(
               schemas,
               schemaName,
-              tableName
+              tableName,
             ).columns.find((col) => col.name === columnName)!;
             return {
               joinAlias,
@@ -108,7 +108,7 @@ export async function fetchDataForQuery(
 export async function fetchCountForQuery(
   database: DatabaseService.ClientDatabase,
   query: Parameters<typeof runQuery>[2],
-  options?: ExecutionOptions
+  options?: ExecutionOptions,
 ) {
   const { driver, schemas } = database;
 

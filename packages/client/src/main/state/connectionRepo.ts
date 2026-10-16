@@ -6,6 +6,7 @@ export const connectionRepo = makeRepo<
     nickname: string;
     projectId?: string;
     writeProtection?: import("../../shared/sqlQuery").WriteProtection;
-    colour?: import("../../shared/connectionColour").ConnectionColour | undefined;
+    colour?:
+      import("../../shared/connectionColour").ConnectionColour | undefined;
   }
 >("connections");

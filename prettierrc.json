@@ -1,1 +1,29 @@
-{}
+{
+  "plugins": [
+    "prettier-plugin-astro",
+    "prettier-plugin-tailwindcss",
+    "prettier-plugin-tailwindcss-canonical-classes"
+  ],
+  "overrides": [
+    {
+      "files": "*.astro",
+      "options": {
+        "parser": "astro"
+      }
+    },
+    {
+      "files": "packages/client/**/*.{ts,tsx}",
+      "options": {
+        "tailwindStylesheet": "./packages/client/src/renderer/src/index.css",
+        "tailwindcssCanonicalStylesheet": "./packages/client/src/renderer/src/index.css"
+      }
+    },
+    {
+      "files": "apps/marketing/**/*",
+      "options": {
+        "tailwindStylesheet": "./apps/marketing/src/styles/global.css",
+        "tailwindcssCanonicalStylesheet": "./apps/marketing/src/styles/global.css"
+      }
+    }
+  ]
+}

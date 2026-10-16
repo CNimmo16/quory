@@ -5,7 +5,9 @@ import clientPackage from "./package.json";
 
 const rendererDependencies = Object.keys(clientPackage.dependencies).filter(
   (name) =>
-    name.includes("react") || name === "cmdk" || name.startsWith("@codemirror/")
+    name.includes("react") ||
+    name === "cmdk" ||
+    name.startsWith("@codemirror/"),
 );
 
 export default defineConfig({

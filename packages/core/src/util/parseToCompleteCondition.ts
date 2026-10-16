@@ -2,7 +2,7 @@ import { Condition, isBooleanCondition } from "../prepareQuery";
 import isConditionComplete from "./isConditionComplete";
 
 export default function parseToCompleteCondition(
-  condition: Condition
+  condition: Condition,
 ): Condition | null {
   if (isBooleanCondition(condition)) {
     const completeConditions = condition.conditions.filter(isConditionComplete);

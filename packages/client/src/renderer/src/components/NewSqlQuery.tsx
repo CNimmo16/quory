@@ -23,7 +23,7 @@ export function NewSqlQuery({
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="w-full">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-muted-foreground">
         Write a SQL statement to run against the current connection. Its write
         protection applies to every execution.
       </p>
@@ -50,7 +50,7 @@ export function NewSqlQuery({
               setError(
                 cause instanceof Error
                   ? cause.message
-                  : "Could not save SQL query."
+                  : "Could not save SQL query.",
               );
             }
           }}

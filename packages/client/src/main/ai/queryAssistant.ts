@@ -83,7 +83,7 @@ CURRENT_NICKNAME: ${JSON.stringify(nickname ?? null)}`;
                   JSON.stringify(pageShape(query.base));
               query.offset = changed
                 ? 0
-                : input.offset ?? currentQuery?.offset ?? 0;
+                : (input.offset ?? currentQuery?.offset ?? 0);
               await validateAssistantQuery(schemas, query);
             } catch (error) {
               return {
@@ -114,7 +114,7 @@ CURRENT_NICKNAME: ${JSON.stringify(nickname ?? null)}`;
     const text = result.text.trim();
     if (!text)
       throw new Error(
-        "The model did not return a question or a valid query. Please try again."
+        "The model did not return a question or a valid query. Please try again.",
       );
     return { text: text.slice(0, 6000), queryUpdated: false };
   } catch (error) {

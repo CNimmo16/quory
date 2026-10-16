@@ -18,7 +18,10 @@ import { isSqlQuery } from "../../shared/sqlQuery";
 import { queryDefinitionSchema } from "../repositories/queryDefinitionSchema";
 import { sqlProcedures } from "./sqlProcedures";
 
+import { queryFiltersetProcedures } from "./queryFiltersets";
+
 const queryRouter = router({
+  ...queryFiltersetProcedures,
   ...sqlProcedures,
   chat: queryChatProcedure,
   listSavedQueries: publicProcedure
@@ -26,12 +29,12 @@ const queryRouter = router({
       z.object({
         connectionId: z.string().optional(),
         projectId: z.string().optional(),
-      })
+      }),
     )
     .query(async ({ input }) => ({
       queries: await savedQueryService.list(
         input.connectionId,
-        input.projectId
+        input.projectId,
       ),
     })),
   fetchQuery: publicProcedure
@@ -39,7 +42,7 @@ const queryRouter = router({
       z.object({
         connectionId: z.string(),
         queryId: z.string(),
-      })
+      }),
     )
     .query(async ({ input: { queryId, connectionId } }) => {
       const query = await savedQueryService.fetch(connectionId, queryId);
@@ -51,7 +54,7 @@ const queryRouter = router({
       z.object({
         connectionId: z.string(),
         query: queryDefinitionSchema,
-      })
+      }),
     )
     .mutation(async ({ input: { query, connectionId } }) => {
       const queryId = randomUUID();
@@ -66,7 +69,7 @@ const queryRouter = router({
         `${tableName} ${new Date()
           .toISOString()
           .substring(0, 16)
-          .replace("T", " ")}`
+          .replace("T", " ")}`,
       );
       return {
         queryId,
@@ -80,7 +83,7 @@ const queryRouter = router({
         queryId: z.string(),
         revision: z.string(),
         queryHistory: queryHistorySchema.optional(),
-      })
+      }),
     )
     .mutation(
       async ({
@@ -90,12 +93,12 @@ const queryRouter = router({
           connectionId,
           queryId,
           revision,
-          { query, ...(queryHistory ? { queryHistory } : {}) }
+          { query, ...(queryHistory ? { queryHistory } : {}) },
         );
         return {
           revision: doc.rev,
         };
-      }
+      },
     ),
   changeQueryHistory: publicProcedure
     .input(
@@ -106,11 +109,11 @@ const queryRouter = router({
         action: z.enum(["undo", "redo"]),
         queryHistory: queryHistorySchema,
         messages: z.array(chatMessageSchema).max(60),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const context = await savedQueryService.assertConnection(
-        input.connectionId
+        input.connectionId,
       );
       const existing = await savedQueryService.fetch(context, input.queryId);
       if (isSqlQuery(existing))
@@ -130,10 +133,10 @@ const queryRouter = router({
           : queryHistory.present;
       const messages = mergeChatMessages(
         existing.chatMessages ?? [],
-        input.messages
+        input.messages,
       );
       const changedMessage = messages.find(
-        ({ id }) => id === changedVersion.messageId
+        ({ id }) => id === changedVersion.messageId,
       );
       const event: ChatMessage = {
         id: randomUUID(),
@@ -159,7 +162,7 @@ const queryRouter = router({
           query: queryHistory.present.query,
           queryHistory,
           chatMessages: messages,
-        }
+        },
       );
       return { revision: doc.rev, queryHistory, messages };
     }),
@@ -170,7 +173,7 @@ const queryRouter = router({
         queryId: z.string(),
         revision: z.string(),
         nickname: z.string(),
-      })
+      }),
     )
     .mutation(
       async ({ input: { queryId, nickname, revision, connectionId } }) => {
@@ -178,12 +181,12 @@ const queryRouter = router({
           connectionId,
           queryId,
           revision,
-          { nickname }
+          { nickname },
         );
         return {
           revision: doc.rev,
         };
-      }
+      },
     ),
   deleteQuery: publicProcedure
     .input(
@@ -191,7 +194,7 @@ const queryRouter = router({
         connectionId: z.string(),
         queryId: z.string(),
         revision: z.string(),
-      })
+      }),
     )
     .mutation(async ({ input: { queryId, connectionId, revision } }) => {
       await savedQueryService.delete(connectionId, queryId, revision);

@@ -13,7 +13,7 @@ export type ChatMessage = z.infer<typeof chatMessageSchema>;
 
 export function mergeChatMessages(
   saved: ChatMessage[],
-  incoming: ChatMessage[]
+  incoming: ChatMessage[],
 ) {
   const known = new Set(saved.map(({ id }) => id));
   return [...saved, ...incoming.filter(({ id }) => !known.has(id))];

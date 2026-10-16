@@ -4,7 +4,7 @@ import type { PreparedJoinDef, PreparedQuery } from "@quory/core";
 // the exact edge selectors, especially when several foreign keys share a table.
 export function removeQueryJoin(
   query: PreparedQuery,
-  alias: string
+  alias: string,
 ): PreparedQuery {
   if (query.base.joinAlias === alias)
     throw new Error("Cannot remove base join");

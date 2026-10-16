@@ -10,7 +10,7 @@ interface QueryRepository {
     include_docs: true;
   }): Promise<{ rows: { id: string; doc?: Document | undefined }[] }>;
   put(
-    doc: SavedQuery & { _id: string; _rev?: string }
+    doc: SavedQuery & { _id: string; _rev?: string },
   ): Promise<{ rev: string }>;
   remove(doc: Document): Promise<unknown>;
 }

@@ -262,7 +262,7 @@ beforeEach(() => {
       mocks.pathname = params?.queryId
         ? to.replace("$queryId", params.queryId)
         : to;
-    }
+    },
   );
 });
 
@@ -272,24 +272,24 @@ it("nests saved queries under their project and removes the dedicated queries si
   const sidebar = screen.getByRole("complementary", { name: "Projects" });
   expect(screen.getAllByRole("complementary")).toHaveLength(1);
   expect(
-    within(sidebar).getByRole("list", { name: "Application queries" })
+    within(sidebar).getByRole("list", { name: "Application queries" }),
   ).toBeVisible();
   expect(
-    within(sidebar).getAllByRole("button", { name: "New query" })
+    within(sidebar).getAllByRole("button", { name: "New query" }),
   ).toHaveLength(1);
   expect(
     within(
-      within(sidebar).getByRole("list", { name: "Application queries" })
-    ).queryByText("New query")
+      within(sidebar).getByRole("list", { name: "Application queries" }),
+    ).queryByText("New query"),
   ).not.toBeInTheDocument();
   expect(within(sidebar).getByRole("link", { name: "Orders" })).toBeVisible();
   expect(
-    within(sidebar).getByRole("link", { name: "Custom query SQL" })
+    within(sidebar).getByRole("link", { name: "Custom query SQL" }),
   ).toBeVisible();
   expect(within(sidebar).queryByText("Local")).not.toBeInTheDocument();
   expect(mocks.listQueries).toHaveBeenCalledWith(
     { projectId: "app" },
-    expect.objectContaining({ enabled: true })
+    expect.objectContaining({ enabled: true }),
   );
 });
 
@@ -304,7 +304,7 @@ it("renames a project from its right-click menu without opening it", async () =>
   await user.clear(screen.getByRole("textbox", { name: "Name" }));
   await user.type(
     screen.getByRole("textbox", { name: "Name" }),
-    "Renamed team"
+    "Renamed team",
   );
   await user.click(screen.getByRole("button", { name: "Save name" }));
   await waitFor(() =>
@@ -312,7 +312,7 @@ it("renames a project from its right-click menu without opening it", async () =>
       projectId: "team",
       revision: "1-team",
       name: "Renamed team",
-    })
+    }),
   );
   expect(mocks.openProject).not.toHaveBeenCalled();
   expect(mocks.connect).not.toHaveBeenCalled();
@@ -337,7 +337,7 @@ it("renames a query from an inactive project without selecting a connection", as
       queryId: "orders",
       revision: "1-query",
       nickname: "Team orders",
-    })
+    }),
   );
   expect(mocks.openProject).not.toHaveBeenCalled();
   expect(mocks.connect).not.toHaveBeenCalled();
@@ -382,7 +382,7 @@ it("confirms project deletion and leaves the current query open when deleting an
     expect(mocks.deleteProject).toHaveBeenCalledWith({
       projectId: "team",
       revision: "1-team",
-    })
+    }),
   );
   expect(mocks.navigate).not.toHaveBeenCalled();
   expect(mocks.pathname).toBe("/queries/orders");
@@ -394,16 +394,16 @@ it("collapses and expands the nested project queries", async () => {
   render(<Layout />);
   const user = userEvent.setup();
   await user.click(
-    screen.getByRole("button", { name: "Collapse projects sidebar" })
+    screen.getByRole("button", { name: "Collapse projects sidebar" }),
   );
   expect(
-    screen.queryByRole("link", { name: "Orders" })
+    screen.queryByRole("link", { name: "Orders" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: "Connection: Local" })
+    screen.getByRole("button", { name: "Connection: Local" }),
   ).toBeVisible();
   await user.click(
-    screen.getByRole("button", { name: "Expand projects sidebar" })
+    screen.getByRole("button", { name: "Expand projects sidebar" }),
   );
   expect(screen.getByRole("link", { name: "Orders" })).toBeVisible();
   expect(mocks.navigate).not.toHaveBeenCalled();
@@ -417,11 +417,11 @@ it("highlights the selected project instead of the global New query button", asy
   expect(button).not.toHaveAttribute("aria-current");
   expect(screen.getByRole("button", { name: "Application" })).toHaveAttribute(
     "data-status",
-    "active"
+    "active",
   );
   expect(screen.getByRole("button", { name: "Team" })).not.toHaveAttribute(
     "data-status",
-    "active"
+    "active",
   );
   await userEvent.setup().click(button);
   expect(mocks.navigate).toHaveBeenCalledWith({ to: "/queries" });
@@ -432,15 +432,15 @@ it("highlights no project when global query creation has no selected project", (
   mocks.activeProject = false;
   render(<Layout />);
   expect(screen.getByRole("button", { name: "New query" })).not.toHaveAttribute(
-    "aria-current"
+    "aria-current",
   );
   for (const name of ["Application", "Team"]) {
     expect(screen.getByRole("button", { name })).not.toHaveAttribute(
       "data-status",
-      "active"
+      "active",
     );
     expect(screen.getByRole("button", { name })).not.toHaveAttribute(
-      "aria-current"
+      "aria-current",
     );
   }
 });
@@ -453,11 +453,11 @@ it("toggles each project's queries independently without changing the current qu
   await user.click(screen.getByRole("button", { name: "Team" }));
   expect(screen.getByRole("list", { name: "Team queries" })).toBeVisible();
   expect(
-    screen.getByRole("list", { name: "Application queries" })
+    screen.getByRole("list", { name: "Application queries" }),
   ).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Application" }));
   expect(
-    screen.queryByRole("list", { name: "Application queries" })
+    screen.queryByRole("list", { name: "Application queries" }),
   ).not.toBeInTheDocument();
   expect(screen.getByRole("list", { name: "Team queries" })).toBeVisible();
   expect(mocks.openProject).not.toHaveBeenCalled();
@@ -467,8 +467,8 @@ it("toggles each project's queries independently without changing the current qu
   await user.click(
     within(screen.getByRole("list", { name: "Team queries" })).getByRole(
       "button",
-      { name: "Orders" }
-    )
+      { name: "Orders" },
+    ),
   );
   expect(mocks.openProject).not.toHaveBeenCalled();
   await user.click(screen.getByRole("menuitem", { name: "Local" }));
@@ -496,13 +496,13 @@ it("shows the projects sidebar on launch without selecting a project or showing 
   render(<Layout />);
   const sidebar = screen.getByRole("complementary", { name: "Projects" });
   expect(
-    within(sidebar).getByRole("button", { name: "Application" })
+    within(sidebar).getByRole("button", { name: "Application" }),
   ).toBeVisible();
   expect(
-    within(sidebar).getByRole("link", { name: "New project" })
+    within(sidebar).getByRole("link", { name: "New project" }),
   ).toBeVisible();
   expect(
-    screen.queryByRole("button", { name: /^Connection:/ })
+    screen.queryByRole("button", { name: /^Connection:/ }),
   ).not.toBeInTheDocument();
   await userEvent
     .setup()
@@ -527,7 +527,7 @@ it("expands a newly created project in the sidebar while waiting for query selec
   render(<Layout />);
   expect(screen.getByRole("list", { name: "Team queries" })).toBeVisible();
   expect(
-    screen.queryByRole("list", { name: "Application queries" })
+    screen.queryByRole("list", { name: "Application queries" }),
   ).not.toBeInTheDocument();
   expect(mocks.openProject).not.toHaveBeenCalled();
 });
@@ -540,11 +540,11 @@ it("opens the project connections from the badge and marks the active connection
   await openConnections();
   expect(screen.getByRole("menuitem", { name: "Local" })).toHaveAttribute(
     "aria-current",
-    "true"
+    "true",
   );
   expect(screen.getByRole("menuitem", { name: "Staging" })).toBeVisible();
   expect(
-    screen.getByRole("menuitem", { name: "New connection" })
+    screen.getByRole("menuitem", { name: "New connection" }),
   ).toBeVisible();
 });
 
@@ -553,8 +553,8 @@ it("shows the configured connection colour as a dot and tinted badge", () => {
   mocks.localColour = "red";
   render(<Layout />);
   const badge = screen.getByRole("button", { name: "Connection: Local" });
-  expect(badge).toHaveClass("bg-red-50");
-  expect(badge.querySelector(".rounded-full.bg-red-500")).not.toBeNull();
+  expect(badge).toHaveClass("bg-connection-6/10");
+  expect(badge.querySelector(".rounded-full.bg-connection-6")).not.toBeNull();
 });
 
 it.each(["orders", "custom"])(
@@ -573,7 +573,7 @@ it.each(["orders", "custom"])(
     expect(mocks.connect).toHaveBeenCalledWith({ connectionId: "staging" });
     expect(mocks.refreshActive).toHaveBeenCalledOnce();
     expect(mocks.refreshConnections).toHaveBeenCalledOnce();
-  }
+  },
 );
 
 it("does not change connections when the unsaved-query guard blocks switching", async () => {
@@ -648,7 +648,7 @@ it("loads the new query screen when selecting the first connection", async () =>
     .setup()
     .click(screen.getByRole("menuitem", { name: "Staging" }));
   await waitFor(() =>
-    expect(mocks.navigate).toHaveBeenLastCalledWith({ to: "/queries" })
+    expect(mocks.navigate).toHaveBeenLastCalledWith({ to: "/queries" }),
   );
 });
 
@@ -657,7 +657,7 @@ it("shows a spinner on the selected connection and badge while connecting", asyn
   mocks.connect.mockReturnValue(
     new Promise<void>((resolve) => {
       finish = resolve;
-    })
+    }),
   );
   mocks.connected = true;
   mocks.pathname = "/queries/orders";
@@ -668,11 +668,11 @@ it("shows a spinner on the selected connection and badge while connecting", asyn
     .click(screen.getByRole("menuitem", { name: "Staging" }));
   const selected = screen.getByRole("menuitem", { name: "Staging" });
   expect(
-    within(selected).getByRole("status", { name: "Connecting to Staging" })
+    within(selected).getByRole("status", { name: "Connecting to Staging" }),
   ).toBeVisible();
   expect(selected).toHaveAttribute("aria-disabled", "true");
   expect(
-    screen.getByRole("button", { name: "Connecting to Staging" })
+    screen.getByRole("button", { name: "Connecting to Staging" }),
   ).toHaveAttribute("aria-busy", "true");
   expect(mocks.invalidateRouter).not.toHaveBeenCalled();
   expect(mocks.pathname).toBe("/queries/orders");
@@ -682,7 +682,7 @@ it("shows a spinner on the selected connection and badge while connecting", asyn
   expect(mocks.navigate).not.toHaveBeenCalled();
   expect(mocks.pathname).toBe("/queries/orders");
   expect(
-    screen.queryByRole("status", { name: "Connecting to Staging" })
+    screen.queryByRole("status", { name: "Connecting to Staging" }),
   ).not.toBeInTheDocument();
 });
 
@@ -697,8 +697,8 @@ it("keeps the existing query open if connecting fails", async () => {
     .click(screen.getByRole("menuitem", { name: "Staging" }));
   await waitFor(() =>
     expect(
-      screen.getByRole("button", { name: "Connection: Local" })
-    ).toBeVisible()
+      screen.getByRole("button", { name: "Connection: Local" }),
+    ).toBeVisible(),
   );
   expect(mocks.navigate).not.toHaveBeenCalled();
   expect(mocks.pathname).toBe("/queries/orders");
@@ -716,7 +716,7 @@ it("opens the selected project query after choosing a connection while disconnec
     expect(mocks.navigate).toHaveBeenLastCalledWith({
       to: "/queries/$queryId",
       params: { queryId: "orders" },
-    })
+    }),
   );
 });
 

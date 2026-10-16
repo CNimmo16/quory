@@ -69,14 +69,14 @@ export interface DatabaseDriver {
   exec(
     sql: string,
     parameters?: SqlParameter[],
-    options?: ExecutionOptions
+    options?: ExecutionOptions,
   ): Promise<Row[]>;
 
   /** Execute a single custom statement, using database-enforced read protection. */
   execSql?(
     sql: string,
     parameters: SqlParameter[],
-    options: SqlExecutionOptions
+    options: SqlExecutionOptions,
   ): Promise<SqlExecutionResult>;
 
   testConnection(): Promise<void>;

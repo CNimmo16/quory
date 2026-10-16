@@ -81,7 +81,7 @@ describe("query assistant", () => {
     expect(prompt[0]).toMatchObject({
       role: "system",
       content: expect.stringContaining(
-        "It may have changed since you last generated a query."
+        "It may have changed since you last generated a query.",
       ),
     });
     expect(JSON.stringify(prompt)).toContain("Only two rows");
@@ -109,7 +109,7 @@ describe("query assistant", () => {
     });
     expect(upsert).not.toHaveBeenCalled();
     expect(JSON.stringify(model.doGenerateCalls[0]!.prompt)).toContain(
-      "created_at"
+      "created_at",
     );
   });
   it("saves focused columns on requested entities while keeping filter-only tables hidden", async () => {
@@ -119,20 +119,20 @@ describe("query assistant", () => {
     const model = new MockLanguageModelV3({ doGenerate: call(focused) });
     const upsert = vi.fn().mockResolvedValue(undefined);
     expect(
-      await runQueryAssistant({ model, schemas, messages, upsert })
+      await runQueryAssistant({ model, schemas, messages, upsert }),
     ).toEqual({ queryUpdated: true, text: orderQuery.summary });
     expect(upsert).toHaveBeenCalledOnce();
     const query = upsert.mock.calls[0]![0];
     const { sql, parameters, preparedQuery } = await prepareQuery(
       schemas,
-      query
+      query,
     );
     expect(preparedQuery.base.select).toEqual(["created_at", "status"]);
     expect(
       preparedQuery.base.joins.map(({ tableRef, select }) => ({
         tableRef,
         select,
-      }))
+      })),
     ).toEqual([
       { tableRef: "public.users", select: [] },
       { tableRef: "public.listings", select: ["title"] },
@@ -161,7 +161,7 @@ describe("query assistant", () => {
     });
     const { preparedQuery } = await prepareQuery(
       schemas,
-      upsert.mock.calls[0]![0]
+      upsert.mock.calls[0]![0],
     );
     expect(preparedQuery.base.select).toEqual([
       "id",
@@ -223,7 +223,7 @@ describe("query assistant", () => {
     await runQueryAssistant({ model, schemas, messages, upsert });
     expect(model.doGenerateCalls).toHaveLength(2);
     expect(JSON.stringify(model.doGenerateCalls[1]!.prompt)).toContain(
-      "Unknown or unsupported column"
+      "Unknown or unsupported column",
     );
     expect(upsert).toHaveBeenCalledOnce();
   });
@@ -231,7 +231,7 @@ describe("query assistant", () => {
     const model = new MockLanguageModelV3({ doGenerate: call() });
     const upsert = vi.fn().mockRejectedValue(new Error("revision conflict"));
     await expect(
-      runQueryAssistant({ model, schemas, messages, upsert })
+      runQueryAssistant({ model, schemas, messages, upsert }),
     ).rejects.toThrow("revision conflict");
     expect(model.doGenerateCalls).toHaveLength(1);
   });
@@ -257,12 +257,12 @@ describe("query validation", () => {
       validateAssistantQuery(schemas, {
         base: { tableRef: "public.audit_logs", select: "*" },
         limit: 100,
-      })
+      }),
     ).resolves.toBeUndefined();
     await expect(
       validateAssistantQuery(schemas, {
         base: { tableRef: "public.orders", select: ["invented"] },
-      })
+      }),
     ).rejects.toThrow("column");
     await expect(
       validateAssistantQuery(schemas, {
@@ -271,7 +271,7 @@ describe("query validation", () => {
           select: "*",
           joins: [{ tableRef: "public.audit_logs", select: "*" }],
         },
-      })
+      }),
     ).rejects.toThrow();
   });
   it("rejects invalid filter trees and accepts bound escape sequences", async () => {
@@ -290,7 +290,7 @@ describe("query validation", () => {
       value: "\\' OR 1=1",
     };
     await expect(
-      validateAssistantQuery(schemas, query)
+      validateAssistantQuery(schemas, query),
     ).resolves.toBeUndefined();
     const { sql, parameters } = await prepareQuery(schemas, query);
     expect(sql).not.toContain(query.base.where.value);
@@ -300,7 +300,7 @@ describe("query validation", () => {
     const composite = structuredClone(schemas);
     const users = composite[0]!.tables.find((table) => table.name === "users")!;
     const orders = composite[0]!.tables.find(
-      (table) => table.name === "orders"
+      (table) => table.name === "orders",
     )!;
     const key = orders.columns.find((column) => column.name === "user_id")!
       .foreignKeys[0]!;
@@ -322,13 +322,13 @@ describe("query validation", () => {
       foreignKeyReferences: [],
     });
     await expect(
-      validateAssistantQuery(composite, queryFromTool(orderQuery))
+      validateAssistantQuery(composite, queryFromTool(orderQuery)),
     ).resolves.toBeUndefined();
   });
   it("preserves partial via selectors through assistant and web validators", async () => {
     const ambiguous = structuredClone(schemas);
     const orders = ambiguous[0]!.tables.find(
-      (table) => table.name === "orders"
+      (table) => table.name === "orders",
     )!;
     orders.columns
       .find((column) => column.name === "status")!
@@ -342,10 +342,10 @@ describe("query validation", () => {
     ];
     const compiled = queryFromTool(upsertQuerySchema.parse(input));
     expect(validators.query.parse(compiled).base.joins![0]!.via).toEqual(
-      input.tables[1]!.via
+      input.tables[1]!.via,
     );
     await expect(
-      validateAssistantQuery(ambiguous, compiled)
+      validateAssistantQuery(ambiguous, compiled),
     ).resolves.toBeUndefined();
     const invalid = {
       ...input,
@@ -361,7 +361,7 @@ describe("query validation", () => {
                 },
               ],
             }
-          : table
+          : table,
       ),
     };
     expect(upsertQuerySchema.safeParse(invalid).success).toBe(false);
@@ -378,7 +378,7 @@ describe("query validation", () => {
       foreignColumnName: "email",
     });
     await expect(
-      validateAssistantQuery(ambiguous, queryFromTool(orderQuery))
+      validateAssistantQuery(ambiguous, queryFromTool(orderQuery)),
     ).rejects.toThrow("Multiple relationships");
   });
 });
@@ -398,16 +398,16 @@ describe("provider configuration", () => {
       expect(model.modelId).toBe("configured-model");
     }
     expect(getQueryModel({ OPEN_AI_API_KEY: "legacy-key" }).modelId).toBe(
-      "gpt-6-luna"
+      "gpt-6-luna",
     );
   });
   it("fails clearly for missing keys, missing non-default models, and unknown providers", () => {
     expect(() => getQueryModel({})).toThrow("OPENAI_API_KEY");
     expect(() =>
-      getQueryModel({ AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "test" })
+      getQueryModel({ AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "test" }),
     ).toThrow("AI_MODEL");
     expect(() => getQueryModel({ AI_PROVIDER: "toString" })).toThrow(
-      "AI_PROVIDER"
+      "AI_PROVIDER",
     );
   });
 });

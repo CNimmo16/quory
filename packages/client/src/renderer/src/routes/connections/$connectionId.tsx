@@ -67,7 +67,7 @@ function RouteComponent() {
       await navigate(
         queryId
           ? { to: "/queries/$queryId", params: { queryId } }
-          : { to: "/queries" }
+          : { to: "/queries" },
       );
     },
   });
@@ -101,7 +101,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="mx-auto max-w-[600px] p-5">
+    <div className="mx-auto max-w-150 p-5">
       <div className="mb-5 flex justify-between">
         <h1 className="text-2xl">{connection.nickname}</h1>
         <Button
@@ -110,7 +110,7 @@ function RouteComponent() {
           onClick={(e) => {
             e.preventDefault();
             const confirmed = confirm(
-              `IMPORTANT: Are you sure you want to delete this connection?\n\nSaved project queries will remain available for other connections.\n\nThis action is irreversible. Press OK to continue.`
+              `IMPORTANT: Are you sure you want to delete this connection?\n\nSaved project queries will remain available for other connections.\n\nThis action is irreversible. Press OK to continue.`,
             );
             if (confirmed) {
               deleteConnection({ connectionId: connection._id });

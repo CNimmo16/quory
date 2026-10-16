@@ -52,7 +52,7 @@ beforeEach(() => {
 it("shows dedicated first-project creation when no projects exist", () => {
   render(<Screen />);
   expect(
-    screen.getByRole("heading", { name: "Create your first project" })
+    screen.getByRole("heading", { name: "Create your first project" }),
   ).toBeVisible();
   expect(screen.getByRole("form", { name: "Create project" })).toBeVisible();
 });

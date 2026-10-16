@@ -89,7 +89,7 @@ it("migrates legacy connections and queries into a project without losing IDs or
     chatMessages: [{ id: "chat" }],
   });
   expect(mocks.repos.get("queries")!.get("query-1")).not.toHaveProperty(
-    "connectionId"
+    "connectionId",
   );
 });
 
@@ -122,7 +122,7 @@ it("renames an active project without disconnecting and rejects stale revisions"
   expect((await caller.list()).projects[0]?.project.name).toBe("Renamed");
   expect(mocks.disconnect).not.toHaveBeenCalled();
   await expect(
-    caller.rename({ projectId, revision: "stale", name: "Wrong" })
+    caller.rename({ projectId, revision: "stale", name: "Wrong" }),
   ).rejects.toThrow("item changed");
 });
 
@@ -149,10 +149,10 @@ it("manages project queries without selecting a project or connection, rejecting
       queryId: "orders",
       revision: "1-query",
       nickname: "Wrong",
-    })
+    }),
   ).rejects.toThrow("different project");
   await expect(
-    caller.deleteQuery({ projectId, queryId: "orders", revision: "stale" })
+    caller.deleteQuery({ projectId, queryId: "orders", revision: "stale" }),
   ).rejects.toThrow("item changed");
   await caller.renameQuery({
     projectId,
@@ -221,7 +221,7 @@ it("unregisters folder projects without deleting their shared files", async () =
   });
   expect(restored.projectId).not.toBe(projectId);
   expect((await caller.list()).projects[0]?.project.directory).toBe(
-    "/repo/.quory"
+    "/repo/.quory",
   );
 });
 
@@ -282,16 +282,16 @@ it("lists queries from an unselected project without changing projects or connec
   });
   expect(
     (await caller.listQueries({ projectId: second })).queries.map(
-      ({ id }) => id
-    )
+      ({ id }) => id,
+    ),
   ).toEqual(["second-query"]);
   expect(activeProjectState.getActiveProject()).toBeNull();
   await caller.open({ projectId: first });
   mocks.disconnect.mockClear();
   expect(
     (await caller.listQueries({ projectId: second })).queries.map(
-      ({ id }) => id
-    )
+      ({ id }) => id,
+    ),
   ).toEqual(["second-query"]);
   expect(activeProjectState.getActiveProject()?._id).toBe(first);
   expect(mocks.disconnect).not.toHaveBeenCalled();
@@ -356,7 +356,7 @@ it("shows hidden folders in the native folder picker and handles cancellation", 
   expect(mocks.dialog).toHaveBeenCalledWith(
     expect.objectContaining({
       properties: ["openDirectory", "showHiddenFiles"],
-    })
+    }),
   );
   mocks.dialog.mockResolvedValue({ canceled: true, filePaths: [] });
   expect(await caller.chooseFolder()).toEqual({ path: null });
@@ -370,7 +370,7 @@ it("prevents a superseded project selection from publishing stale state", async 
     () =>
       new Promise<void>((resolve) => {
         finish = resolve;
-      })
+      }),
   );
   const pending = caller.open(first);
   await vi.waitFor(() => expect(mocks.disconnect).toHaveBeenCalledOnce());

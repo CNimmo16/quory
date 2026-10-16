@@ -14,7 +14,7 @@ export type ResolvedRelationship = {
 export default function resolveRelationship(
   schemas: DatabaseSchema[],
   fromRef: string,
-  step: ViaTableStep
+  step: ViaTableStep,
 ): ResolvedRelationship {
   const [fromSchema, fromTable] = splitTableRef(fromRef);
   const [toSchema, toTable] = splitTableRef(step.tableRef);
@@ -23,13 +23,13 @@ export default function resolveRelationship(
   const candidates = [
     ...getTableRelationships(from, fromSchema)
       .filter(
-        (ref) => ref.foreignSchema === toSchema && ref.foreignTable === toTable
+        (ref) => ref.foreignSchema === toSchema && ref.foreignTable === toTable,
       )
       .map((relationship) => ({ relationship, forward: true })),
     ...getTableRelationships(to, toSchema)
       .filter(
         (ref) =>
-          ref.foreignSchema === fromSchema && ref.foreignTable === fromTable
+          ref.foreignSchema === fromSchema && ref.foreignTable === fromTable,
       )
       .map((relationship) => ({ relationship, forward: false })),
   ];
@@ -43,7 +43,7 @@ export default function resolveRelationship(
             (forward ? pair.localColumn : pair.foreignColumn)) &&
         (step.toColumnName === undefined ||
           step.toColumnName ===
-            (forward ? pair.foreignColumn : pair.localColumn))
+            (forward ? pair.foreignColumn : pair.localColumn)),
     );
   });
   const available = candidates
@@ -55,21 +55,21 @@ export default function resolveRelationship(
           .map((pair) =>
             forward
               ? `${pair.localColumn} → ${pair.foreignColumn}`
-              : `${pair.foreignColumn} → ${pair.localColumn}`
+              : `${pair.foreignColumn} → ${pair.localColumn}`,
           )
-          .join(", ")})`
+          .join(", ")})`,
     )
     .join("; ");
   const guidance =
     step.usingConstraintId !== undefined
       ? "The constraint ID matches multiple directions; use fromColumnName and/or toColumnName instead."
       : step.fromColumnName !== undefined && step.toColumnName !== undefined
-      ? "Use usingConstraintId instead of column names to distinguish constraints sharing this pair."
-      : step.fromColumnName !== undefined
-      ? "Add toColumnName or replace the column selector with usingConstraintId."
-      : step.toColumnName !== undefined
-      ? "Add fromColumnName or replace the column selector with usingConstraintId."
-      : "Specify fromColumnName, toColumnName, or usingConstraintId to uniquely identify a constraint.";
+        ? "Use usingConstraintId instead of column names to distinguish constraints sharing this pair."
+        : step.fromColumnName !== undefined
+          ? "Add toColumnName or replace the column selector with usingConstraintId."
+          : step.toColumnName !== undefined
+            ? "Add fromColumnName or replace the column selector with usingConstraintId."
+            : "Specify fromColumnName, toColumnName, or usingConstraintId to uniquely identify a constraint.";
   if (matches.length !== 1) {
     throw new Error(
       matches.length > 1
@@ -78,7 +78,7 @@ export default function resolveRelationship(
             step.tableRef
           }. Check fromColumnName, toColumnName, or usingConstraintId. Available relationships: ${
             available || "none"
-          }`
+          }`,
     );
   }
   const match = matches[0]!;

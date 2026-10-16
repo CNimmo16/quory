@@ -95,7 +95,7 @@ it("opens the connection form directly without the removed selection screen", ()
   render(<IndexPage />);
   expect(screen.getByRole("heading", { name: "New connection" })).toBeVisible();
   expect(
-    screen.getByRole("button", { name: "Create connection" })
+    screen.getByRole("button", { name: "Create connection" }),
   ).toBeVisible();
 });
 it("preserves the target query through creation and connecting", async () => {
@@ -108,7 +108,7 @@ it("preserves the target query through creation and connecting", async () => {
       to: "/connections/$connectionId",
       params: { connectionId: "new-id" },
       search: { queryId: "orders" },
-    })
+    }),
   );
   view.rerender(<EditPage />);
   await user.click(screen.getByRole("button", { name: "Connect" }));
@@ -116,7 +116,7 @@ it("preserves the target query through creation and connecting", async () => {
     expect(mocks.navigate).toHaveBeenLastCalledWith({
       to: "/queries/$queryId",
       params: { queryId: "orders" },
-    })
+    }),
   );
   expect(mocks.connect).toHaveBeenCalledWith({ connectionId: "new-id" });
   expect(mocks.invalidate).toHaveBeenCalledOnce();

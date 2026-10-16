@@ -72,13 +72,15 @@ it("saves and reloads a preset connection colour", async () => {
   mocks.get.mockResolvedValue(saved);
   expect(
     (await caller.fetchConnectionById({ connectionId: result.connectionId }))
-      .connection.colour
+      .connection.colour,
   ).toBe("red");
 });
 
 it("rejects colours outside the preset list", async () => {
   await expect(
-    caller.saveConnection({ config: { ...config, colour: "invalid" as "red" } })
+    caller.saveConnection({
+      config: { ...config, colour: "invalid" as "red" },
+    }),
   ).rejects.toThrow();
   expect(mocks.put).not.toHaveBeenCalled();
 });
@@ -95,7 +97,7 @@ it("lists another project's connections without activating it", async () => {
   expect(mocks.activate).not.toHaveBeenCalled();
   expect(mocks.deactivate).not.toHaveBeenCalled();
   expect(
-    (await caller.listSavedConnections()).connections.map(({ id }) => id)
+    (await caller.listSavedConnections()).connections.map(({ id }) => id),
   ).toEqual(["current"]);
 });
 
@@ -121,7 +123,7 @@ describe("SSL connection persistence", () => {
     });
     mocks.get.mockResolvedValue(saved);
     expect(
-      await caller.fetchConnectionById({ connectionId: result.connectionId })
+      await caller.fetchConnectionById({ connectionId: result.connectionId }),
     ).toEqual({ connection: saved });
     await caller.connectToDatabase({ connectionId: result.connectionId });
     expect(mocks.dispose).toHaveBeenCalledTimes(1);
@@ -153,7 +155,7 @@ describe("SSL connection persistence", () => {
     await expect(
       caller.saveConnection({
         config: { ...config, ssl: ssl as { mode: "verify-full" } },
-      })
+      }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(mocks.requestHandler).not.toHaveBeenCalled();
     expect(mocks.put).not.toHaveBeenCalled();
@@ -168,17 +170,17 @@ describe("SSL connection persistence", () => {
       const database = { ...config, ssl: { mode: "verify-full" as const } };
       mocks.requestHandler.mockRejectedValue(error);
       await expect(caller.saveConnection({ config: database })).rejects.toThrow(
-        error.message
+        error.message,
       );
       expect(mocks.put).not.toHaveBeenCalled();
       mocks.get.mockResolvedValue({ ...database, projectId: "project-1" });
       mocks.activate.mockRejectedValue(error);
       await expect(
-        caller.connectToDatabase({ connectionId: "existing" })
+        caller.connectToDatabase({ connectionId: "existing" }),
       ).rejects.toThrow(error.message);
       expect(mocks.activate).toHaveBeenCalledWith("existing");
       expect(mocks.recreateMainWindow).not.toHaveBeenCalled();
-    }
+    },
   );
 });
 
@@ -187,7 +189,7 @@ it("disposes temporary validation before rejecting a duplicate nickname", async 
     rows: [{ id: "other", doc: { ...config, projectId: "project-1" } }],
   });
   await expect(caller.saveConnection({ config })).rejects.toThrow(
-    "already exists"
+    "already exists",
   );
   expect(mocks.dispose).toHaveBeenCalledTimes(1);
   expect(mocks.put).not.toHaveBeenCalled();
@@ -196,7 +198,7 @@ it("disposes temporary validation before rejecting a duplicate nickname", async 
 it("disposes temporary validation even when persistence fails", async () => {
   mocks.put.mockRejectedValue(new Error("write failed"));
   await expect(caller.saveConnection({ config })).rejects.toThrow(
-    "write failed"
+    "write failed",
   );
   expect(mocks.dispose).toHaveBeenCalledTimes(1);
 });
@@ -216,7 +218,7 @@ it("scopes connections and duplicate nicknames to the current project", async ()
     ],
   });
   expect(
-    (await caller.listSavedConnections()).connections.map(({ id }) => id)
+    (await caller.listSavedConnections()).connections.map(({ id }) => id),
   ).toEqual(["local"]);
   mocks.allDocs.mockResolvedValue({
     rows: [{ id: "other", doc: { ...config, projectId: "project-2" } }],

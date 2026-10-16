@@ -36,7 +36,7 @@ export const routes = {
         database,
         request.executionId,
         (signal) =>
-          QueryService.fetchDataForQuery(database, request.query, { signal })
+          QueryService.fetchDataForQuery(database, request.query, { signal }),
       );
       const { rows, preparedQuery, visibleJoins } = data;
 
@@ -59,7 +59,7 @@ export const routes = {
         database,
         request.executionId,
         (signal) =>
-          QueryService.fetchCountForQuery(database, request.query, { signal })
+          QueryService.fetchCountForQuery(database, request.query, { signal }),
       );
 
       return {

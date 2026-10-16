@@ -6,11 +6,13 @@ it("passes values separately to postgres.js and returns query rows", async () =>
   const unsafe = jest.fn().mockResolvedValue(rows);
   driver.sql = { unsafe } as unknown as PostgresDriver["sql"];
   expect(
-    await driver.exec("SELECT name FROM users WHERE name = $1", [rows[0]!.name])
+    await driver.exec("SELECT name FROM users WHERE name = $1", [
+      rows[0]!.name,
+    ]),
   ).toEqual(rows);
   expect(unsafe).toHaveBeenCalledWith(
     "SELECT name FROM users WHERE name = $1",
-    [rows[0]!.name]
+    [rows[0]!.name],
   );
 });
 

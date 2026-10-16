@@ -6,52 +6,62 @@ export const connectionColours: Record<
 > = {
   teal: {
     label: "Teal",
-    dot: "bg-teal-500",
-    badge: "border-teal-200 bg-teal-50 text-teal-800 hover:bg-teal-100",
+    dot: "bg-connection-1",
+    badge:
+      "border-connection-1/30 bg-connection-1/10 text-foreground hover:bg-connection-1/20",
   },
   blue: {
     label: "Blue",
-    dot: "bg-blue-500",
-    badge: "border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100",
+    dot: "bg-connection-2",
+    badge:
+      "border-connection-2/30 bg-connection-2/10 text-foreground hover:bg-connection-2/20",
   },
   indigo: {
     label: "Indigo",
-    dot: "bg-indigo-500",
-    badge: "border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100",
+    dot: "bg-connection-3",
+    badge:
+      "border-connection-3/30 bg-connection-3/10 text-foreground hover:bg-connection-3/20",
   },
   violet: {
     label: "Violet",
-    dot: "bg-violet-500",
-    badge: "border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100",
+    dot: "bg-connection-4",
+    badge:
+      "border-connection-4/30 bg-connection-4/10 text-foreground hover:bg-connection-4/20",
   },
   pink: {
     label: "Pink",
-    dot: "bg-pink-500",
-    badge: "border-pink-200 bg-pink-50 text-pink-800 hover:bg-pink-100",
+    dot: "bg-connection-5",
+    badge:
+      "border-connection-5/30 bg-connection-5/10 text-foreground hover:bg-connection-5/20",
   },
   red: {
     label: "Red",
-    dot: "bg-red-500",
-    badge: "border-red-200 bg-red-50 text-red-800 hover:bg-red-100",
+    dot: "bg-connection-6",
+    badge:
+      "border-connection-6/30 bg-connection-6/10 text-foreground hover:bg-connection-6/20",
   },
   orange: {
     label: "Orange",
-    dot: "bg-orange-500",
-    badge: "border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100",
+    dot: "bg-connection-7",
+    badge:
+      "border-connection-7/30 bg-connection-7/10 text-foreground hover:bg-connection-7/20",
   },
   amber: {
     label: "Amber",
-    dot: "bg-amber-500",
-    badge: "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100",
+    dot: "bg-connection-8",
+    badge:
+      "border-connection-8/30 bg-connection-8/10 text-foreground hover:bg-connection-8/20",
   },
   green: {
     label: "Green",
-    dot: "bg-green-500",
-    badge: "border-green-200 bg-green-50 text-green-800 hover:bg-green-100",
+    dot: "bg-connection-9",
+    badge:
+      "border-connection-9/30 bg-connection-9/10 text-foreground hover:bg-connection-9/20",
   },
   slate: {
     label: "Slate",
-    dot: "bg-slate-500",
-    badge: "border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100",
+    dot: "bg-connection-10",
+    badge:
+      "border-connection-10/30 bg-connection-10/10 text-foreground hover:bg-connection-10/20",
   },
 };

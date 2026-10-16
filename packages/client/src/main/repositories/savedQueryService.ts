@@ -23,7 +23,7 @@ type ConnectionContext = string | SavedQueryContext;
 function assertGeneration(context: SavedQueryContext) {
   activeProjectState.assertCurrent(
     context.projectId,
-    context.projectGeneration
+    context.projectGeneration,
   );
   if (activeConnectionState.getConnectionGeneration() !== context.generation)
     throw new TRPCError({
@@ -34,7 +34,7 @@ function assertGeneration(context: SavedQueryContext) {
 }
 
 async function assertConnection(
-  context: ConnectionContext
+  context: ConnectionContext,
 ): Promise<SavedQueryContext> {
   const project = activeProjectState.requireActiveProject();
   const projectGeneration =
@@ -66,7 +66,7 @@ async function assertConnection(
 async function fetch(connection: ConnectionContext, queryId: string) {
   const context = await assertConnection(connection);
   const query = await projectQueryRepo(
-    activeProjectState.requireActiveProject()
+    activeProjectState.requireActiveProject(),
   ).get(queryId);
   if (query.projectId !== context.projectId)
     throw new TRPCError({
@@ -87,14 +87,14 @@ function assertRevision(actual: string, revision: string) {
 
 async function write(
   context: SavedQueryContext,
-  doc: SavedQuery & { _id: string; _rev?: string }
+  doc: SavedQuery & { _id: string; _rev?: string },
 ) {
   await assertConnection(context);
   // No await between this check and dispatching the write.
   assertGeneration(context);
   try {
     return await projectQueryRepo(
-      activeProjectState.requireActiveProject()
+      activeProjectState.requireActiveProject(),
     ).put(doc);
   } catch (error) {
     if ((error as { status?: number }).status === 409)
@@ -108,13 +108,14 @@ async function write(
 
 export const savedQueryService = {
   assertConnection,
+  assertCurrent: assertGeneration,
   fetch,
   async list(connection?: ConnectionContext, projectId?: string) {
     const project = activeProjectState.requireActiveProject();
     const projectGeneration = activeProjectState.getProjectGeneration();
     activeProjectState.assertCurrent(
       projectId ?? project._id,
-      projectGeneration
+      projectGeneration,
     );
     const context =
       connection !== undefined ? await assertConnection(connection) : undefined;
@@ -135,7 +136,7 @@ export const savedQueryService = {
     metadata: Pick<
       SavedQuery,
       "chatMessages" | "lastChatRequestId" | "queryHistory"
-    > = {}
+    > = {},
   ) {
     const context = await assertConnection(connection);
     const { projectId } = context;
@@ -157,7 +158,7 @@ export const savedQueryService = {
     changes: { query?: QueryDefinition; nickname?: string } & Pick<
       SavedQuery,
       "chatMessages" | "lastChatRequestId" | "queryHistory"
-    >
+    >,
   ) {
     const context = await assertConnection(connection);
     const existing = await fetch(context, queryId);
@@ -193,9 +194,9 @@ export const savedQueryService = {
               query && !isSqlQuery(query) && !isSqlQuery(existing)
                 ? appendQueryVersion(
                     existing.queryHistory ?? createQueryHistory(existing),
-                    query
+                    query,
                   )
-                : existing.queryHistory ?? createQueryHistory(next),
+                : (existing.queryHistory ?? createQueryHistory(next)),
           }
         : {}),
       ...(isSqlQuery(next) ? sqlMetadata : metadata),
@@ -207,7 +208,7 @@ export const savedQueryService = {
   async delete(
     connection: ConnectionContext,
     queryId: string,
-    revision: string
+    revision: string,
   ) {
     const context = await assertConnection(connection);
     const query = await fetch(context, queryId);
@@ -216,7 +217,7 @@ export const savedQueryService = {
     assertGeneration(context);
     try {
       await projectQueryRepo(activeProjectState.requireActiveProject()).remove(
-        query
+        query,
       );
     } catch (error) {
       if ((error as { status?: number }).status === 409)

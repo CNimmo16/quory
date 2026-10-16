@@ -29,7 +29,7 @@ If you're unsure which file to download from the release, here is some guidance:
 - On Mac OS, either:
   - download the `quory-{version}.dmg` file to install Quory to the Applications folder
   - download the `quory-{version}-arm64-mac.zip`, extract the zip file, and use it to run Quory directly
-> For Mac OS, you'll need to run `xattr -c <path/to/application.app>` from the terminal after installing the app. This is because the app is unsigned (as I do not have an Apple developer account). If you'd prefer to build from source, [see "Building the electron client"](#building-the-electron-client).
+    > For Mac OS, you'll need to run `xattr -c <path/to/application.app>` from the terminal after installing the app. This is because the app is unsigned (as I do not have an Apple developer account). If you'd prefer to build from source, [see "Building the electron client"](#building-the-electron-client).
 
 ## Quory Cloud (coming soon!)
 
@@ -123,31 +123,31 @@ You now have access to several hooks importable from `@quory/stack/react`
 - `useQuery` - fetch data for a Quory query from the backend
 
 ```ts
-  const [_query, setQuery] = useState({
-    base: {
-      tableRef: 'public.users',
-      select: '*',
-    }
-  })
-  const { query, data, error, isLoading, joinActions } = useQuery(
-    _query,
-    setQuery
-  );
+const [_query, setQuery] = useState({
+  base: {
+    tableRef: "public.users",
+    select: "*",
+  },
+});
+const { query, data, error, isLoading, joinActions } = useQuery(
+  _query,
+  setQuery,
+);
 ```
 
 - `useQueryCount` - fetch only the total items count for a Quory query
 
 ```ts
-  const { query, data, error, isLoading, joinActions } = useQueryCount({
-    tableRef: 'public.books',
-    select: ['name', 'author_id'],
-  });
+const { query, data, error, isLoading, joinActions } = useQueryCount({
+  tableRef: "public.books",
+  select: ["name", "author_id"],
+});
 ```
 
 - `useFetchSchema` - fetch the database schema information from the backend
 
 ```ts
-  const { data: schemaData } = useFetchSchema();
+const { data: schemaData } = useFetchSchema();
 ```
 
 ### Building your own data app (@quory/core) [![npm version](https://badge.fury.io/js/@quory%2Fcore.svg)](https://badge.fury.io/js/@quory%2Fcore)
@@ -173,16 +173,33 @@ It provides a set of functions to obtain information about your database's schem
 3. Run `pnpm build` to build all packages in dependency order.
 
 #### Building packages
+
 Run `pnpm build` for a one-off build, or `pnpm dev` to run the `build:watch` scripts concurrently from all packages in the `/packages` folder. Build once before starting watch mode so dependent packages can resolve their dependencies.
 
 #### Running Electron client locally
+
 Run `pnpm serve` to launch the Electron app locally. Keep `pnpm dev` running in a separate terminal to rebuild the library packages as you edit them.
 
+`pnpm serve` and the client preview check that Electron is installed and that its native bindings load before launching. They restore a missing runtime and rebuild incompatible bindings automatically after dependency reinstalls. To rebuild the bindings manually, run `pnpm rebuild:native`. This rebuilds the database and SSH native modules for the client's pinned Electron version and your current architecture. A plain `pnpm rebuild` targets Node.js instead; after rebuilding modules for Node.js tests, run `pnpm rebuild:native` before launching Electron.
+
+#### Saved filtersets
+
+In a saved relationship query, choose **Save current filters** in the Filters header to name the current filters. Recent filtersets appear in a single row as space allows; **View more** lists the rest. Choose a filterset to replace the current filters and return to the first results page while preserving columns, joins, and ordering. Applying a filterset is a normal query edit and can be undone.
+
+Filtersets are scoped to a project and query and stored in the app-local PouchDB database under `userData/pouchdb/query-filtersets`, including for folder projects. Saving a filterset does not update the query definition in `.quory`. A filterset can be applied while its relationship tree still matches; if the tables or join paths have changed, restore that tree before applying it.
+
 #### Building the Electron client
+
 Run `pnpm build`, then `pnpm --filter @quory/client build:<os>` replacing `<os>` with your operating system - `mac`, `linux` or `win`. The resulting build files will be created in the `/packages/client/dist` folder. Use `pnpm --filter @quory/client build:unpack` to create an unpacked application.
 
 #### Testing
+
 After building the packages, run `pnpm test` from the root directory to run package tests concurrently, or `pnpm --filter @quory/<package-name> test` to run tests for a single package. Run `pnpm lint` to lint all packages.
 
 #### Releases
+
 Run `pnpm changeset` to build the packages and record a change for release. CI installs dependencies with `pnpm install --frozen-lockfile` and runs `pnpm ci:release` to build, lint, test, version, and publish through Changesets.
+
+## Marketing website
+
+The static Astro marketing site lives in [`apps/marketing`](apps/marketing/README.md). Run `pnpm marketing:dev` to start it at http://127.0.0.1:4321. Edit copy directly in its Astro pages and shared layout.

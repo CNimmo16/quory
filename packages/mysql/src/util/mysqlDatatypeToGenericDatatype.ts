@@ -1,7 +1,7 @@
 import { GenericDataType } from "@quory/core";
 
 export default function mysqlDatatypeToGenericDatatype(
-  mysqlDatatype: string
+  mysqlDatatype: string,
 ): GenericDataType {
   const lookup: { [x: string]: GenericDataType } = {
     tinytext: "text",

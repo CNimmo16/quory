@@ -16,7 +16,7 @@ export function getQueryModel(env: NodeJS.ProcessEnv = process.env) {
     throw new Error("AI_PROVIDER must be openai, anthropic, or google.");
   if (!model)
     throw new Error(
-      "Set AI_MODEL in the root .env.local for the selected AI_PROVIDER."
+      "Set AI_MODEL in the root .env.local for the selected AI_PROVIDER.",
     );
   const selectedProvider = provider as keyof typeof keys;
   if (!keys[selectedProvider]?.trim()) {
@@ -26,7 +26,7 @@ export function getQueryModel(env: NodeJS.ProcessEnv = process.env) {
       google: "GOOGLE_GENERATIVE_AI_API_KEY",
     }[selectedProvider];
     throw new Error(
-      `Set ${keyName} in the root .env.local to use ${provider}. Manual mode is still available.`
+      `Set ${keyName} in the root .env.local to use ${provider}. Manual mode is still available.`,
     );
   }
   const registry = createProviderRegistry({

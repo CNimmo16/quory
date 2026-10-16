@@ -47,7 +47,7 @@ describe("application session ownership", () => {
     const late = deferred<ReturnType<typeof session>>();
     const first = session();
     const rejection = expect(
-      owner.connect("a", () => late.promise)
+      owner.connect("a", () => late.promise),
     ).rejects.toThrow("superseded");
     let finished = false;
     const shutdown = owner.shutdown().then(() => {
@@ -60,7 +60,7 @@ describe("application session ownership", () => {
     await shutdown;
     expect(first.dispose).toHaveBeenCalledTimes(1);
     await expect(owner.connect("b", async () => session())).rejects.toThrow(
-      "shutting down"
+      "shutting down",
     );
   });
 
@@ -71,7 +71,7 @@ describe("application session ownership", () => {
     await expect(
       owner.connect("b", async () => {
         throw new Error("failed");
-      })
+      }),
     ).rejects.toThrow("failed");
     expect(await owner.get()).toBe(first);
     expect(owner.connectionId).toBe("a");

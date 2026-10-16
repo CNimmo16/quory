@@ -91,11 +91,11 @@ it("lists project queries while disconnected without exposing another project's 
   ++mocks.generation;
   expect(
     (await caller.listSavedQueries({ projectId: "a" })).queries.map(
-      ({ id }) => id
-    )
+      ({ id }) => id,
+    ),
   ).toEqual([queryId]);
   await expect(caller.listSavedQueries({ projectId: "b" })).rejects.toThrow(
-    "project changed"
+    "project changed",
   );
 });
 
@@ -106,7 +106,7 @@ it("rejects a project-only list if the project changes during the read", async (
     return { rows: [...docs].map(([id, doc]) => ({ id, doc })) };
   });
   await expect(caller.listSavedQueries({ projectId: "a" })).rejects.toThrow(
-    "project changed"
+    "project changed",
   );
 });
 function historyInput(queryId: string, action: QueryHistoryAction = "undo") {
@@ -126,7 +126,7 @@ it("persists undo and redo without removing the chat that caused the change", as
   const history = appendQueryVersion(
     docs.get(queryId)!.queryHistory!,
     changed,
-    "reply"
+    "reply",
   );
   const messages = [
     { id: "request", role: "user" as const, content: "Only seven rows" },
@@ -188,7 +188,7 @@ it("retains older chat messages when undo appends to a truncated agent context",
 it("clears redo after a new save, preserves history on rename, and rejects unavailable actions", async () => {
   const queryId = await create();
   await expect(
-    caller.changeQueryHistory(historyInput(queryId))
+    caller.changeQueryHistory(historyInput(queryId)),
   ).rejects.toThrow("no query change to undo");
   await caller.updateQuery({
     connectionId: "a",
@@ -212,7 +212,7 @@ it("clears redo after a new save, preserves history on rename, and rejects unava
   });
   expect(docs.get(queryId)!.queryHistory!.future).toEqual([]);
   await expect(
-    caller.changeQueryHistory(historyInput(queryId, "redo"))
+    caller.changeQueryHistory(historyInput(queryId, "redo")),
   ).rejects.toThrow("no query change to redo");
 });
 it("supports create, fetch, list, edit, rename and delete without changing ownership", async () => {
@@ -223,8 +223,8 @@ it("supports create, fetch, list, edit, rename and delete without changing owner
   });
   expect(
     (await caller.listSavedQueries({ connectionId: "a" })).queries.map(
-      (q) => q.id
-    )
+      (q) => q.id,
+    ),
   ).toEqual([queryId]);
   const updated = await caller.updateQuery({
     connectionId: "a",
@@ -265,7 +265,7 @@ it("rejects wrong-project fetch, edit, rename and delete before any write", asyn
   ])
     await expect(operation()).rejects.toThrow("different project");
   expect(
-    (await caller.listSavedQueries({ connectionId: "b" })).queries
+    (await caller.listSavedQueries({ connectionId: "b" })).queries,
   ).toEqual([]);
   expect(mocks.put).not.toHaveBeenCalled();
   expect(mocks.remove).not.toHaveBeenCalled();
@@ -296,10 +296,10 @@ it("rejects stale renderer context for create and fetch", async () => {
   mocks.active = "b";
   mocks.get.mockClear();
   await expect(
-    caller.createQuery({ connectionId: "a", query })
+    caller.createQuery({ connectionId: "a", query }),
   ).rejects.toThrow("active connection changed");
   await expect(
-    caller.fetchQuery({ connectionId: "a", queryId })
+    caller.fetchQuery({ connectionId: "a", queryId }),
   ).rejects.toThrow("active connection changed");
   expect(mocks.get).not.toHaveBeenCalled();
   expect(docs.size).toBe(1);
@@ -335,11 +335,11 @@ it.each(["fetch", "update", "rename", "delete", "list", "history"] as const)(
         caller.changeQueryHistory({ ...historyInput(queryId), ...input }),
     };
     await expect(operations[operation]()).rejects.toThrow(
-      "active connection changed"
+      "active connection changed",
     );
     expect(mocks.put).not.toHaveBeenCalled();
     expect(mocks.remove).not.toHaveBeenCalled();
-  }
+  },
 );
 
 it.each(["update", "rename", "delete", "history"] as const)(
@@ -375,7 +375,7 @@ it.each(["update", "rename", "delete", "history"] as const)(
       _rev: "2-concurrent",
       nickname: "Concurrent edit",
     });
-  }
+  },
 );
 
 it("shares saved queries between environments in the same project", async () => {
@@ -384,8 +384,8 @@ it("shares saved queries between environments in the same project", async () => 
   ++mocks.generation;
   expect(
     (await caller.listSavedQueries({ connectionId: "staging" })).queries.map(
-      ({ id }) => id
-    )
+      ({ id }) => id,
+    ),
   ).toEqual([queryId]);
   const saved = await caller.fetchQuery({ connectionId: "staging", queryId });
   expect(saved.query.projectId).toBe("a");
@@ -399,7 +399,7 @@ it("shares saved queries between environments in the same project", async () => 
   mocks.active = "a";
   ++mocks.generation;
   expect(
-    (await caller.fetchQuery({ connectionId: "a", queryId })).query.nickname
+    (await caller.fetchQuery({ connectionId: "a", queryId })).query.nickname,
   ).toBe("Shared query");
 });
 
@@ -417,7 +417,7 @@ it("rejects a project switch away and back while reading a query", async () => {
       queryId,
       revision: "1-saved",
       nickname: "Stale",
-    })
+    }),
   ).rejects.toThrow("active project changed");
   expect(docs.get(queryId)!.nickname).not.toBe("Stale");
 });
@@ -449,7 +449,7 @@ it("saves SQL definitions and makes conversion irreversible without retaining th
       queryId,
       revision: converted.revision,
       query,
-    })
+    }),
   ).rejects.toThrow("cannot be converted back");
   const created = await caller.createQuery({
     connectionId: "a",

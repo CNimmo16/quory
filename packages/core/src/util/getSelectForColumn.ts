@@ -8,13 +8,13 @@ export default function getSelectForColumn(
   tableAlias: string,
   column: DatabaseTableInfo["columns"][number],
   resultAlias?: string,
-  dialect: SqlDialect = "sqlite"
+  dialect: SqlDialect = "sqlite",
 ) {
   return {
     name: column.name,
     ref: `${quoteIdentifier(tableAlias, dialect)}.${quoteIdentifier(
       column.name,
-      dialect
+      dialect,
     )}`,
     subQueryAlias: `${tableAlias}__${column.name}`,
     outerAlias: resultAlias ?? `${tableAlias}__${column.name}`,

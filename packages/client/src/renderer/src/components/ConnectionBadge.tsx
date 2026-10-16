@@ -55,7 +55,7 @@ export function ConnectionBadge({
   const context = useContext(ConnectionSelectorContext);
   if (!context)
     throw new Error(
-      "ConnectionBadge requires the project connection selector."
+      "ConnectionBadge requires the project connection selector.",
     );
   const [open, setOpen] = useState(false);
   const { connections, isConnecting, connectingId, isBusy } = context;
@@ -84,14 +84,14 @@ export function ConnectionBadge({
               "max-w-full gap-2 rounded-full shadow-none",
               appearance === "prompt"
                 ? cn(
-                    "h-8 rounded-full border border-slate-200 bg-slate-100 px-3 hover:bg-slate-200",
-                    selected && colours.badge
+                    "h-8 rounded-full border border-border bg-muted px-3 hover:bg-border",
+                    selected && colours.badge,
                   )
                 : colours.badge,
               appearance === "prompt" && !selected && "text-muted-foreground",
               invalid &&
                 appearance === "badge" &&
-                "border-orange-400 bg-orange-50 text-orange-700"
+                "border-warning bg-warning-subtle text-warning",
             )}
             aria-label={
               isConnecting ? `Connecting to ${name}` : `Connection: ${name}`
@@ -115,7 +115,7 @@ export function ConnectionBadge({
             {invalid && appearance === "prompt" && (
               <CircleAlert
                 aria-hidden="true"
-                className="size-3.5 text-orange-600"
+                className="size-3.5 text-warning"
               />
             )}
             <ChevronDown aria-hidden="true" className="size-3" />
@@ -154,7 +154,7 @@ export function ConnectionBadge({
                       aria-hidden="true"
                       className={cn(
                         "size-2.5 shrink-0 rounded-full",
-                        connectionColours[connection.colour ?? "teal"].dot
+                        connectionColours[connection.colour ?? "teal"].dot,
                       )}
                     />
                   )}
@@ -164,7 +164,7 @@ export function ConnectionBadge({
                   {isActive && (
                     <Check
                       aria-hidden="true"
-                      className="ml-3 size-3.5 text-teal-600"
+                      className="ml-3 size-3.5 text-primary-emphasis"
                     />
                   )}
                 </DropdownMenuItem>
@@ -209,7 +209,7 @@ export function ConnectionBadge({
         </DropdownMenuContent>
       </DropdownMenu>
       {context.error && (
-        <p role="alert" className="max-w-sm text-xs text-orange-700">
+        <p role="alert" className="max-w-sm text-xs text-warning">
           {context.error}
         </p>
       )}

@@ -29,7 +29,7 @@ describe("prepareQuery", () => {
             foreignKeyReferences: [],
           },
         ],
-      })
+      }),
     ),
   };
 
@@ -110,7 +110,7 @@ describe("prepareQuery", () => {
         GROUP BY "public__customer"."id",
           "public__order"."id",
           "public__order_fulfilment"."id"
-      `)
+      `),
     );
   });
 
@@ -146,7 +146,7 @@ describe("prepareQuery", () => {
         GROUP BY "public__order_fulfilment"."id",
           "public__order"."id",
           "public__customer"."id"
-      `)
+      `),
     );
   });
 
@@ -214,7 +214,7 @@ describe("prepareQuery", () => {
           "public__phone_number__2"."id",
           "public__order__2"."id",
           "public__order_fulfilment"."id"
-      `)
+      `),
     );
   });
 });

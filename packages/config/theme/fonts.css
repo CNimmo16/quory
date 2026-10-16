@@ -1,0 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Teko:wght@300..700&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&family=Russo+One&family=Share+Tech+Mono&display=swap");
+
+:root {
+  --font-body: "Ubuntu", sans-serif;
+  --font-mono: "Share Tech Mono", monospace;
+  --font-display: "Teko", sans-serif;
+}

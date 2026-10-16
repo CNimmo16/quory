@@ -16,12 +16,11 @@ it("disposes a handler when session schema initialization fails", async () => {
     vi.fn().mockRejectedValue(new Error("schema failed")),
     {
       dispose: vi.fn().mockResolvedValue(undefined),
-    }
+    },
   );
   mocks.create.mockResolvedValue(request);
-  const { connectQuorySession, getQuorySession } = await import(
-    "./quorySession"
-  );
+  const { connectQuorySession, getQuorySession } =
+    await import("./quorySession");
   await expect(connectQuorySession("a")).rejects.toThrow("schema failed");
   expect(request.dispose).toHaveBeenCalledTimes(1);
   await expect(getQuorySession()).rejects.toThrow("Connect");

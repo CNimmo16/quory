@@ -43,12 +43,12 @@ export const queryChatProcedure = publicProcedure
       revision: z.string().optional(),
       currentQuery: validators.query.optional(),
       queryHistory: queryHistorySchema.optional(),
-    })
+    }),
   )
   .mutation(async ({ input }): Promise<QueryChatResult> => {
     const id = input.queryId ?? input.requestId;
     const context = await savedQueryService.assertConnection(
-      input.connectionId
+      input.connectionId,
     );
     const operationId = `${context.projectId}:${id}`;
     if (inFlight.has(operationId))
@@ -105,7 +105,7 @@ export const queryChatProcedure = publicProcedure
       const messages: ChatMessage[] = [
         ...mergeChatMessages(
           existing?.chatMessages ?? [],
-          input.history
+          input.history,
         ).filter((message) => !message.historyAction),
         { id: input.requestId, role: "user", content: input.message },
       ];
@@ -152,19 +152,19 @@ export const queryChatProcedure = publicProcedure
             !queriesMatch(
               session.schemas,
               previousHistory.present.query,
-              previousQuery
+              previousQuery,
             )
           ) {
             previousHistory = appendQueryVersion(
               previousHistory,
-              previousQuery
+              previousQuery,
             );
           }
           const queryHistory = previousHistory
             ? queriesMatch(
                 session.schemas,
                 previousHistory.present.query,
-                query
+                query,
               )
               ? previousHistory
               : appendQueryVersion(previousHistory, query, messageId)
@@ -186,7 +186,7 @@ export const queryChatProcedure = publicProcedure
                   id,
                   query,
                   nickname,
-                  metadata
+                  metadata,
                 );
             saved = { revision: doc.rev, messages: chatMessages, queryHistory };
           } catch (error) {

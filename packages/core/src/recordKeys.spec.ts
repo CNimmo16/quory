@@ -40,7 +40,7 @@ it("identifies repeated records by the complete hidden primary key without addin
   expect(meta.preparedQuery.base.select).toEqual(["label"]);
   expect(meta.preparedQuery.base.joins[0]!.select).toEqual(["name"]);
   expect(
-    (await prepareQuery(schemas, query)).sql.split(" FROM ")[0]
+    (await prepareQuery(schemas, query)).sql.split(" FROM ")[0],
   ).not.toContain('"id" AS');
 });
 
@@ -97,7 +97,7 @@ it("decodes duplicate table instances and colliding result names with hidden key
   const compiled = await prepareQuery(schemas, query);
   expect(compiled.preparedQuery.base.resultAliases.b__c).toBe("main__a__b__c");
   expect(compiled.preparedQuery.base.joins[0]!.resultAliases.c).toBe(
-    "main__a__b__c__2"
+    "main__a__b__c__2",
   );
   expect(compiled.preparedQuery.base.joins[1]!.joinAlias).toBe("main__a__b__2");
   const { rows } = await runQuery(driver, schemas, query);
@@ -120,7 +120,7 @@ it("executes and decodes shortened, quoted Unicode aliases", async () => {
   const column = `created_雨_${"timestamp_".repeat(6)}"`;
   const quote = (name: string) => '"' + name.replaceAll('"', '""') + '"';
   db.exec(`CREATE TABLE ${quote(table)} (id INTEGER PRIMARY KEY, ${quote(
-    column
+    column,
   )} TEXT);
     INSERT INTO ${quote(table)} VALUES (7, 'Value');`);
   const driver = new SqliteDriver(db);
@@ -132,7 +132,7 @@ it("executes and decodes shortened, quoted Unicode aliases", async () => {
     schemas,
     query,
     "sqlite",
-    { includeRecordKeys: true }
+    { includeRecordKeys: true },
   );
   for (const alias of [
     preparedQuery.base.joinAlias,

@@ -30,7 +30,7 @@ function fixture() {
         readableName: name,
         isPrimaryKey: false,
       })),
-    })
+    }),
   );
   const rows: Props["rows"] = [
     "[1,23]",
@@ -51,17 +51,17 @@ function fixture() {
           name === "id"
             ? index
             : name === "name"
-            ? "Same display name"
-            : "A longer note that can be inspected in full",
+              ? "Same display name"
+              : "A longer note that can be inspected in full",
         readableValue:
           name === "id"
             ? String(index)
             : name === "name"
-            ? "Same display name"
-            : "A longer note that can be inspected in full",
+              ? "Same display name"
+              : "A longer note that can be inspected in full",
         foreignKey: undefined,
-      }))
-    )
+      })),
+    ),
   );
   const actions = {
     join: visibleJoins[0]!.join,
@@ -99,7 +99,7 @@ function show(data = fixture()) {
         visibleJoins={data.visibleJoins}
         joinActions={data.joinActions}
       />
-    </TooltipProvider>
+    </TooltipProvider>,
   );
   return { ...data, ...result };
 }
@@ -110,7 +110,7 @@ it("merges consecutive records across every column using hidden composite keys, 
   const cells = rows.map((row) => within(row).getAllByRole("cell"));
   expect(cells.map((row) => row.length)).toEqual([4, 2, 4, 2, 4]);
   expect(
-    cells.map((row) => row.map((cell) => cell.getAttribute("rowspan")))
+    cells.map((row) => row.map((cell) => cell.getAttribute("rowspan"))),
   ).toEqual([
     ["2", "2", "1", "1"],
     ["1", "1"],
@@ -121,10 +121,10 @@ it("merges consecutive records across every column using hidden composite keys, 
   expect(
     screen.getAllByRole("button", {
       name: "customers, name: Same display name",
-    })
+    }),
   ).toHaveLength(3);
   expect(
-    screen.queryByText("Same marker, same record within a table")
+    screen.queryByText("Same marker, same record within a table"),
   ).not.toBeInTheDocument();
 });
 
@@ -134,17 +134,17 @@ it("does not group matching display values without a complete primary key", () =
     row.forEach((cells) =>
       cells.forEach((cell) => {
         cell.recordKey = null;
-      })
-    )
+      }),
+    ),
   );
   show(data);
   expect(
-    screen.queryByText("Same marker, same record within a table")
+    screen.queryByText("Same marker, same record within a table"),
   ).not.toBeInTheDocument();
   expect(
     screen
       .getAllByRole("cell")
-      .every((cell) => cell.getAttribute("rowspan") === "1")
+      .every((cell) => cell.getAttribute("rowspan") === "1"),
   ).toBe(true);
 });
 
@@ -154,7 +154,7 @@ it("merges each table independently even when all cells in a following row are c
   data.rows.forEach((row, index) =>
     row[1]!.forEach((cell) => {
       cell.recordKey = orderKeys[index]!;
-    })
+    }),
   );
   show(data);
   const cells = screen
@@ -162,7 +162,7 @@ it("merges each table independently even when all cells in a following row are c
     .slice(2)
     .map((row) => within(row).queryAllByRole("cell"));
   expect(
-    cells.map((row) => row.map((cell) => cell.getAttribute("rowspan")))
+    cells.map((row) => row.map((cell) => cell.getAttribute("rowspan"))),
   ).toEqual([["2", "2", "3", "3"], [], ["2", "2"], ["2", "2"], ["1", "1"]]);
   expect(screen.getByText("5 rows")).toBeVisible();
 });
@@ -175,20 +175,36 @@ it("keeps sorting and hiding columns accessible, including protecting the last v
   await user.click(screen.getAllByRole("button", { name: "Sort by name" })[0]!);
   expect(actions.orderBy).toHaveBeenCalledWith(
     [{ column: "name", direction: "asc" }],
-    { clearAllExistingOrders: true }
+    { clearAllExistingOrders: true },
   );
   await user.click(
-    screen.getAllByRole("button", { name: "Options for name" })[0]!
+    screen.getAllByRole("button", { name: "Options for name" })[0]!,
   );
   await user.click(screen.getByRole("menuitem", { name: "Hide column" }));
   expect(actions.setSelectedColumns).toHaveBeenCalledWith(["notes"]);
   await user.click(
-    screen.getAllByRole("button", { name: "Options for name" })[1]!
+    screen.getAllByRole("button", { name: "Options for name" })[1]!,
   );
   expect(screen.getByRole("menuitem", { name: "Hide column" })).toHaveAttribute(
     "aria-disabled",
-    "true"
+    "true",
   );
+});
+
+it("allows hiding the final column of a table that connects descendants", async () => {
+  const user = userEvent.setup();
+  const data = fixture();
+  data.visibleJoins[1]!.columns = [data.visibleJoins[1]!.columns[0]!];
+  data.visibleJoins[1]!.join.joins.push({
+    ...data.visibleJoins[0]!.join,
+    joinAlias: "descendant",
+  });
+  const { actions } = show(data);
+  await user.click(
+    screen.getAllByRole("button", { name: "Options for name" })[1]!,
+  );
+  await user.click(screen.getByRole("menuitem", { name: "Hide column" }));
+  expect(actions.setSelectedColumns).toHaveBeenCalledWith([]);
 });
 
 it("inspects full cell values without expanding the grid and adds a filter using the raw value", async () => {
@@ -204,11 +220,11 @@ it("inspects full cell values without expanding the grid and adds a filter using
   await user.click(
     screen.getAllByRole("button", {
       name: "customers, name: Same display name",
-    })[0]!
+    })[0]!,
   );
   expect(screen.getByRole("dialog")).toHaveTextContent("Same display name");
   await user.click(
-    screen.getByRole("button", { name: "Filter on this value" })
+    screen.getByRole("button", { name: "Filter on this value" }),
   );
   expect(actions.setCondition).toHaveBeenCalledWith({
     operator: ConditionOperator.AND,
@@ -225,10 +241,10 @@ it("inspects full cell values without expanding the grid and adds a filter using
   await user.click(
     screen.getAllByRole("button", {
       name: "customers, name: Same display name",
-    })[0]!
+    })[0]!,
   );
   fireEvent.scroll(
-    screen.getByRole("region", { name: "Scrollable query results" })
+    screen.getByRole("region", { name: "Scrollable query results" }),
   );
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
@@ -248,11 +264,11 @@ it("follows foreign keys and safely displays empty values", async () => {
   await user.click(
     screen.getByRole("button", {
       name: "Follow relationship from customers, name: Same display name",
-    })
+    }),
   );
   expect(actions.addJoinOnForeignKey).toHaveBeenCalledWith(
     "name",
-    "Same display name"
+    "Same display name",
   );
   await user.click(screen.getByRole("button", { name: "customers, notes:" }));
   expect(screen.getByRole("dialog")).toHaveTextContent("Empty value");
@@ -272,10 +288,12 @@ it("opens the column selector from the result header and applies the selection",
   }));
   const { actions } = show(data);
   await user.click(
-    screen.getByRole("button", { name: "Edit displayed columns for customers" })
+    screen.getByRole("button", {
+      name: "Edit displayed columns for customers",
+    }),
   );
   expect(
-    screen.getByRole("menuitemcheckbox", { name: "name" })
+    screen.getByRole("menuitemcheckbox", { name: "name" }),
   ).toHaveAttribute("aria-checked", "true");
   await user.click(screen.getByRole("menuitemcheckbox", { name: "notes" }));
   expect(actions.setSelectedColumns).not.toHaveBeenCalled();
@@ -292,7 +310,7 @@ it("reorders headers and matching cells during dragging, without repeating the s
     .closest("th")!;
   expect(handle).toHaveAttribute("draggable", "true");
   expect(
-    screen.getByRole("button", { name: "Edit displayed columns for orders" })
+    screen.getByRole("button", { name: "Edit displayed columns for orders" }),
   ).not.toHaveAttribute("draggable");
   const dataTransfer = { setData: vi.fn(), effectAllowed: "", dropEffect: "" };
   fireEvent.dragStart(handle, { dataTransfer });
@@ -335,10 +353,10 @@ it("renders flat results with duplicate headers, nulls and scalars using shared 
         ["First", 42, false, ""],
         ["First", null, true, ""],
       ]}
-    />
+    />,
   );
   expect(screen.getAllByRole("columnheader", { name: "value" })).toHaveLength(
-    2
+    2,
   );
   expect(screen.getAllByRole("row")).toHaveLength(3);
   expect(screen.getAllByRole("cell").map((cell) => cell.textContent)).toEqual([
@@ -354,22 +372,22 @@ it("renders flat results with duplicate headers, nulls and scalars using shared 
   expect(
     screen
       .getAllByRole("cell")
-      .every((cell) => cell.getAttribute("rowspan") === "1")
+      .every((cell) => cell.getAttribute("rowspan") === "1"),
   ).toBe(true);
   expect(
     screen.queryByRole("button", {
       name: /Sort by|Options for|Reorder|Follow relationship/,
-    })
+    }),
   ).not.toBeInTheDocument();
   expect(
     screen
       .getAllByRole("columnheader")
-      .every((header) => !header.hasAttribute("aria-sort"))
+      .every((header) => !header.hasAttribute("aria-sort")),
   ).toBe(true);
   await user.click(screen.getByRole("button", { name: "value: 42" }));
   expect(screen.getByRole("dialog")).toHaveTextContent("42");
   expect(
-    screen.queryByRole("button", { name: "Filter on this value" })
+    screen.queryByRole("button", { name: "Filter on this value" }),
   ).not.toBeInTheDocument();
   await user.keyboard("{Escape}");
   await user.click(screen.getAllByRole("button", { name: "empty:" })[0]!);
@@ -378,7 +396,7 @@ it("renders flat results with duplicate headers, nulls and scalars using shared 
 
 it("keeps flat results visible while loading and shares result summaries and empty states", () => {
   const { rerender } = render(
-    <DataTable columns={["name"]} rows={[["Previous result"]]} />
+    <DataTable columns={["name"]} rows={[["Previous result"]]} />,
   );
   rerender(
     <DataTable
@@ -386,7 +404,7 @@ it("keeps flat results visible while loading and shares result summaries and emp
       rows={[["Previous result"]]}
       isLoading
       summary={<span>12 ms</span>}
-    />
+    />,
   );
   expect(screen.getByRole("status")).toHaveTextContent("Running query");
   expect(screen.getByRole("table")).toHaveTextContent("Previous result");
@@ -397,7 +415,7 @@ it("keeps flat results visible while loading and shares result summaries and emp
       rows={[]}
       summary={<span>3 affected rows</span>}
       emptyMessage="Statement completed."
-    />
+    />,
   );
   expect(screen.getByText("Statement completed.")).toBeVisible();
   expect(screen.getByText("3 affected rows")).toBeVisible();

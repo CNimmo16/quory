@@ -17,9 +17,11 @@ export function TableColumnsMenu({
   table,
   visibleColumns,
   actions,
+  allowEmpty = false,
 }: {
   table: DatabaseTableInfo;
   visibleColumns: string[];
+  allowEmpty?: boolean;
   actions: { setSelectedColumns: (columns: string[]) => void };
 }) {
   const [open, setOpen] = useState(false);
@@ -37,10 +39,10 @@ export function TableColumnsMenu({
         <button
           type="button"
           aria-label={`Edit displayed columns for ${tableName}`}
-          className="flex h-6 min-w-0 items-center gap-1 rounded px-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600"
+          className="flex h-6 min-w-0 items-center gap-1 rounded-sm px-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
         >
           <Columns3 aria-hidden="true" className="size-3 shrink-0" />
-          <span className="truncate">
+          <span className="truncate font-mono">
             {visibleColumns.length}{" "}
             {visibleColumns.length === 1 ? "column" : "columns"}
           </span>
@@ -48,22 +50,24 @@ export function TableColumnsMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-52 max-w-[calc(100vw-2rem)] overflow-auto border-slate-300 shadow-none"
+        className="max-h-(--radix-dropdown-menu-content-available-height) max-w-[calc(100vw-2rem)] min-w-52 overflow-auto border-border shadow-none"
       >
         <DropdownMenuCheckboxItem
           checked={
             selectedColumns.length === table.columns.length
               ? true
               : selectedColumns.length > 0
-              ? "indeterminate"
-              : false
+                ? "indeterminate"
+                : false
           }
           onSelect={(event) => event.preventDefault()}
           onCheckedChange={() =>
             setSelectedColumns(
               selectedColumns.length === table.columns.length
-                ? [table.columns[0]!.name]
-                : table.columns.map((column) => column.name)
+                ? allowEmpty
+                  ? []
+                  : [table.columns[0]!.name]
+                : table.columns.map((column) => column.name),
             )
           }
         >
@@ -72,6 +76,7 @@ export function TableColumnsMenu({
         <DropdownMenuSeparator />
         {table.columns.map((column) => {
           const disabled =
+            !allowEmpty &&
             selectedColumns.includes(column.name) &&
             selectedColumns.length === 1;
           return (
@@ -86,7 +91,7 @@ export function TableColumnsMenu({
                 aria-disabled={disabled}
                 className={cn(
                   "break-all",
-                  disabled && "cursor-not-allowed text-slate-400"
+                  disabled && "cursor-not-allowed text-muted-foreground",
                 )}
                 onSelect={(event) => event.preventDefault()}
                 onCheckedChange={(checked) => {
@@ -94,7 +99,9 @@ export function TableColumnsMenu({
                     setSelectedColumns(
                       checked
                         ? [...selectedColumns, column.name]
-                        : selectedColumns.filter((name) => name !== column.name)
+                        : selectedColumns.filter(
+                            (name) => name !== column.name,
+                          ),
                     );
                 }}
               >
@@ -106,7 +113,7 @@ export function TableColumnsMenu({
         <DropdownMenuSeparator />
         <DropdownMenuItem
           asChild
-          disabled={!selectedColumns.length}
+          disabled={!allowEmpty && !selectedColumns.length}
           onSelect={() => {
             actions.setSelectedColumns(selectedColumns);
             setOpen(false);

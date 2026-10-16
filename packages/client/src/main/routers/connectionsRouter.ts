@@ -71,7 +71,7 @@ const connectionsRouter = router({
     .input(
       z.object({
         connectionId: z.string(),
-      })
+      }),
     )
     .query(async ({ input: { connectionId } }) => {
       const connection = await projectConnection(connectionId);
@@ -109,7 +109,7 @@ const connectionsRouter = router({
             })
             .optional(),
         }),
-      })
+      }),
     )
     .mutation(async ({ input: { revision, connectionId, config } }) => {
       const project = activeProjectState.requireActiveProject();
@@ -137,8 +137,8 @@ const connectionsRouter = router({
             (row) =>
               row.doc?.projectId === project._id &&
               row.doc.nickname === config.nickname &&
-              row.id !== connectionId
-          )
+              row.id !== connectionId,
+          ),
         );
       if (conflicts.length > 0) {
         throw new TRPCError({
@@ -162,7 +162,7 @@ const connectionsRouter = router({
     .input(
       z.object({
         connectionId: z.string(),
-      })
+      }),
     )
     .mutation(async ({ input: { connectionId } }) => {
       const project = activeProjectState.requireActiveProject();
@@ -189,7 +189,7 @@ const connectionsRouter = router({
     .input(
       z.object({
         connectionId: z.string(),
-      })
+      }),
     )
     .mutation(async ({ input: { connectionId } }) => {
       const project = activeProjectState.requireActiveProject();

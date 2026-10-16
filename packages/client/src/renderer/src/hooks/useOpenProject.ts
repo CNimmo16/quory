@@ -14,7 +14,7 @@ export function useOpenProject() {
   async function openProject(
     projectId: string,
     queryId: string,
-    connectionId?: string
+    connectionId?: string,
   ) {
     if (running.current) return;
     running.current = true;
@@ -34,7 +34,7 @@ export function useOpenProject() {
       await navigate(
         connectionId
           ? { to: "/queries/$queryId", params: { queryId } }
-          : { to: "/connections", search: { queryId, create: true } }
+          : { to: "/connections", search: { queryId, create: true } },
       );
       await router.invalidate();
     } catch (cause) {

@@ -11,7 +11,7 @@ it("ranks exact names, prefixes, word boundaries and substrings ahead of schema-
     ["public", "orders"],
   ] as const;
   expect(
-    filterRelatedTables([...tables], " PHONE ").map(([, name]) => name)
+    filterRelatedTables([...tables], " PHONE ").map(([, name]) => name),
   ).toEqual([
     "phone",
     "phone_numbers",
@@ -31,8 +31,8 @@ it("prefers earlier and shorter matches and resolves ties alphabetically", () =>
         ["public", "phone_z"],
         ["public", "phone_a"],
       ],
-      "phone"
-    ).map(([, name]) => name)
+      "phone",
+    ).map(([, name]) => name),
   ).toEqual([
     "phone_a",
     "phone_z",

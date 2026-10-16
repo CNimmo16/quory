@@ -31,13 +31,13 @@ const unquote = (name: string) => {
 
 export function createSqlCompletion(
   schemas: DatabaseSchema[],
-  dialect: SqlDialect
+  dialect: SqlDialect,
 ): CompletionSource {
   const language = sqlDialect(dialect);
   const identifier = (
     label: string,
     type: string,
-    detail?: string
+    detail?: string,
   ): Completion => ({
     label,
     type,
@@ -55,20 +55,20 @@ export function createSqlCompletion(
             {
               self: identifier(table.name, "class"),
               children: table.columns.map((column) =>
-                identifier(column.name, "property", column.dataType)
+                identifier(column.name, "property", column.dataType),
               ),
             },
-          ])
+          ]),
         ),
       },
-    ])
+    ]),
   );
   const preferredSchema =
     dialect === "postgres"
       ? "public"
       : dialect === "sqlite"
-      ? "main"
-      : undefined;
+        ? "main"
+        : undefined;
   const defaultSchema =
     schemas.find((schema) => schema.name === preferredSchema)?.name ??
     (schemas.length === 1 ? schemas[0]!.name : undefined);
@@ -95,7 +95,7 @@ export function createSqlCompletion(
         ? new CompletionContext(
             context.state.update({}).state,
             context.pos,
-            context.explicit
+            context.explicit,
           )
         : context;
     let position = context.pos;
@@ -131,7 +131,7 @@ export function createSqlCompletion(
           inFrom = true;
         } else if (
           /^(where|group|having|order|limit|offset|returning|set|on|union)$/i.test(
-            text
+            text,
           )
         ) {
           inFrom = false;
@@ -174,7 +174,7 @@ export function createSqlCompletion(
             if (
               alias.name === "QuotedIdentifier" ||
               !/^(inner|outer|left|right|full|cross|natural|join|on|using|where|group|order|having|limit|offset|fetch|for|union|intersect|except|returning|set|values|as)$/i.test(
-                name
+                name,
               )
             )
               aliases.set(aliasKey(name), table);
@@ -189,8 +189,8 @@ export function createSqlCompletion(
       cursor.name === "CompositeIdentifier"
         ? cursor
         : cursor.parent?.name === "CompositeIdentifier"
-        ? cursor.parent
-        : null;
+          ? cursor.parent
+          : null;
     let aliasColumns: CompletionResult | undefined;
     if (composite) {
       const parts = [];
@@ -202,7 +202,7 @@ export function createSqlCompletion(
         if (!/Comment/.test(part.name)) parts.push(part);
       if (parts.length >= 2 && parts[1]!.name === "." && parts.length <= 3) {
         const table = aliases.get(
-          aliasKey(context.state.sliceDoc(parts[0]!.from, parts[0]!.to))
+          aliasKey(context.state.sliceDoc(parts[0]!.from, parts[0]!.to)),
         );
         if (table) {
           const columnToken = parts[2];
@@ -215,7 +215,7 @@ export function createSqlCompletion(
               ? { to: context.pos + 1 }
               : {}),
             options: table.columns.map((column) =>
-              identifier(column.name, "property", column.dataType)
+              identifier(column.name, "property", column.dataType),
             ),
           };
         }
@@ -226,7 +226,7 @@ export function createSqlCompletion(
       (await source(
         relationPosition && !context.explicit
           ? new CompletionContext(completionContext.state, context.pos, true)
-          : completionContext
+          : completionContext,
       ));
     const from =
       metadata?.from ?? context.matchBefore(/\w*/)?.from ?? context.pos;
@@ -248,7 +248,7 @@ export function createSqlCompletion(
           return { ...option, label, apply: label };
         })
         .filter((option) =>
-          option.label.replace(/^["`]/, "").toLowerCase().startsWith(prefix)
+          option.label.replace(/^["`]/, "").toLowerCase().startsWith(prefix),
         );
       // Recompute on edits (including backspace) instead of caching a list that
       // has already been filtered for a longer prefix.
@@ -268,8 +268,8 @@ export function createSqlCompletion(
             identifier(
               column.name,
               "property",
-              `${table.name} · ${column.dataType}`
-            )
+              `${table.name} · ${column.dataType}`,
+            ),
           );
       }
     }
@@ -283,7 +283,7 @@ export function createSqlCompletion(
       !quoted &&
       (!prefix ||
         !options.some((option) =>
-          option.label.toLowerCase().startsWith(prefix)
+          option.label.toLowerCase().startsWith(prefix),
         ))
     ) {
       const keywordResult = await keywords(context);

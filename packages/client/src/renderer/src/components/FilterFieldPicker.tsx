@@ -52,20 +52,20 @@ export function FilterFieldPicker({
           onFocus={onFocus}
           onBlur={onBlur}
           className={cn(
-            "h-8 justify-between gap-2 border-slate-200 px-3 text-xs font-normal text-slate-700 shadow-none focus-visible:ring-teal-600",
-            className
+            "h-8 justify-between gap-2 border-border px-3 text-xs font-normal text-foreground shadow-none focus-visible:ring-primary",
+            className,
           )}
         >
           <span className="truncate">{value || placeholder}</span>
           <ChevronsUpDown
             aria-hidden="true"
-            className="size-3 shrink-0 text-slate-400"
+            className="size-3 shrink-0 text-muted-foreground"
           />
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border-slate-200 bg-white p-0 shadow-none"
+        className="w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border-border bg-card p-0 shadow-none"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           advancing.current = false;
@@ -90,7 +90,7 @@ export function FilterFieldPicker({
               <CommandItem
                 key={option}
                 value={option}
-                className="text-xs data-[selected=true]:bg-teal-50 data-[selected=true]:text-teal-900"
+                className="text-xs data-[selected=true]:bg-primary-subtle data-[selected=true]:text-primary-emphasis"
                 onSelect={() => {
                   advancing.current = true;
                   onOpenChange(false);

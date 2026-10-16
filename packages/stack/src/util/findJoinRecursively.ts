@@ -3,7 +3,7 @@ import { PreparedJoinDef } from "@quory/core";
 export default function findJoinRecursively(
   join: PreparedJoinDef,
   joinAliasToFind: string,
-  parent?: PreparedJoinDef
+  parent?: PreparedJoinDef,
 ): { join: PreparedJoinDef; parent: PreparedJoinDef | undefined } | null {
   if (join.joinAlias === joinAliasToFind) {
     return { join, parent };

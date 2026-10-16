@@ -106,10 +106,10 @@ function QueryLaunch({
   const disabledReason = selectingProject
     ? "Wait for the project to finish loading."
     : !projectId
-    ? "Select a project and connection to create a query."
-    : !connectionId
-    ? "Select a connection to create a query."
-    : undefined;
+      ? "Select a project and connection to create a query."
+      : !connectionId
+        ? "Select a connection to create a query."
+        : undefined;
   return (
     <div className="flex h-full min-h-0">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto px-6 py-8">
@@ -154,15 +154,15 @@ function QueryLaunch({
                 {chat.isPending
                   ? "Finding the right query"
                   : chat.error
-                  ? "Your query hasn’t been created yet"
-                  : "Let’s clarify your query"}
+                    ? "Your query hasn’t been created yet"
+                    : "Let’s clarify your query"}
               </h2>
               <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
                 {chat.isPending
                   ? "Matching your request to the tables and relationships in your database."
                   : chat.error
-                  ? "Try again in the query assistant."
-                  : "Answer in the query assistant to help Quory choose the right tables and columns."}
+                    ? "Try again in the query assistant."
+                    : "Answer in the query assistant to help Quory choose the right tables and columns."}
               </p>
             </div>
           ) : (
@@ -211,7 +211,7 @@ function QueryLaunch({
                                   ? "new-query-project-error"
                                   : undefined
                               }
-                              className={`h-8 max-w-full gap-2 rounded-full border border-slate-200 bg-slate-100 px-3 hover:bg-slate-200 ${
+                              className={`h-8 max-w-full gap-2 rounded-full border border-border bg-muted px-3 hover:bg-border ${
                                 !projectId ? "text-muted-foreground" : ""
                               }`}
                             >
@@ -230,7 +230,7 @@ function QueryLaunch({
                               {(!projectId || projectError) && (
                                 <CircleAlert
                                   aria-hidden="true"
-                                  className="size-3.5 text-orange-600"
+                                  className="size-3.5 text-warning"
                                 />
                               )}
                               <ChevronDown
@@ -263,7 +263,7 @@ function QueryLaunch({
                             {id === projectId && (
                               <Check
                                 aria-hidden="true"
-                                className="ml-3 size-3.5 text-teal-600"
+                                className="ml-3 size-3.5 text-primary-emphasis"
                               />
                             )}
                           </DropdownMenuItem>
@@ -274,9 +274,7 @@ function QueryLaunch({
                       <p
                         id="new-query-project-error"
                         className={
-                          projectError
-                            ? "px-2 text-xs text-orange-700"
-                            : "sr-only"
+                          projectError ? "px-2 text-xs text-warning" : "sr-only"
                         }
                       >
                         {projectError ?? "Select a project."}
@@ -289,8 +287,8 @@ function QueryLaunch({
                         !projectId
                           ? "Select a project first."
                           : !connectionId
-                          ? "Select the database to run this query against"
-                          : "Change connection"
+                            ? "Select the database to run this query against"
+                            : "Change connection"
                       }
                     >
                       <span className="inline-flex">

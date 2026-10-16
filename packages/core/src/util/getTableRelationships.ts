@@ -3,7 +3,7 @@ import type { DatabaseTableInfo, RelationshipConstraint } from "..";
 /** Reconstruct constraints from column metadata, preserving ordered pairs. */
 export default function getTableRelationships(
   table: DatabaseTableInfo,
-  schemaName: string
+  schemaName: string,
 ): RelationshipConstraint[] {
   const groups = new Map<
     string,
@@ -54,7 +54,7 @@ export default function getTableRelationships(
         (!Number.isInteger(key.columnPosition) || key.columnPosition! < 1)
       ) {
         throw new Error(
-          `Missing or invalid column position for constraint ${id}`
+          `Missing or invalid column position for constraint ${id}`,
         );
       }
       group.pairs.push({
@@ -68,7 +68,7 @@ export default function getTableRelationships(
     pairs.sort((a, b) => a.position - b.position);
     if (pairs.some((pair, i) => pair.position !== i + 1)) {
       throw new Error(
-        `Incomplete or duplicate column positions for constraint ${relationship.constraintId}`
+        `Incomplete or duplicate column positions for constraint ${relationship.constraintId}`,
       );
     }
     return {

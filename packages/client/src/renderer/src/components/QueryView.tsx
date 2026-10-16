@@ -10,6 +10,7 @@ import TableNavigator from "./TableNavigator";
 import { QueryModeSwitch } from "./QueryModeSwitch";
 import { ChevronLeft, ChevronRight, Undo2, Redo2 } from "lucide-react";
 import { QueryFilters } from "./QueryFilters";
+import { QueryFiltersets } from "./QueryFiltersets";
 import useElementSize from "../hooks/useElementSize";
 
 import { keepPreviousData } from "@tanstack/react-query";
@@ -31,6 +32,7 @@ const PAGE_SIZE = 100;
 export default function QueryView({
   initialQuery,
   connectionId,
+  filtersetScope,
   onConvertToSql,
   onQueryChange,
   showQueryText: controlledShowQueryText,
@@ -40,6 +42,7 @@ export default function QueryView({
   height: viewHeight,
 }: {
   initialQuery: Query;
+  filtersetScope?: { projectId: string; queryId: string } | undefined;
   connectionId: string;
   onConvertToSql?: ((query: CustomSqlQuery) => void) | undefined;
   onQueryChange: (query: Query) => void;
@@ -102,24 +105,24 @@ export default function QueryView({
 
   const compiled = trpc.queries.compileSql.useQuery(
     { connectionId, query: _query },
-    { enabled: showQueryText, retry: false }
+    { enabled: showQueryText, retry: false },
   );
   const [confirmConversion, setConfirmConversion] = useState(false);
   const formattedSql = useMemo(
     () =>
       compiled.data ? formatSql(compiled.data.sql, compiled.data.dialect) : "",
-    [compiled.data]
+    [compiled.data],
   );
 
   const [countRequestedFor, setCountRequestedFor] = useState<Query | null>(
-    null
+    null,
   );
   const countQuery = useMemo(
     () => ({ base: _query.base, limit: PAGE_SIZE, offset: 0 }),
-    [_query.base]
+    [_query.base],
   );
   const total = useQueryCount(
-    countRequestedFor === countQuery ? countQuery : null
+    countRequestedFor === countQuery ? countQuery : null,
   );
 
   const definitionSize = useElementSize();
@@ -132,7 +135,7 @@ export default function QueryView({
       definitionSize.height -
       paginationSize.height -
       resultsHeaderSize.height -
-      40
+      40,
   );
 
   const [highlightedJoinAlias, setHighlightedJoinAlias] = useState<
@@ -143,22 +146,22 @@ export default function QueryView({
     return <LoadingState />;
   }
   return (
-    <div className="w-full min-w-0 max-w-full space-y-3 bg-slate-50 p-3 [&_button]:shadow-none [&_input]:shadow-none">
+    <div className="w-full max-w-full min-w-0 space-y-3 bg-background p-3 [&_button]:shadow-none [&_input]:shadow-none">
       <section
         aria-label="Query"
         ref={definitionSize.ref}
-        className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white"
+        className="min-w-0 overflow-hidden rounded-lg border border-border bg-card"
       >
-        <header className="flex h-11 items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/60 px-4">
-          <h2 className="text-sm font-semibold text-slate-700">Query</h2>
+        <header className="flex h-11 items-center justify-between gap-3 border-b border-border bg-background/60 px-4">
+          <h2 className="text-sm font-semibold text-foreground">Query</h2>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 border-r border-slate-200 pr-2">
+            <div className="flex items-center gap-1 border-r border-border pr-2">
               <Hint content="Undo query change">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="size-7 text-slate-500"
+                  className="size-7 text-muted-foreground"
                   aria-label="Undo"
                   disabled={!historyControls?.canUndo}
                   onClick={historyControls?.onUndo}
@@ -171,7 +174,7 @@ export default function QueryView({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="size-7 text-slate-500"
+                  className="size-7 text-muted-foreground"
                   aria-label="Redo"
                   disabled={!historyControls?.canRedo}
                   onClick={historyControls?.onRedo}
@@ -193,6 +196,16 @@ export default function QueryView({
               schemas={schemaData.schemas}
               joinActions={joinActions}
               onHighlight={setHighlightedJoinAlias}
+              actions={
+                filtersetScope ? (
+                  <QueryFiltersets
+                    key={`${filtersetScope.projectId}:${filtersetScope.queryId}:${connectionId}`}
+                    scope={{ ...filtersetScope, connectionId }}
+                    query={query}
+                    onApply={changeQuery}
+                  />
+                ) : undefined
+              }
             />
           )}
           {showQueryText ? (
@@ -218,12 +231,12 @@ export default function QueryView({
                     }
                   />
                   {!!compiled.data.parameters.length && (
-                    <p className="mt-2 break-all font-mono text-xs text-slate-500">
+                    <p className="mt-2 font-mono text-xs break-all text-muted-foreground">
                       Bound parameters:{" "}
                       {JSON.stringify(compiled.data.parameters)}
                     </p>
                   )}
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     Click the SQL to convert this relationship query into an
                     editable SQL query.
                   </p>
@@ -245,22 +258,22 @@ export default function QueryView({
       </section>
       <section
         aria-label="Results"
-        className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white"
+        className="min-w-0 overflow-hidden rounded-lg border border-border bg-card"
       >
         <header
           ref={resultsHeaderSize.ref}
-          className="flex h-11 items-center gap-3 border-b border-slate-200 bg-slate-50/60 px-4"
+          className="flex h-11 items-center gap-3 border-b border-border bg-background/60 px-4"
         >
-          <h2 className="text-sm font-semibold text-slate-700">Results</h2>
+          <h2 className="text-sm font-semibold text-foreground">Results</h2>
           {data && (
-            <span className="text-xs tabular-nums text-slate-500">
+            <span className="text-xs text-muted-foreground tabular-nums">
               {data.rows.length} rows
             </span>
           )}
           {isLoading && (
             <span
               role="status"
-              className="ml-auto flex items-center gap-2 text-xs text-slate-500"
+              className="ml-auto flex items-center gap-2 text-xs text-muted-foreground"
             >
               <Spinner className="size-3.5" />
               <span>Running query…</span>
@@ -268,7 +281,7 @@ export default function QueryView({
           )}
         </header>
         {error && (
-          <Alert variant="destructive" className="m-3 bg-red-100">
+          <Alert variant="destructive" className="m-3 bg-destructive-subtle">
             <AlertDescription>{error.message}</AlertDescription>
           </Alert>
         )}
@@ -295,7 +308,7 @@ export default function QueryView({
           ref={paginationSize.ref}
           role="region"
           aria-label="Results pagination"
-          className="flex flex-wrap items-center gap-2 border-t border-slate-200 bg-white px-4 py-0.5 text-xs text-slate-600 [&_button]:h-6 [&_button]:px-2 [&_button]:text-xs"
+          className="flex flex-wrap items-center gap-2 border-t border-border bg-card px-4 py-0.5 text-xs text-muted-foreground [&_button]:h-6 [&_button]:px-2 [&_button]:text-xs"
         >
           <Button
             variant="ghost"
@@ -311,7 +324,9 @@ export default function QueryView({
           >
             <ChevronLeft aria-hidden="true" className="size-4" />
           </Button>
-          <span>Page {Math.floor((_query.offset ?? 0) / PAGE_SIZE) + 1}</span>
+          <span className="font-mono">
+            Page {Math.floor((_query.offset ?? 0) / PAGE_SIZE) + 1}
+          </span>
           <Button
             variant="ghost"
             size="sm"
@@ -333,7 +348,9 @@ export default function QueryView({
           </Button>
           <div aria-live="polite" className="text-muted-foreground">
             {total.count !== null ? (
-              <span>{total.count.toLocaleString()} matching rows</span>
+              <span className="font-mono">
+                {total.count.toLocaleString()} matching rows
+              </span>
             ) : (
               <Hint content="click to fetch count" disabled={total.isLoading}>
                 <Button

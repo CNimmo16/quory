@@ -48,8 +48,8 @@ function JoinAnotherTableButton({
   }
   const existingTables = new Set(
     [...(findAncestors(query.base) ?? []), ...descendants(parentJoin)].map(
-      (join) => join.tableRef
-    )
+      (join) => join.tableRef,
+    ),
   );
 
   const [tableSearch, setTableSearch] = useState("");
@@ -59,20 +59,20 @@ function JoinAnotherTableButton({
   const adjacentTables = useMemo(() => {
     const tables = findTableFromSchemas(
       schemas,
-      ...splitTableRef(parentJoin.tableRef)
+      ...splitTableRef(parentJoin.tableRef),
     ).columns.flatMap((column) => [
       ...column.foreignKeys.map(
-        (ref) => [ref.foreignSchemaName, ref.foreignTableName] as const
+        (ref) => [ref.foreignSchemaName, ref.foreignTableName] as const,
       ),
       ...column.foreignKeyReferences.map(
-        (ref) => [ref.localSchemaName, ref.localTableName] as const
+        (ref) => [ref.localSchemaName, ref.localTableName] as const,
       ),
     ]);
     // Several foreign keys can lead to the same table. Render one option per
     // table so React keys stay unique as the search removes and restores rows.
     return [
       ...new Map(
-        tables.map((table) => [JSON.stringify(table), table])
+        tables.map((table) => [JSON.stringify(table), table]),
       ).values(),
     ];
   }, [parentJoin.tableRef, schemas]);
@@ -84,14 +84,14 @@ function JoinAnotherTableButton({
         (table) =>
           !adjacentTables.some(
             ([schemaName, tableName]) =>
-              schemaName === table.schemaName && tableName === table.name
-          )
+              schemaName === table.schemaName && tableName === table.name,
+          ),
       )
       .map((table) => [table.schemaName, table.name] as const);
   }, [adjacentTables, parentJoin.tableRef, schemas]);
   const filteredAdjacentTables = filterRelatedTables(
     adjacentTables,
-    tableSearch
+    tableSearch,
   );
   const filteredOtherTables = filterRelatedTables(otherTables, tableSearch);
 
@@ -109,7 +109,7 @@ function JoinAnotherTableButton({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-full w-full gap-1 rounded-md border border-dashed border-slate-400 bg-white px-1 text-xs text-slate-500 shadow-none hover:border-teal-600 hover:bg-teal-50 hover:text-teal-700"
+            className="h-full w-full gap-1 rounded-md border border-dashed border-border bg-card px-1 text-xs text-muted-foreground shadow-none hover:border-primary hover:bg-primary-subtle hover:text-primary-emphasis"
             aria-label={`Add related table to ${
               splitTableRef(parentJoin.tableRef)[1]
             }`}
@@ -122,20 +122,20 @@ function JoinAnotherTableButton({
       <PopoverContent
         side="bottom"
         align="start"
-        className="flex max-h-[min(480px,var(--radix-popover-content-available-height))] w-[360px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border-slate-200 bg-white p-0 shadow-none"
+        className="flex max-h-[min(480px,var(--radix-popover-content-available-height))] w-90 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border-border bg-card p-0 shadow-none"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           searchInput.current?.focus();
         }}
       >
-        <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-slate-50/60 px-3 py-2.5">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background/60 px-3 py-2.5">
           <Table2
             aria-hidden="true"
-            className="size-3.5 shrink-0 text-slate-500"
+            className="size-3.5 shrink-0 text-muted-foreground"
           />
-          <h3 className="text-xs font-semibold text-slate-700">Join table</h3>
+          <h3 className="text-xs font-semibold text-foreground">Join table</h3>
           <span
-            className="ml-auto truncate text-[11px] text-slate-400"
+            className="ml-auto truncate text-[11px] text-muted-foreground"
             title={parentJoin.tableRef}
           >
             From {parentJoin.tableRef}
@@ -145,7 +145,7 @@ function JoinAnotherTableButton({
           label="Filter tables"
           shouldFilter={false}
           loop
-          className="h-auto min-h-0 rounded-none bg-white text-slate-700 [&_[data-command-input-wrapper]]:border-slate-200"
+          className="h-auto min-h-0 rounded-none bg-card text-foreground **:data-command-input-wrapper:border-border"
         >
           <div className="relative shrink-0">
             <CommandInput
@@ -154,14 +154,14 @@ function JoinAnotherTableButton({
               placeholder="Filter tables…"
               value={tableSearch}
               onValueChange={setTableSearch}
-              className="h-9 py-2 pr-7 text-xs placeholder:text-slate-400"
+              className="h-9 py-2 pr-7 text-xs placeholder:text-muted-foreground"
             />
             {tableSearch && (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-1 top-1 size-7 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                className="absolute top-1 right-1 size-7 text-muted-foreground hover:bg-muted hover:text-foreground"
                 aria-label="Clear table search"
                 onClick={() => {
                   setTableSearch("");
@@ -185,11 +185,11 @@ function JoinAnotherTableButton({
                 tables.length > 0 && (
                   <div key={title}>
                     {groupIndex > 0 && filteredAdjacentTables.length > 0 && (
-                      <CommandSeparator className="mx-1 my-1 bg-slate-200" />
+                      <CommandSeparator className="mx-1 my-1 bg-border" />
                     )}
                     <CommandGroup
                       heading={title}
-                      className="p-0 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:text-slate-400"
+                      className="p-0 **:[[cmdk-group-heading]]:text-[10px] **:[[cmdk-group-heading]]:text-muted-foreground"
                     >
                       {tables.map(([tableSchema, tableName]) => {
                         const tableRef = `${tableSchema}.${tableName}`;
@@ -205,10 +205,10 @@ function JoinAnotherTableButton({
                               value={tableRef}
                               aria-label={tableName}
                               disabled={existingJoin}
-                              className="gap-2 rounded-md px-2 py-2 text-xs text-slate-700 data-[selected=true]:bg-teal-50 data-[selected=true]:text-teal-900"
+                              className="gap-2 rounded-md px-2 py-2 text-xs text-foreground data-[selected=true]:bg-primary-subtle data-[selected=true]:text-primary-emphasis"
                               onSelect={() => {
                                 joinActions(parentJoin.joinAlias).addJoin(
-                                  tableRef
+                                  tableRef,
                                 );
                                 setOpen(false);
                               }}
@@ -216,18 +216,18 @@ function JoinAnotherTableButton({
                               {existingJoin ? (
                                 <Check
                                   aria-hidden="true"
-                                  className="size-3.5 text-slate-400"
+                                  className="size-3.5 text-muted-foreground"
                                 />
                               ) : (
                                 <Table2
                                   aria-hidden="true"
-                                  className="size-3.5 text-teal-600"
+                                  className="size-3.5 text-primary-emphasis"
                                 />
                               )}
                               <span className="min-w-0 flex-1 truncate font-medium">
                                 {tableName}
                               </span>
-                              <span className="shrink-0 text-[10px] text-slate-400">
+                              <span className="shrink-0 text-[10px] text-muted-foreground">
                                 {tableSchema}
                               </span>
                             </CommandItem>
@@ -236,11 +236,11 @@ function JoinAnotherTableButton({
                       })}
                     </CommandGroup>
                   </div>
-                )
+                ),
             )}
           </CommandList>
         </Command>
-        <div className="shrink-0 border-t border-slate-200 bg-slate-50/60 px-3 py-2 text-[10px] text-slate-400">
+        <div className="shrink-0 border-t border-border bg-background/60 px-3 py-2 text-[10px] text-muted-foreground">
           ↑ ↓ to navigate · Enter to join
         </div>
       </PopoverContent>

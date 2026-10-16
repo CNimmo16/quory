@@ -91,7 +91,7 @@ function QueryEditor({
   const router = useRouter();
   const utils = trpc.useUtils();
   const [queryHistory, setQueryHistory] = useState<QueryHistory>(
-    () => data.query.queryHistory ?? createQueryHistory(data.query)
+    () => data.query.queryHistory ?? createQueryHistory(data.query),
   );
   const [chatOpen, setChatOpen] = useState(true);
   const [editingNickname, setEditingNickname] = useState(false);
@@ -100,7 +100,7 @@ function QueryEditor({
   const { data: schemaData } = useFetchSchema();
   const unsavedChanges = Boolean(
     schemaData &&
-      !queriesMatch(schemaData.schemas, data.query, queryHistory.present.query)
+    !queriesMatch(schemaData.schemas, data.query, queryHistory.present.query),
   );
   const chat = useQueryChat({
     queryId,
@@ -136,11 +136,11 @@ function QueryEditor({
   const shouldBlock = () => {
     if (chat.isPending)
       return !confirm(
-        "Your query is still being updated. Leave this conversation?"
+        "Your query is still being updated. Leave this conversation?",
       );
     if (!unsavedChanges || deleteQuery.isSuccess) return false;
     return !confirm(
-      "You have made changes to this query. Are you sure you want to leave without saving?"
+      "You have made changes to this query. Are you sure you want to leave without saving?",
     );
   };
   useBlocker({ shouldBlockFn: shouldBlock });
@@ -156,13 +156,13 @@ function QueryEditor({
       schemaData &&
       queriesMatch(schemaData.schemas, history.present.query, next)
         ? history
-        : appendQueryVersion(history, next)
+        : appendQueryVersion(history, next),
     );
   }
   function handleDeleteQuery() {
     if (
       confirm(
-        "This will permanently delete this query. Do you want to proceed?"
+        "This will permanently delete this query. Do you want to proceed?",
       )
     )
       deleteQuery.mutate({
@@ -259,6 +259,11 @@ function QueryEditor({
               key={queryId}
               initialQuery={queryHistory.present.query}
               connectionId={data.connectionId}
+              filtersetScope={
+                data.query.projectId
+                  ? { projectId: data.query.projectId, queryId }
+                  : undefined
+              }
               onConvertToSql={(query) =>
                 updateQuery.mutate({
                   connectionId: data.connectionId,
@@ -273,11 +278,11 @@ function QueryEditor({
                 canRedo: queryHistory.future.length > 0,
                 onUndo: () =>
                   setQueryHistory(
-                    (history) => moveQueryHistory(history, "undo") ?? history
+                    (history) => moveQueryHistory(history, "undo") ?? history,
                   ),
                 onRedo: () =>
                   setQueryHistory(
-                    (history) => moveQueryHistory(history, "redo") ?? history
+                    (history) => moveQueryHistory(history, "redo") ?? history,
                   ),
               }}
               width={width}
@@ -362,9 +367,9 @@ function CustomSqlQueryEditor({
   };
   const error = update.error ?? rename.error ?? remove.error;
   return (
-    <div className="flex min-h-full flex-col bg-slate-50">
+    <div className="flex min-h-full flex-col bg-background">
       <QueryToolbar>
-        <span className="rounded border border-teal-200 bg-teal-50 px-1.5 py-0.5 font-mono text-xs font-medium text-teal-800">
+        <span className="rounded-sm border border-primary bg-primary-subtle px-1.5 py-0.5 font-mono text-xs font-medium text-primary-emphasis">
           SQL
         </span>
         {editingNickname ? (

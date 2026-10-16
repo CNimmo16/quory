@@ -74,7 +74,7 @@ export class SessionOwner<T extends { dispose(): Promise<void> }> {
     this.operations.add(promise);
     void promise.then(
       () => this.operations.delete(promise),
-      () => this.operations.delete(promise)
+      () => this.operations.delete(promise),
     );
   }
 }

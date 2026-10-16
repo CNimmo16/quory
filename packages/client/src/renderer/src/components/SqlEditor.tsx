@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import CodeMirror, { EditorView } from "@uiw/react-codemirror";
 import { sql } from "@codemirror/lang-sql";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import { autocompletion } from "@codemirror/autocomplete";
 import { createSqlCompletion, sqlDialect } from "./sqlCompletion";
 import { format } from "sql-formatter";
@@ -50,19 +52,57 @@ export function SqlEditor({
         autocorrect: "off",
         autocapitalize: "off",
       }),
+      syntaxHighlighting(
+        HighlightStyle.define([
+          { tag: tags.keyword, color: "rgb(var(--primary-emphasis))" },
+          {
+            tag: [tags.string, tags.number, tags.bool],
+            color: "rgb(var(--secondary-emphasis))",
+          },
+          { tag: tags.comment, color: "rgb(var(--muted-foreground))" },
+          {
+            tag: [tags.operator, tags.punctuation],
+            color: "rgb(var(--foreground))",
+          },
+        ]),
+      ),
       EditorView.theme({
-        "&": { fontSize: "13px" },
+        "&": {
+          fontSize: "13px",
+          color: "rgb(var(--foreground))",
+          backgroundColor: "rgb(var(--card))",
+        },
+        ".cm-gutters": {
+          backgroundColor: "rgb(var(--muted))",
+          color: "rgb(var(--muted-foreground))",
+          borderColor: "rgb(var(--border))",
+        },
+        ".cm-activeLine, .cm-activeLineGutter": {
+          backgroundColor: "rgb(var(--primary) / 0.08)",
+        },
+        ".cm-cursor": { borderLeftColor: "rgb(var(--foreground))" },
+        "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection":
+          { backgroundColor: "rgb(var(--secondary) / 0.25)" },
+        ".cm-tooltip": {
+          backgroundColor: "rgb(var(--popover))",
+          color: "rgb(var(--popover-foreground))",
+          borderColor: "rgb(var(--border))",
+        },
+        ".cm-tooltip-autocomplete ul li[aria-selected]": {
+          backgroundColor: "rgb(var(--accent))",
+          color: "rgb(var(--accent-foreground))",
+        },
         ".cm-scroller": {
-          fontFamily: "ui-monospace, SFMono-Regular, monospace",
+          fontFamily: "var(--font-mono)",
         },
         ".cm-focused": { outline: "none" },
       }),
     ],
-    [dialect, label, schemas, readOnly]
+    [dialect, label, schemas, readOnly],
   );
   return (
     <div
-      className="overflow-hidden rounded-md border border-slate-200 bg-white"
+      className="overflow-hidden rounded-md border border-border bg-card"
       {...(onRequestEdit
         ? {
             role: "button",

@@ -48,10 +48,10 @@ export function SqlQueryWorkspace({
     query: CustomSqlQuery;
   } | null>(null);
   const [parametersText, setParametersText] = useState(() =>
-    JSON.stringify(query.parameters ?? [])
+    JSON.stringify(query.parameters ?? []),
   );
   const [showParameters, setShowParameters] = useState(
-    Boolean(query.parameters?.length)
+    Boolean(query.parameters?.length),
   );
   const execution = useRef<string | null>(null);
   const requestSequence = useRef(0);
@@ -65,7 +65,7 @@ export function SqlQueryWorkspace({
           executionId: execution.current,
         }).catch(() => {});
     },
-    [connectionId, cancelExecution]
+    [connectionId, cancelExecution],
   );
   async function run(definition = query, token?: string) {
     const sequence = ++requestSequence.current;
@@ -91,7 +91,7 @@ export function SqlQueryWorkspace({
     } catch (error) {
       if (requestSequence.current === sequence)
         setFailure(
-          error instanceof Error ? error.message : "Could not execute SQL."
+          error instanceof Error ? error.message : "Could not execute SQL.",
         );
     } finally {
       if (requestSequence.current === sequence) execution.current = null;
@@ -109,7 +109,7 @@ export function SqlQueryWorkspace({
       parsed.every(
         (value) =>
           typeof value === "string" ||
-          (typeof value === "number" && Number.isFinite(value))
+          (typeof value === "number" && Number.isFinite(value)),
       );
   } catch {
     parametersValid = false;
@@ -129,7 +129,7 @@ export function SqlQueryWorkspace({
       <details
         open={showParameters}
         onToggle={(event) => setShowParameters(event.currentTarget.open)}
-        className="space-y-2 text-xs text-slate-600"
+        className="space-y-2 text-xs text-muted-foreground"
       >
         <summary className="cursor-pointer">
           Bound parameters (optional)
@@ -137,13 +137,13 @@ export function SqlQueryWorkspace({
         <div className="space-y-1">
           <label
             htmlFor="sql-parameters"
-            className="text-xs font-medium text-slate-600"
+            className="text-xs font-medium text-muted-foreground"
           >
             Bound parameters (JSON array, in placeholder order)
           </label>
           <textarea
             id="sql-parameters"
-            className="w-full rounded border p-2 font-mono text-xs"
+            className="w-full rounded-sm border p-2 font-mono text-xs"
             value={parametersText}
             onChange={(event) => {
               setParametersText(event.target.value);
@@ -154,7 +154,7 @@ export function SqlQueryWorkspace({
                   parameters.every(
                     (value) =>
                       typeof value === "string" ||
-                      (typeof value === "number" && Number.isFinite(value))
+                      (typeof value === "number" && Number.isFinite(value)),
                   )
                 )
                   change({ ...query, parameters });
@@ -164,7 +164,7 @@ export function SqlQueryWorkspace({
             }}
           />
           {!parametersValid && (
-            <p role="alert" className="text-xs text-red-700">
+            <p role="alert" className="text-xs text-destructive">
               Enter an array of strings or numbers.
             </p>
           )}
@@ -200,8 +200,8 @@ export function SqlQueryWorkspace({
                     setFailure(
                       error instanceof Error
                         ? error.message
-                        : "Could not cancel SQL."
-                    )
+                        : "Could not cancel SQL.",
+                    ),
                   );
               }
             }}
@@ -209,12 +209,14 @@ export function SqlQueryWorkspace({
             Cancel query
           </Button>
         )}
-        <span className="text-xs text-slate-500">One statement per run.</span>
+        <span className="text-xs text-muted-foreground">
+          One statement per run.
+        </span>
       </div>
       {execute.isPending && !result && (
         <p
           role="status"
-          className="flex items-center gap-2 text-sm text-slate-500"
+          className="flex items-center gap-2 text-sm text-muted-foreground"
         >
           <Spinner />
           Running SQL…
@@ -233,10 +235,14 @@ export function SqlQueryWorkspace({
           summary={
             <>
               {result.affectedRows !== null && (
-                <span>{result.affectedRows} affected rows</span>
+                <span className="font-mono">
+                  {result.affectedRows} affected rows
+                </span>
               )}
-              <span>{result.elapsedMs} ms</span>
-              {result.truncated && <span>Showing the first 1,000 rows</span>}
+              <span className="font-mono">{result.elapsedMs} ms</span>
+              {result.truncated && (
+                <span className="font-mono">Showing the first 1,000 rows</span>
+              )}
             </>
           }
           emptyMessage={

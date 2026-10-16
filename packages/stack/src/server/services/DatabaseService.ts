@@ -31,7 +31,7 @@ export interface ClientDatabase {
 }
 
 export async function makeClientDatabase(
-  config: QuoryRequestHandlerConfig
+  config: QuoryRequestHandlerConfig,
 ): Promise<ClientDatabase> {
   const ca = config.database.ssl?.ca?.trim();
   const cert = config.database.ssl?.cert?.trim();

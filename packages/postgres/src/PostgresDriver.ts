@@ -26,7 +26,7 @@ export class PostgresDriver implements DatabaseDriver {
   async exec(
     sql: string,
     parameters: SqlParameter[] = [],
-    options: ExecutionOptions = {}
+    options: ExecutionOptions = {},
   ): Promise<Row[]> {
     options.signal?.throwIfAborted();
     const query = this.sql.unsafe(sql, parameters);
@@ -44,7 +44,7 @@ export class PostgresDriver implements DatabaseDriver {
   async execSql(
     sql: string,
     parameters: SqlParameter[],
-    options: SqlExecutionOptions
+    options: SqlExecutionOptions,
   ): Promise<SqlExecutionResult> {
     options.signal?.throwIfAborted();
     const isolated = postgres({ ...this.config, max: 1, connect_timeout: 15 });
@@ -79,7 +79,7 @@ export class PostgresDriver implements DatabaseDriver {
           } finally {
             options.signal?.removeEventListener("abort", abort);
           }
-        }
+        },
       );
     } finally {
       await isolated.end({ timeout: 1 });

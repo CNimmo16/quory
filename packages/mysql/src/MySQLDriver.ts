@@ -31,7 +31,7 @@ export class MySQLDriver implements DatabaseDriver {
   async exec(
     sql: string,
     parameters: SqlParameter[] = [],
-    options: ExecutionOptions = {}
+    options: ExecutionOptions = {},
   ): Promise<Row[]> {
     options.signal?.throwIfAborted();
     const connection = await this.pool.getConnection();
@@ -51,7 +51,7 @@ export class MySQLDriver implements DatabaseDriver {
   async execSql(
     sql: string,
     parameters: SqlParameter[],
-    options: SqlExecutionOptions
+    options: SqlExecutionOptions,
   ): Promise<SqlExecutionResult> {
     options.signal?.throwIfAborted();
     const connection = await this.pool.getConnection();
@@ -60,7 +60,7 @@ export class MySQLDriver implements DatabaseDriver {
     try {
       options.signal?.throwIfAborted();
       await connection.query(
-        options.readOnly ? "START TRANSACTION READ ONLY" : "START TRANSACTION"
+        options.readOnly ? "START TRANSACTION READ ONLY" : "START TRANSACTION",
       );
       const [result, fields] = await connection.execute<
         RowDataPacket[] | ResultSetHeader
@@ -122,9 +122,9 @@ export class MySQLDriver implements DatabaseDriver {
           isNullable: columnInfo.is_nullable === "YES",
           includedInPrimaryKey: columnInfo.constraint_type === "PRIMARY KEY",
         })),
-        (col) => `${col.schemaName}.${col.tableName}.${col.name}`
+        (col) => `${col.schemaName}.${col.tableName}.${col.name}`,
       ),
-      (col) => `${col.schemaName}.${col.tableName}.${col.name}`
+      (col) => `${col.schemaName}.${col.tableName}.${col.name}`,
     );
   }
 

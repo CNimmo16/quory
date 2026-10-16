@@ -34,18 +34,18 @@ it("searches grouped tables, selects with the keyboard and allows choosing a dif
   render(<Picker />);
   await user.type(
     screen.getByRole("combobox", { name: "Search tables" }),
-    "audit."
+    "audit.",
   );
   expect(screen.getAllByRole("option")).toHaveLength(1);
   await user.keyboard("{Enter}");
   expect(change).toHaveBeenLastCalledWith("audit.customers");
   expect(
-    screen.getByRole("combobox", { name: "Base table" })
+    screen.getByRole("combobox", { name: "Base table" }),
   ).toHaveTextContent("customers");
   await user.click(screen.getByRole("combobox", { name: "Base table" }));
   await user.type(
     screen.getByRole("combobox", { name: "Search tables" }),
-    "missing"
+    "missing",
   );
   expect(screen.getByText("No tables found.")).toBeVisible();
   await user.clear(screen.getByRole("combobox", { name: "Search tables" }));

@@ -51,7 +51,7 @@ it("converts scalar filters to editable lists and back without losing the column
   });
   await user.type(
     screen.getByRole("textbox", { name: "Filter values" }),
-    "Grace{Enter}Ada,"
+    "Grace{Enter}Ada,",
   );
   expect(change).toHaveBeenLastCalledWith({
     column: "name",
@@ -69,7 +69,7 @@ it("converts scalar filters to editable lists and back without losing the column
   await user.keyboard("{Backspace}");
   await user.type(
     screen.getByRole("textbox", { name: "Filter values" }),
-    "Alan"
+    "Alan",
   );
   await user.tab();
   expect(change).toHaveBeenLastCalledWith({

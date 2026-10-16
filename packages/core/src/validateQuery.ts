@@ -13,7 +13,7 @@ import findTableFromSchemas from "./util/findTableFromSchemas";
 /** Runtime boundary for every query source, including callers bypassing HTTP. */
 export default function validateQuery(
   schemas: DatabaseSchema[],
-  input: unknown
+  input: unknown,
 ): asserts input is Query {
   const object = (value: unknown): Record<string, unknown> => {
     if (!value || typeof value !== "object" || Array.isArray(value))
@@ -43,7 +43,7 @@ export default function validateQuery(
       query.limit > 100)
   )
     throw new Error(
-      "Row limit must be a positive safe integer of at most 100."
+      "Row limit must be a positive safe integer of at most 100.",
     );
   if (
     query.offset !== undefined &&
@@ -65,7 +65,7 @@ export default function validateQuery(
         !table.columns.some((item) => item.name === column)
       )
         throw new Error(
-          `Unknown or unsupported column ${join.tableRef}.${String(column)}.`
+          `Unknown or unsupported column ${join.tableRef}.${String(column)}.`,
         );
     };
     if (join.select === "*") selected ||= table.columns.length > 0;
@@ -86,7 +86,7 @@ export default function validateQuery(
           ]);
       }
       normalizeVia(join.via as ViaStep[]).forEach((step) =>
-        tableFor(step.tableRef)
+        tableFor(step.tableRef),
       );
     }
     if (join.orderBy !== undefined) {
@@ -112,7 +112,7 @@ export default function validateQuery(
       const condition = object(value);
       if (
         booleanConditionOperators.includes(
-          condition.operator as ConditionOperator
+          condition.operator as ConditionOperator,
         )
       ) {
         fields(condition, ["operator", "conditions"]);
@@ -122,13 +122,13 @@ export default function validateQuery(
         )
           throw new Error("Empty or invalid boolean filter.");
         condition.conditions.forEach((child) =>
-          checkCondition(child, depth + 1)
+          checkCondition(child, depth + 1),
         );
       } else {
         checkColumn(condition.column);
         if (
           listConditionOperators.includes(
-            condition.operator as ConditionOperator
+            condition.operator as ConditionOperator,
           )
         ) {
           fields(condition, ["operator", "column", "values"]);
@@ -136,7 +136,7 @@ export default function validateQuery(
             throw new Error("Empty list filter.");
         } else if (
           valueConditionOperators.includes(
-            condition.operator as ConditionOperator
+            condition.operator as ConditionOperator,
           )
         ) {
           fields(condition, ["operator", "column", "value"]);

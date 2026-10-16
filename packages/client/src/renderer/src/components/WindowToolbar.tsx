@@ -10,7 +10,7 @@ import { createPortal } from "react-dom";
 
 const ToolbarTargetContext = createContext<HTMLDivElement | null>(null);
 const ToolbarSidebarContext = createContext<((width: number) => void) | null>(
-  null
+  null,
 );
 
 export function useToolbarSidebarWidth(width: number) {
@@ -42,12 +42,12 @@ export function WindowToolbarFrame({
                 "--toolbar-sidebar-width": `${sidebarWidth}px`,
               } as CSSProperties
             }
-            className="app-toolbar relative h-11 shrink-0 border-b border-slate-200 bg-slate-50"
+            className="app-toolbar relative h-11 shrink-0 border-b border-border bg-background"
           >
             {sidebarWidth > 92 && (
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 border-r border-slate-200"
+                className="pointer-events-none absolute inset-y-0 border-r border-border"
                 style={{ left: sidebarWidth - 1 }}
               />
             )}
@@ -57,7 +57,7 @@ export function WindowToolbarFrame({
                 className="flex h-full min-w-0 flex-1 items-center"
               >
                 {!hasQueryHeader && (
-                  <span className="text-sm font-medium text-slate-600">
+                  <span className="text-sm font-medium text-muted-foreground">
                     Quory
                   </span>
                 )}
@@ -80,7 +80,7 @@ export function QueryToolbar({ children }: { children: ReactNode }) {
       className={
         target
           ? "flex h-full min-w-0 flex-1 items-center gap-2 [&_button]:h-7 [&_button]:px-2 [&_button]:text-xs [&_button]:shadow-none [&_input]:h-7 [&_input]:shadow-none"
-          : "flex min-h-16 shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-4 py-3 [&_button]:shadow-none [&_input]:shadow-none"
+          : "flex min-h-16 shrink-0 flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-3 [&_button]:shadow-none [&_input]:shadow-none"
       }
     >
       {children}

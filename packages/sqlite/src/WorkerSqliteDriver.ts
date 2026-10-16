@@ -17,7 +17,7 @@ const moduleFile =
   typeof __filename === "string" ? __filename : fileURLToPath(import.meta.url);
 const driverModule = join(
   dirname(moduleFile),
-  moduleFile.endsWith(".ts") ? "../dist/index.js" : "index.js"
+  moduleFile.endsWith(".ts") ? "../dist/index.js" : "index.js",
 );
 const source = `
 const queued = [];
@@ -83,7 +83,7 @@ export class WorkerSqliteDriver implements DatabaseDriver {
   private call<T>(
     method: string,
     args: unknown[],
-    options: ExecutionOptions = {}
+    options: ExecutionOptions = {},
   ): Promise<T> {
     if (this.closed)
       return Promise.reject(new Error("SQLite worker is closed."));
@@ -96,7 +96,7 @@ export class WorkerSqliteDriver implements DatabaseDriver {
           env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
           stdio: ["ignore", "ignore", "pipe", "ipc"],
           serialization: "advanced",
-        }
+        },
       );
       let stderr = "";
       worker.stderr?.on("data", (chunk) => {
@@ -162,19 +162,19 @@ export class WorkerSqliteDriver implements DatabaseDriver {
   exec(
     sql: string,
     parameters: SqlParameter[] = [],
-    options?: ExecutionOptions
+    options?: ExecutionOptions,
   ) {
     return this.call<Row[]>("exec", [sql, parameters], options);
   }
   execSql(
     sql: string,
     parameters: SqlParameter[],
-    options: SqlExecutionOptions
+    options: SqlExecutionOptions,
   ) {
     return this.call<SqlExecutionResult>(
       "execSql",
       [sql, parameters, { readOnly: options.readOnly }],
-      options
+      options,
     );
   }
   testConnection() {

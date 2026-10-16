@@ -106,7 +106,7 @@ export default function ConditionEditor({
                     <Button
                       type="button"
                       variant="ghost"
-                      className="h-6 px-2 text-[10px] font-semibold uppercase text-slate-500 hover:bg-slate-100 hover:text-teal-700"
+                      className="h-6 px-2 text-[10px] font-semibold text-muted-foreground uppercase hover:bg-muted hover:text-primary-emphasis"
                       onClick={() => {
                         onConditionChange({
                           ...condition,
@@ -134,7 +134,7 @@ export default function ConditionEditor({
                         onApply(
                           produce(condition, (draft) => {
                             draft.conditions[index] = updated;
-                          })
+                          }),
                         )
                     : undefined
                 }
@@ -147,7 +147,7 @@ export default function ConditionEditor({
                       position > index &&
                       isValueCondition(child) &&
                       !child.column &&
-                      !child.value
+                      !child.value,
                   );
                   let withNext = next;
                   if (nextIndex < 0) {
@@ -175,7 +175,7 @@ export default function ConditionEditor({
                   onConditionChange(
                     produce(condition, (draft) => {
                       draft.conditions[index] = changedSubCondition;
-                    })
+                    }),
                   )
                 }
                 maxDropdownHeight={maxDropdownHeight}
@@ -183,7 +183,7 @@ export default function ConditionEditor({
                   onConditionChange(
                     produce(condition, (draft) => {
                       draft.conditions.splice(index, 1);
-                    })
+                    }),
                   );
                 }}
                 isGhost={
@@ -256,7 +256,10 @@ export default function ConditionEditor({
                         ...condition,
                         operator: value as ValueConditionOperator,
                       }
-                    : { ...condition, operator: value as ListConditionOperator }
+                    : {
+                        ...condition,
+                        operator: value as ListConditionOperator,
+                      },
                 );
               }
               setFocusValue((current) => current + 1);
@@ -278,7 +281,7 @@ export default function ConditionEditor({
                 if (event.shiftKey) onNextFilter?.(condition);
                 else onApply?.(condition);
               }}
-              className="h-8 min-w-32 flex-1 border-slate-200 text-xs text-slate-700 shadow-none focus-visible:ring-teal-600"
+              className="h-8 min-w-32 flex-1 border-border text-xs text-foreground shadow-none focus-visible:ring-primary"
               value={condition.value}
               onChange={(event) =>
                 onConditionChange({ ...condition, value: event.target.value })
@@ -307,7 +310,7 @@ export default function ConditionEditor({
             variant="ghost"
             size="icon"
             aria-label="Delete filter"
-            className="size-8 shrink-0 text-slate-400 hover:bg-red-50 hover:text-red-700"
+            className="size-8 shrink-0 text-muted-foreground hover:bg-destructive-subtle hover:text-destructive"
             onClick={onDelete}
           >
             <Trash2 aria-hidden="true" className="size-3.5" />

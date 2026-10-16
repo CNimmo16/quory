@@ -25,7 +25,7 @@ afterEach(async () => {
   await Promise.all(
     folders
       .splice(0)
-      .map((folder) => fs.rm(folder, { recursive: true, force: true }))
+      .map((folder) => fs.rm(folder, { recursive: true, force: true })),
   );
 });
 async function fixture() {
@@ -33,7 +33,7 @@ async function fixture() {
   folders.push(root);
   const { directory, manifest } = await initializeProjectFolder(
     root,
-    "Team project"
+    "Team project",
   );
   const repo = new FolderQueryRepo(directory, manifest.id);
   return { root, directory, manifest, repo };
@@ -69,15 +69,15 @@ it("opens either the repository or .quory folder and loads portable queries with
   expect(contents).not.toContain("private-chat");
   expect((await repo.get("orders")).lastChatRequestId).toBe("request");
   expect(
-    (await initializeProjectFolder(root, "Other local name")).manifest
+    (await initializeProjectFolder(root, "Other local name")).manifest,
   ).toEqual(manifest);
   expect(
-    (await initializeProjectFolder(directory, "Other name")).directory
+    (await initializeProjectFolder(directory, "Other name")).directory,
   ).toBe(directory);
   expect(await fs.readFile(file, "utf8")).toBe(contents);
   const imported = new FolderQueryRepo(directory, "other-machine-project");
   expect(
-    (await imported.allDocs({ include_docs: true })).rows[0]!.doc
+    (await imported.allDocs({ include_docs: true })).rows[0]!.doc,
   ).toMatchObject({
     nickname: "Recent orders",
     projectId: "other-machine-project",
@@ -97,7 +97,7 @@ it("round trips edits, renames and deletion, and rejects stale external edits", 
   expect(update.rev).not.toBe(created.rev);
   expect((await repo.get("orders")).nickname).toBe("Paid orders");
   await expect(repo.put({ ...query, _rev: created.rev })).rejects.toMatchObject(
-    { status: 409 }
+    { status: 409 },
   );
   const snapshot = await repo.get("orders");
   const file = join(directory, "queries", "orders.json");
@@ -108,7 +108,7 @@ it("round trips edits, renames and deletion, and rejects stale external edits", 
   await fs.writeFile(file, JSON.stringify(external));
   await expect(repo.remove(snapshot)).rejects.toMatchObject({ status: 409 });
   await expect(
-    repo.put({ ...snapshot, nickname: "Stale save" })
+    repo.put({ ...snapshot, nickname: "Stale save" }),
   ).rejects.toMatchObject({ status: 409 });
   const current = await repo.get("orders");
   expect(current.nickname).toBe("Changed in Git");
@@ -126,13 +126,13 @@ it("serializes competing saves and preserves the winning query", async () => {
     repo.put({ ...query, _rev: created.rev, nickname: "Second edit" }),
   ]);
   expect(
-    results.filter((result) => result.status === "fulfilled")
+    results.filter((result) => result.status === "fulfilled"),
   ).toHaveLength(1);
   expect(results.filter((result) => result.status === "rejected")).toHaveLength(
-    1
+    1,
   );
   expect(["First edit", "Second edit"]).toContain(
-    (await repo.get("orders")).nickname
+    (await repo.get("orders")).nickname,
   );
 });
 
@@ -140,12 +140,12 @@ it("reports malformed query files and invalid paths without replacing data", asy
   const { repo, directory } = await fixture();
   await expect(repo.get("../outside")).rejects.toThrow("Invalid query file ID");
   await expect(
-    initializeProjectFolder("relative/path", "Bad path")
+    initializeProjectFolder("relative/path", "Bad path"),
   ).rejects.toThrow("absolute folder path");
   const file = join(directory, "queries", "broken.json");
   await fs.writeFile(file, "{broken");
   await expect(repo.allDocs({ include_docs: true })).rejects.toThrow(
-    "Could not read query broken.json"
+    "Could not read query broken.json",
   );
   expect(await fs.readFile(file, "utf8")).toBe("{broken");
 });
@@ -161,7 +161,7 @@ it("round trips custom SQL files with bound parameters independently of relation
     dialect: "postgres",
   });
   const contents = JSON.parse(
-    await fs.readFile(join(directory, "queries", "custom.json"), "utf8")
+    await fs.readFile(join(directory, "queries", "custom.json"), "utf8"),
   );
   expect(contents).toMatchObject({
     mode: "sql",

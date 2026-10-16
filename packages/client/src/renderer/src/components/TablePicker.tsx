@@ -31,7 +31,7 @@ export function TablePicker({
       group.tables.map((table) => ({
         label: table.name,
         value: `${group.name}.${table.name}`,
-      }))
+      })),
     )
     .find((table) => table.value === value);
 
@@ -51,7 +51,7 @@ export function TablePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] p-0"
+        className="w-(--radix-popover-trigger-width) p-0"
         align="start"
       >
         <Command label="Search tables">
@@ -63,7 +63,7 @@ export function TablePicker({
             style={{
               maxHeight: `min(${Math.max(
                 120,
-                maxHeight
+                maxHeight,
               )}px, calc(var(--radix-popover-content-available-height) - 3rem))`,
             }}
           >
@@ -84,7 +84,7 @@ export function TablePicker({
                       <Check
                         className={cn(
                           "mr-2 size-4",
-                          value === tableRef ? "opacity-100" : "opacity-0"
+                          value === tableRef ? "opacity-100" : "opacity-0",
                         )}
                       />
                       {table.name}

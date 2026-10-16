@@ -5,5 +5,5 @@ export const Route = createLazyFileRoute("/entities/")({
 });
 
 function RouteComponent() {
-  return <div className="p-10 mx-auto">Coming soon!</div>;
+  return <div className="mx-auto p-10">Coming soon!</div>;
 }

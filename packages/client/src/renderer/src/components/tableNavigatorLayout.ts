@@ -23,7 +23,7 @@ export type TableDiagramNode = DiagramPoint & {
  */
 export function layoutTableDiagram(
   base: PreparedJoinDef,
-  availableWidth: number
+  availableWidth: number,
 ) {
   const width = Math.max(1, availableWidth);
   const gutter = Math.min(GUTTER, width / 10);
@@ -34,8 +34,8 @@ export function layoutTableDiagram(
     depth(base),
     Math.max(
       1,
-      Math.floor((width - gutter * 2 + COLUMN_GAP) / (nodeWidth + COLUMN_GAP))
-    )
+      Math.floor((width - gutter * 2 + COLUMN_GAP) / (nodeWidth + COLUMN_GAP)),
+    ),
   );
   const usedWidth = columns * nodeWidth + (columns - 1) * COLUMN_GAP;
   const left = (width - usedWidth) / 2;
@@ -49,7 +49,7 @@ export function layoutTableDiagram(
     const wrapped = parent !== null && column === 0;
     const row = Math.max(
       nextRow[column]!,
-      parent ? parent.row + Number(wrapped) : 0
+      parent ? parent.row + Number(wrapped) : 0,
     );
     nextRow[column] = row + 1;
     const node: TableDiagramNode = {

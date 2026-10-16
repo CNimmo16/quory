@@ -3,7 +3,7 @@ import { DatabaseSchema } from "..";
 export default function findTableFromSchemas(
   schemas: DatabaseSchema[],
   schemaName: string,
-  tableName: string
+  tableName: string,
 ) {
   const schema = schemas.find(({ name }) => name === schemaName);
 

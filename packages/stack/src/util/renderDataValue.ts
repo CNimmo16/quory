@@ -3,7 +3,7 @@ import { isValid, parseISO } from "date-fns";
 
 export default function renderDataValue(
   value: string | number | Date | null,
-  columnType: GenericDataType
+  columnType: GenericDataType,
 ): string {
   if (value === null) {
     return "NULL";

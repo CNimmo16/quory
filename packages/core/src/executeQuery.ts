@@ -6,7 +6,7 @@ export default async function executeQuery(
   driver: DatabaseDriver,
   sql: string,
   parameters: SqlParameter[],
-  options: ExecutionOptions = {}
+  options: ExecutionOptions = {},
 ) {
   const controller = new AbortController();
   const abort = () => controller.abort(options.signal?.reason);
@@ -14,7 +14,7 @@ export default async function executeQuery(
   else options.signal?.addEventListener("abort", abort, { once: true });
   const timer = setTimeout(
     () => controller.abort(new Error("Query timed out.")),
-    options.timeoutMs ?? 15_000
+    options.timeoutMs ?? 15_000,
   );
   let onAbort: () => void = () => {};
   try {

@@ -15,14 +15,14 @@ export type QuoryProviderConfig =
       fetchFn: (
         path: string,
         requestData?: unknown,
-        signal?: AbortSignal
+        signal?: AbortSignal,
       ) => Promise<unknown>;
     };
 
 export function QuoryProvider(
   props: {
     children: ReactNode;
-  } & QuoryProviderConfig
+  } & QuoryProviderConfig,
 ) {
   const fetchFn = useMemo((): QueryFunction => {
     return async ({ queryKey, signal }) => {
@@ -36,7 +36,7 @@ export function QuoryProvider(
         const dispatch = (
           route: string,
           data: unknown,
-          requestSignal?: AbortSignal
+          requestSignal?: AbortSignal,
         ) =>
           fetch(props.endpointUrl, {
             method: "POST",
@@ -56,7 +56,7 @@ export function QuoryProvider(
             cancellable
               ? { ...(requestData as object), executionId }
               : requestData,
-            signal
+            signal,
           );
           if (!response.ok) throw new Error(response.statusText);
           return response.json();
@@ -78,7 +78,7 @@ export function QuoryProvider(
           },
         },
       }),
-    [fetchFn]
+    [fetchFn],
   );
 
   return (

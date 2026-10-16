@@ -44,7 +44,7 @@ export function QueryComposer({
       <div
         className={
           controls
-            ? "relative space-y-4 rounded-2xl border bg-background px-5 pb-3 pt-3 shadow-sm focus-within:ring-1 focus-within:ring-ring"
+            ? "relative space-y-4 rounded-2xl border bg-background px-5 pt-3 pb-3 shadow-xs focus-within:ring-1 focus-within:ring-ring"
             : "contents"
         }
       >
@@ -75,8 +75,8 @@ export function QueryComposer({
             controls
               ? "min-h-36 resize-none border-0 p-0 text-base shadow-none focus-visible:ring-0"
               : initial
-              ? "min-h-36 bg-background p-4 text-base"
-              : "min-h-28 bg-background"
+                ? "min-h-36 bg-background p-4 text-base"
+                : "min-h-28 bg-background"
           }
         />
         <div className="flex items-center justify-between gap-3">
@@ -224,8 +224,8 @@ export function QueryChatPane({
               <p
                 className={
                   message.role === "user"
-                    ? "whitespace-pre-wrap break-words rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed"
-                    : "whitespace-pre-wrap break-words text-sm leading-relaxed"
+                    ? "rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed wrap-break-word whitespace-pre-wrap"
+                    : "text-sm leading-relaxed wrap-break-word whitespace-pre-wrap"
                 }
               >
                 {message.content}

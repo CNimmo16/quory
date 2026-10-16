@@ -94,7 +94,7 @@ export function QueryFilterPopover({
                       value: "",
                     },
                   ],
-                }
+                },
           );
         }
         setOpen(next);
@@ -103,16 +103,16 @@ export function QueryFilterPopover({
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent
         align="start"
-        className="flex max-h-[var(--radix-popover-content-available-height)] w-[650px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border-slate-200 bg-white p-0 shadow-none [&_button]:shadow-none [&_input]:shadow-none"
+        className="flex max-h-(--radix-popover-content-available-height) w-162.5 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border-border bg-card p-0 shadow-none [&_button]:shadow-none [&_input]:shadow-none"
       >
-        <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-slate-50/60 px-3 py-2.5">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background/60 px-3 py-2.5">
           <SlidersHorizontal
             aria-hidden="true"
-            className="size-3.5 shrink-0 text-slate-500"
+            className="size-3.5 shrink-0 text-muted-foreground"
           />
-          <h3 className="text-xs font-semibold text-slate-700">Filters</h3>
+          <h3 className="text-xs font-semibold text-foreground">Filters</h3>
           <span
-            className="ml-auto truncate text-[11px] text-slate-400"
+            className="ml-auto truncate text-[11px] text-muted-foreground"
             title={join.tableRef}
           >
             {join.tableRef}
@@ -130,15 +130,15 @@ export function QueryFilterPopover({
             />
           )}
         </div>
-        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/60 px-3 py-2">
-          <span className="mr-auto text-[10px] text-slate-400">
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border bg-background/60 px-3 py-2">
+          <span className="mr-auto text-[10px] text-muted-foreground">
             Enter to apply · Shift+Enter for another filter · ⌘/Ctrl+Enter to
             apply lists
           </span>
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            className="h-7 px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={() => setOpen(false)}
           >
             Cancel
@@ -146,7 +146,7 @@ export function QueryFilterPopover({
           <Button
             size="sm"
             disabled={!condition}
-            className="h-7 bg-slate-900 px-3 text-xs text-white hover:bg-slate-800"
+            className="h-7 bg-primary px-3 text-xs text-primary-foreground hover:bg-primary-hover"
             onClick={() => apply()}
           >
             Apply
@@ -162,7 +162,9 @@ export function QueryFilters({
   schemas,
   joinActions,
   onHighlight,
+  actions,
 }: {
+  actions?: ReactElement | undefined;
   query: PreparedQuery;
   schemas: DatabaseSchema[];
   joinActions: JoinActions;
@@ -175,30 +177,33 @@ export function QueryFilters({
   const filtered = joins.filter((join) => join.where);
   const count = filtered.reduce(
     (sum, join) => sum + countFilters(join.where),
-    0
+    0,
   );
   return (
     <section
       aria-label="Query filters"
-      className="border-b border-slate-200 bg-white px-4 py-3"
+      className="border-b border-border bg-card px-4 py-3"
     >
       <div className="flex items-center gap-2 text-xs">
         <SlidersHorizontal
           aria-hidden="true"
-          className="size-3.5 text-slate-500"
+          className="size-3.5 shrink-0 text-muted-foreground"
         />
-        <h2 className="font-semibold text-slate-700">Filters</h2>
-        <span className="tabular-nums text-slate-400">{count}</span>
-        {!count && (
-          <span className="ml-1 text-slate-400">No filters applied</span>
+        <h2 className="shrink-0 font-semibold text-foreground">Filters</h2>
+        <span className="shrink-0 text-muted-foreground tabular-nums">
+          {count}
+        </span>
+        {!count && !actions && (
+          <span className="ml-1 text-muted-foreground">No filters applied</span>
         )}
+        {actions && <div className="ml-auto min-w-0 flex-1">{actions}</div>}
       </div>
       {!!count && (
         <div className="mt-2.5 flex flex-wrap gap-2">
           {filtered.map((join) => {
             const [schema, name] = splitTableRef(join.tableRef);
             const repeated = joins.filter(
-              (item) => item.tableRef === join.tableRef
+              (item) => item.tableRef === join.tableRef,
             );
             const label =
               repeated.length > 1
@@ -214,23 +219,23 @@ export function QueryFilters({
                 <button
                   type="button"
                   aria-label={`Edit filters for ${label}: ${formatCondition(
-                    join.where!
+                    join.where!,
                   )}`}
                   onMouseEnter={() => onHighlight(join.joinAlias)}
                   onMouseLeave={() => onHighlight(null)}
                   onFocus={() => onHighlight(join.joinAlias)}
                   onBlur={() => onHighlight(null)}
-                  className="group flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-left text-xs transition-colors hover:border-teal-500 hover:bg-teal-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600"
+                  className="group flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-left text-xs transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
                 >
-                  <span className="break-all font-semibold text-slate-600">
+                  <span className="font-semibold break-all text-muted-foreground">
                     {label}
                   </span>
-                  <span className="min-w-0 break-words text-slate-800 [overflow-wrap:anywhere]">
+                  <span className="min-w-0 wrap-anywhere wrap-break-word text-foreground">
                     {formatCondition(join.where!)}
                   </span>
                   <ArrowUpRight
                     aria-hidden="true"
-                    className="size-3 shrink-0 self-center text-slate-400 group-hover:text-teal-700"
+                    className="size-3 shrink-0 self-center text-muted-foreground group-hover:text-primary-emphasis"
                   />
                 </button>
               </QueryFilterPopover>

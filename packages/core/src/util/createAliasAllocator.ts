@@ -31,7 +31,7 @@ function shorten(name: string, limit: number): string {
   return `${takeBytes(name, budget - tailBudget)}__${takeBytes(
     name,
     tailBudget,
-    true
+    true,
   )}${suffix}`;
 }
 

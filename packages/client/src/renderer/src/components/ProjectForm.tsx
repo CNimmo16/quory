@@ -26,12 +26,14 @@ export function ProjectForm({
       const result = await create.mutateAsync(
         storage === "folder"
           ? { name: name.trim(), storage, folderPath: folderPath.trim() }
-          : { name: name.trim(), storage }
+          : { name: name.trim(), storage },
       );
       await onCreated(result.projectId);
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Could not create the project."
+        cause instanceof Error
+          ? cause.message
+          : "Could not create the project.",
       );
     } finally {
       setSubmitting(false);
@@ -83,8 +85,8 @@ export function ProjectForm({
               key={value}
               className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 ${
                 storage === value
-                  ? "border-teal-600 bg-teal-50"
-                  : "border-slate-200 bg-white"
+                  ? "border-primary bg-primary-subtle"
+                  : "border-border bg-card"
               }`}
             >
               <input
@@ -97,11 +99,11 @@ export function ProjectForm({
               />
               <Icon
                 aria-hidden="true"
-                className="mt-0.5 size-4 shrink-0 text-slate-500"
+                className="mt-0.5 size-4 shrink-0 text-muted-foreground"
               />
               <span>
                 <span className="block text-sm font-medium">{title}</span>
-                <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
                   {description}
                 </span>
               </span>
@@ -132,7 +134,7 @@ export function ProjectForm({
                     setError(
                       cause instanceof Error
                         ? cause.message
-                        : "Could not open the folder picker."
+                        : "Could not open the folder picker.",
                     );
                   }
                 }}
@@ -141,7 +143,7 @@ export function ProjectForm({
                 Browse…
               </Button>
             </div>
-            <p className="text-xs leading-relaxed text-slate-500">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Queries are saved in a .quory folder here. Select an existing
               project folder or its .quory folder to load shared queries.
               Connection details stay on this machine.

@@ -46,7 +46,7 @@ export const booleanConditionOperators: ConditionOperator[] = [
 ];
 
 export const isBooleanCondition = (
-  condition: Condition
+  condition: Condition,
 ): condition is BooleanCondition =>
   booleanConditionOperators.includes(condition.operator);
 
@@ -70,7 +70,7 @@ export const valueConditionOperators: ConditionOperator[] = [
 ];
 
 export const isValueCondition = (
-  condition: Condition
+  condition: Condition,
 ): condition is ValueCondition =>
   valueConditionOperators.includes(condition.operator);
 
@@ -85,7 +85,7 @@ export const listConditionOperators: ConditionOperator[] = [
 ];
 
 export const isListCondition = (
-  condition: Condition
+  condition: Condition,
 ): condition is ListCondition =>
   listConditionOperators.includes(condition.operator);
 
@@ -158,7 +158,7 @@ export default async function prepareQuery(
   databaseSchemas: DatabaseSchema[],
   query: Query,
   dialect: SqlDialect = "sqlite",
-  options: { includeOrderBy?: boolean; includeRecordKeys?: boolean } = {}
+  options: { includeOrderBy?: boolean; includeRecordKeys?: boolean } = {},
 ): Promise<{
   sql: string;
   parameters: SqlParameter[];
@@ -181,7 +181,7 @@ export default async function prepareQuery(
     allocateJoinAlias(splitTableRef(tableRef).join("__"));
 
   const joinDefsWithAliases = (function addAlias(
-    join: JoinDef
+    join: JoinDef,
   ): JoinDefWithAlias {
     return {
       ...join,
@@ -211,7 +211,7 @@ export default async function prepareQuery(
       refs[refs.length - 1] !== child.tableRef
     ) {
       throw new Error(
-        `Destination ${child.tableRef} must be the final via step.`
+        `Destination ${child.tableRef} must be the final via step.`,
       );
     }
     if (refs[refs.length - 1] !== child.tableRef)
@@ -239,7 +239,7 @@ export default async function prepareQuery(
           incoming: resolveRelationship(
             databaseSchemas,
             route[i - 1]!,
-            selector
+            selector,
           ),
         });
       }
@@ -252,7 +252,7 @@ export default async function prepareQuery(
   // names elsewhere in the tree must never identify a join instance.
   function buildTree(
     join: JoinDefWithAlias,
-    incoming?: ResolvedRelationship
+    incoming?: ResolvedRelationship,
   ): PreparedJoinDef {
     const [schemaName, tableName] = splitTableRef(join.tableRef);
     const table = findTableFromSchemas(databaseSchemas, schemaName, tableName);
@@ -267,10 +267,10 @@ export default async function prepareQuery(
       joins: [],
     };
     for (const column of table.columns.filter((candidateColumn) =>
-      result.select.includes(candidateColumn.name)
+      result.select.includes(candidateColumn.name),
     )) {
       result.resultAliases[column.name] = allocateResultAlias(
-        `${result.joinAlias}__${column.name}`
+        `${result.joinAlias}__${column.name}`,
       );
     }
     if (incoming) incomingRelationships.set(result, incoming);
@@ -280,29 +280,29 @@ export default async function prepareQuery(
     }));
     // Direct, explicitly requested children are reusable intermediate nodes.
     for (const { child, path } of paths.filter(
-      ({ path: route }) => route.length === 1
+      ({ path: route }) => route.length === 1,
     )) {
       result.joins.push(buildTree(child, path[0]!.incoming));
     }
     for (const { child, path } of paths.filter(
-      ({ path: route }) => route.length !== 1
+      ({ path: route }) => route.length !== 1,
     )) {
       if (path.length < 1)
         throw new Error(`Join path must contain an edge: ${child.tableRef}`);
       let parent = result;
       for (const { tableRef, incoming: edgeRelationship } of path.slice(
         0,
-        -1
+        -1,
       )) {
         const matches = parent.joins.filter(
           (candidate) =>
             candidate.tableRef === tableRef &&
             incomingRelationships.get(candidate)?.identity ===
-              edgeRelationship.identity
+              edgeRelationship.identity,
         );
         if (matches.length > 1) {
           throw new Error(
-            `Ambiguous intermediate join instance for ${tableRef}`
+            `Ambiguous intermediate join instance for ${tableRef}`,
           );
         }
         let intermediate = matches[0];
@@ -328,7 +328,7 @@ export default async function prepareQuery(
   const recordKeyAliases: Record<string, string[]> = {};
 
   const select = (function extractSelects(
-    join: PreparedJoinDef
+    join: PreparedJoinDef,
   ): ReturnType<typeof getSelectForColumn>[] {
     const [schemaName, tableName] = splitTableRef(join.tableRef);
     const table = findTableFromSchemas(databaseSchemas, schemaName, tableName);
@@ -340,7 +340,7 @@ export default async function prepareQuery(
             .filter(
               (column) =>
                 column.includedInPrimaryKey &&
-                !join.select.includes(column.name)
+                !join.select.includes(column.name),
             )
             .map((column) =>
               getSelectForColumn(
@@ -348,8 +348,8 @@ export default async function prepareQuery(
                 join.joinAlias,
                 column,
                 allocateResultAlias(`${join.joinAlias}__${column.name}`),
-                dialect
-              )
+                dialect,
+              ),
             )
         : [];
     if (options.includeRecordKeys && join.select.length) {
@@ -358,7 +358,7 @@ export default async function prepareQuery(
         .map(
           (column) =>
             join.resultAliases[column.name] ??
-            hiddenKeys.find((key) => key.name === column.name)!.outerAlias
+            hiddenKeys.find((key) => key.name === column.name)!.outerAlias,
         );
     }
     return [
@@ -369,8 +369,8 @@ export default async function prepareQuery(
             join.joinAlias,
             column,
             join.resultAliases[column.name],
-            dialect
-          )
+            dialect,
+          ),
         )
         .filter((column) => join.select.includes(column.name)),
       ...hiddenKeys,
@@ -379,7 +379,7 @@ export default async function prepareQuery(
   })(joinTree);
 
   const conditions = (function extractConditions(
-    join: PreparedJoinDef
+    join: PreparedJoinDef,
   ): ReturnType<typeof getWhereClauseFromConditions>[] {
     const [schemaName, tableName] = splitTableRef(join.tableRef);
     const table = findTableFromSchemas(databaseSchemas, schemaName, tableName);
@@ -391,7 +391,7 @@ export default async function prepareQuery(
               join.joinAlias,
               join.where,
               dialect,
-              parameters
+              parameters,
             ),
           ]
         : []),
@@ -401,7 +401,7 @@ export default async function prepareQuery(
 
   const orderBy = (function extractOrderBy(
     join: PreparedJoinDef,
-    priorities?: number[]
+    priorities?: number[],
   ): {
     joinAlias: string;
     column: string;
@@ -413,12 +413,12 @@ export default async function prepareQuery(
         ? join.orderBy.map(({ column, direction, priority }) => {
             if (priorities && priorities.length >= 1 && !priority) {
               throw new Error(
-                "Missing 'priority' field for orderBy. 'priority' must be specified when multiple orderBy conditions exist in the query."
+                "Missing 'priority' field for orderBy. 'priority' must be specified when multiple orderBy conditions exist in the query.",
               );
             }
             if (priority && priorities && priorities.includes(priority)) {
               throw new Error(
-                `Duplicate 'priority' field for orderBy: ${priority}`
+                `Duplicate 'priority' field for orderBy: ${priority}`,
               );
             }
             return {
@@ -430,13 +430,13 @@ export default async function prepareQuery(
           })
         : []),
       ...join.joins.flatMap((childJoin) =>
-        extractOrderBy(childJoin, priorities)
+        extractOrderBy(childJoin, priorities),
       ),
     ];
   })(joinTree);
 
   let fromClause = `${tableRefSql(joinTree.tableRef)} AS ${q(
-    joinTree.joinAlias
+    joinTree.joinAlias,
   )}`;
   const primaryKeyRefs: string[] = [];
   function traverseTree(thisJoin: PreparedJoinDef) {
@@ -444,17 +444,17 @@ export default async function prepareQuery(
     const thisTable = findTableFromSchemas(
       databaseSchemas,
       schemaName,
-      tableName
+      tableName,
     );
     primaryKeyRefs.push(
       ...thisTable.columns
         .filter((column) => column.includedInPrimaryKey)
-        .map((column) => `${q(thisJoin.joinAlias)}.${q(column.name)}`)
+        .map((column) => `${q(thisJoin.joinAlias)}.${q(column.name)}`),
     );
 
     for (const childJoin of thisJoin.joins) {
       const [childSchemaName, childTableName] = splitTableRef(
-        childJoin.tableRef
+        childJoin.tableRef,
       );
       const { relationship, forward } = incomingRelationships.get(childJoin)!;
       const localAlias = forward ? thisJoin.joinAlias : childJoin.joinAlias;
@@ -463,14 +463,14 @@ export default async function prepareQuery(
         ({ localColumn, foreignColumn }) =>
           localAlias === thisJoin.joinAlias
             ? `${q(foreignAlias)}.${q(foreignColumn)} = ${q(localAlias)}.${q(
-                localColumn
+                localColumn,
               )}`
             : `${q(localAlias)}.${q(localColumn)} = ${q(foreignAlias)}.${q(
-                foreignColumn
-              )}`
+                foreignColumn,
+              )}`,
       );
       fromClause += ` INNER JOIN ${q(childSchemaName)}.${q(
-        childTableName
+        childTableName,
       )} AS ${q(childJoin.joinAlias)} ON ${predicates.join(" AND ")}`;
       traverseTree(childJoin);
     }
@@ -478,7 +478,7 @@ export default async function prepareQuery(
   traverseTree(joinTree);
 
   const sql = `SELECT ${select.map(
-    (column) => `${column.ref} AS ${q(column.outerAlias)}`
+    (column) => `${column.ref} AS ${q(column.outerAlias)}`,
   )} FROM ${fromClause} ${
     conditions.length >= 1 ? `WHERE ${conditions.join(" AND ")}` : ""
   } ${
@@ -489,14 +489,14 @@ export default async function prepareQuery(
           (column) =>
             `${q(column.joinAlias)}.${q(column.column)} ${
               column.order === "asc" ? "ASC" : "DESC"
-            }`
+            }`,
         )}`
       : ""
   }`;
 
   const joinsList = (function flattenJoinTree(
     join: PreparedJoinDef,
-    parent: FlattenedPreparedJoinDef | null = null
+    parent: FlattenedPreparedJoinDef | null = null,
   ): FlattenedPreparedJoinDef[] {
     const joinWithParent = {
       ...join,

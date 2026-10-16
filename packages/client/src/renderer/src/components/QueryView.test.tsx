@@ -105,7 +105,7 @@ it("separates query controls from results and switches representations without r
   render(
     <TooltipProvider>
       <QueryView {...props()} />
-    </TooltipProvider>
+    </TooltipProvider>,
   );
   const definition = screen.getByRole("region", { name: "Query" });
   const results = screen.getByRole("region", { name: "Results" });
@@ -114,29 +114,29 @@ it("separates query controls from results and switches representations without r
   expect(toggle).toHaveAttribute("aria-checked", "false");
   expect(within(results).getByText("100 rows")).toBeVisible();
   expect(
-    within(definition).getByRole("region", { name: "Query tree" })
+    within(definition).getByRole("region", { name: "Query tree" }),
   ).toBeVisible();
   expect(
-    within(results).getByRole("region", { name: "Results pagination" })
+    within(results).getByRole("region", { name: "Results pagination" }),
   ).toBeVisible();
   const user = userEvent.setup();
   await user.click(toggle);
   expect(toggle).toHaveAttribute("aria-checked", "true");
   expect(
     within(definition).getByText(
-      "SELECT * FROM public.orders LIMIT $1 OFFSET $2"
-    )
+      "SELECT * FROM public.orders LIMIT $1 OFFSET $2",
+    ),
   ).toBeVisible();
   expect(within(results).getByRole("table", { name: "Query results" })).toBe(
-    table
+    table,
   );
   await user.keyboard("{Enter}");
   expect(toggle).toHaveAttribute("aria-checked", "false");
   expect(
-    within(definition).getByRole("region", { name: "Query tree" })
+    within(definition).getByRole("region", { name: "Query tree" }),
   ).toBeVisible();
   expect(within(results).getByRole("table", { name: "Query results" })).toBe(
-    table
+    table,
   );
 });
 
@@ -150,7 +150,7 @@ it("places undo and redo in the Query header and disables unavailable history ac
   render(
     <TooltipProvider>
       <QueryView {...props()} historyControls={controls} />
-    </TooltipProvider>
+    </TooltipProvider>,
   );
   const query = screen.getByRole("region", { name: "Query" });
   await userEvent
@@ -161,8 +161,8 @@ it("places undo and redo in the Query header and disables unavailable history ac
   expect(
     within(screen.getByRole("region", { name: "Results" })).queryByRole(
       "button",
-      { name: "Undo" }
-    )
+      { name: "Undo" },
+    ),
   ).not.toBeInTheDocument();
 });
 it("shows underlying bound SQL, retains the results, and preserves pagination when switching views", async () => {
@@ -178,7 +178,7 @@ it("shows underlying bound SQL, retains the results, and preserves pagination wh
   rerender(view(true));
   expect(screen.queryByRole("region", { name: "Query tree" })).toBeNull();
   expect(
-    screen.getByText("SELECT * FROM public.orders LIMIT $1 OFFSET $2")
+    screen.getByText("SELECT * FROM public.orders LIMIT $1 OFFSET $2"),
   ).toBeVisible();
   expect(screen.getByText("Bound parameters: [100,0]")).toBeVisible();
   expect(screen.getByRole("table", { name: "Query results" })).toBeVisible();
@@ -186,7 +186,7 @@ it("shows underlying bound SQL, retains the results, and preserves pagination wh
   expect(screen.getByText("Bound parameters: [100,100]")).toBeVisible();
   rerender(view(false));
   expect(screen.getByRole("region", { name: "Query tree" })).toHaveTextContent(
-    "offset: 100"
+    "offset: 100",
   );
   expect(base.onQueryChange).toHaveBeenCalledWith({
     ...initialQuery,
@@ -199,7 +199,7 @@ it("converts only after modal confirmation, retaining SQL and parameters", async
   render(
     <TooltipProvider>
       <QueryView {...props()} showQueryText onConvertToSql={convert} />
-    </TooltipProvider>
+    </TooltipProvider>,
   );
   await user.click(screen.getByRole("button", { name: "Edit SQL query" }));
   expect(screen.getByRole("dialog")).toHaveTextContent("cannot be undone");
@@ -225,11 +225,11 @@ it("makes SQL available when relationship execution fails", () => {
   render(
     <TooltipProvider>
       <QueryView {...props()} showQueryText />
-    </TooltipProvider>
+    </TooltipProvider>,
   );
   expect(screen.getByText("Query failed")).toBeVisible();
   expect(
-    screen.getByText("SELECT * FROM public.orders LIMIT $1 OFFSET $2")
+    screen.getByText("SELECT * FROM public.orders LIMIT $1 OFFSET $2"),
   ).toBeVisible();
 });
 it("keeps the result table mounted while refreshing and requests previous data", () => {
@@ -247,7 +247,7 @@ it("keeps the result table mounted while refreshing and requests previous data",
   expect(screen.getByRole("table", { name: "Query results" })).toBe(table);
   expect(screen.getByRole("status")).toHaveTextContent("Running query…");
   expect(
-    mocks.useQuery.mock.calls.at(-1)![3].placeholderData(previous.data)
+    mocks.useQuery.mock.calls.at(-1)![3].placeholderData(previous.data),
   ).toBe(previous.data);
 });
 it("accepts external amendments without remounting results", () => {
@@ -255,7 +255,7 @@ it("accepts external amendments without remounting results", () => {
   const { rerender } = render(
     <TooltipProvider>
       <QueryView {...base} showQueryText />
-    </TooltipProvider>
+    </TooltipProvider>,
   );
   const table = screen.getByRole("table", { name: "Query results" });
   rerender(
@@ -268,10 +268,10 @@ it("accepts external amendments without remounting results", () => {
         }}
         showQueryText
       />
-    </TooltipProvider>
+    </TooltipProvider>,
   );
   expect(screen.getByRole("table", { name: "Query results" })).toBe(table);
   expect(
-    screen.getByText("SELECT status FROM public.orders LIMIT $1 OFFSET $2")
+    screen.getByText("SELECT status FROM public.orders LIMIT $1 OFFSET $2"),
   ).toBeVisible();
 });

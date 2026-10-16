@@ -22,7 +22,7 @@ export function useRelationshipCanvas() {
       setView((current) => {
         const scale = Math.max(
           MIN_ZOOM,
-          Math.min(MAX_ZOOM, current.scale * factor)
+          Math.min(MAX_ZOOM, current.scale * factor),
         );
         const point = anchor ?? {
           x: (element?.clientWidth ?? 0) / 2,
@@ -36,7 +36,7 @@ export function useRelationshipCanvas() {
         };
       });
     },
-    [element]
+    [element],
   );
 
   useEffect(() => {
@@ -49,8 +49,8 @@ export function useRelationshipCanvas() {
         (event.deltaMode === 1
           ? 16
           : event.deltaMode === 2
-          ? element.clientHeight
-          : 1);
+            ? element.clientHeight
+            : 1);
       zoom(Math.exp(-delta * 0.002), {
         x: event.clientX - bounds.left,
         y: event.clientY - bounds.top,
@@ -80,7 +80,7 @@ export function useRelationshipCanvas() {
           return;
         if (
           (event.target as Element).closest(
-            "[data-canvas-node], button, input, textarea, select, a, [role='button'], [contenteditable]"
+            "[data-canvas-node], button, input, textarea, select, a, [role='button'], [contenteditable]",
           )
         )
           return;

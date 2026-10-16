@@ -29,7 +29,7 @@ async function fixture() {
   const schemas = await getSchemas(driver);
   const keys = await driver.getAllForeignKeysInDatabase();
   const senderId = keys.find(
-    (key) => key.localTable === "messages" && key.localColumn === "sender"
+    (key) => key.localTable === "messages" && key.localColumn === "sender",
   )!.constraintId!;
   return { driver, schemas, senderId };
 }
@@ -66,7 +66,7 @@ describe("via relationship selectors", () => {
       "Bob",
     ]);
     expect(
-      (await runQuery(driver, schemas, result.meta.preparedQuery)).rows
+      (await runQuery(driver, schemas, result.meta.preparedQuery)).rows,
     ).toEqual(result.rows);
     expect((await getCountForQuery(driver, schemas, input)).count).toBe(1);
   });
@@ -112,7 +112,7 @@ describe("via relationship selectors", () => {
       ],
     ]) {
       expect(
-        (await runQuery(driver, schemas, query(via))).rows[0]![1]!.data.name
+        (await runQuery(driver, schemas, query(via))).rows[0]![1]!.data.name,
       ).toBe("Alice");
     }
   });
@@ -128,13 +128,13 @@ describe("via relationship selectors", () => {
     const result = await runQuery(driver, schemas, input);
     expect(
       result.rows[0]!.filter((join) => join.tableRef === "main.profiles").map(
-        (join) => join.data.label
-      )
+        (join) => join.data.label,
+      ),
     ).toEqual(["Alice profile", "Bob profile"]);
     expect(
       (await runQuery(driver, schemas, result.meta.preparedQuery)).rows.map(
-        (row) => row.map((join) => join.data)
-      )
+        (row) => row.map((join) => join.data),
+      ),
     ).toEqual(result.rows.map((row) => row.map((join) => join.data)));
   });
 
@@ -152,7 +152,7 @@ describe("via relationship selectors", () => {
     const longhand = structuredClone(input);
     longhand.base.joins![0]!.via = [{ tableRef: "main.people" }];
     expect(await prepareQuery(schemas, input)).toEqual(
-      await prepareQuery(schemas, longhand)
+      await prepareQuery(schemas, longhand),
     );
     expect(areQueriesEqual(schemas, input, longhand)).toBe(true);
   });
@@ -166,13 +166,13 @@ describe("via relationship selectors", () => {
       [{ tableRef: "main.people", toColumnName: "id" }],
     ]) {
       await expect(prepareQuery(schemas, query(via))).rejects.toThrow(
-        /Multiple relationships.*fromColumnName.*usingConstraintId.*sender.*recipient/
+        /Multiple relationships.*fromColumnName.*usingConstraintId.*sender.*recipient/,
       );
       await expect(runQuery(driver, schemas, query(via))).rejects.toThrow(
-        "Multiple relationships"
+        "Multiple relationships",
       );
       await expect(
-        getCountForQuery(driver, schemas, query(via))
+        getCountForQuery(driver, schemas, query(via)),
       ).rejects.toThrow("Multiple relationships");
     }
   });
@@ -189,7 +189,7 @@ describe("via relationship selectors", () => {
       },
     ])
       await expect(prepareQuery(schemas, query([step]))).rejects.toThrow(
-        "No relationship matches"
+        "No relationship matches",
       );
     await expect(
       prepareQuery(
@@ -200,23 +200,23 @@ describe("via relationship selectors", () => {
             fromColumnName: "sender",
             usingConstraintId: senderId,
           },
-        ] as unknown as ViaStep[])
-      )
+        ] as unknown as ViaStep[]),
+      ),
     ).rejects.toThrow("not both");
     await expect(
       prepareQuery(
         schemas,
-        query([{ tableRef: "main.people", fromColumnName: "" }])
-      )
+        query([{ tableRef: "main.people", fromColumnName: "" }]),
+      ),
     ).rejects.toThrow("non-empty");
     await expect(
-      prepareQuery(schemas, query(["main.people", "main.profiles"]))
+      prepareQuery(schemas, query(["main.people", "main.profiles"])),
     ).rejects.toThrow("must be the final");
     await expect(
       prepareQuery(
         schemas,
-        query([{ tableRef: "main.profiles", fromColumnName: "sender" }])
-      )
+        query([{ tableRef: "main.profiles", fromColumnName: "sender" }]),
+      ),
     ).rejects.toThrow("No relationship matches");
   });
 
@@ -231,7 +231,7 @@ describe("via relationship selectors", () => {
     const driver = new SqliteDriver(db);
     const schemas = await getSchemas(driver);
     const constraintId = (await driver.getAllForeignKeysInDatabase()).find(
-      (key) => key.localColumn === "first_id"
+      (key) => key.localColumn === "first_id",
     )!.constraintId!;
     for (const selector of [
       { usingConstraintId: constraintId },
@@ -267,7 +267,7 @@ describe("via relationship selectors", () => {
             },
           ],
         },
-      })
+      }),
     ).rejects.toThrow("Multiple relationships");
   });
 });
@@ -307,6 +307,6 @@ it("combines quoted composite relationships, via selectors, and bound filters", 
   expect(result.rows[0]![1]!.data.label).toBe(value);
   expect((await getCountForQuery(driver, schemas, input)).count).toBe(1);
   expect(
-    (await runQuery(driver, schemas, result.meta.preparedQuery)).rows
+    (await runQuery(driver, schemas, result.meta.preparedQuery)).rows,
   ).toEqual(result.rows);
 });

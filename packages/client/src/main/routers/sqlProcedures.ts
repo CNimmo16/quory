@@ -21,13 +21,11 @@ const confirmations = new Map<
     expires: number;
   }
 >();
-const sqlInput = customSqlSchema
-  .omit({ mode: true, dialect: true })
-  .extend({
-    connectionId: z.string(),
-    executionId: z.string().uuid(),
-    confirmationToken: z.string().uuid().optional(),
-  });
+const sqlInput = customSqlSchema.omit({ mode: true, dialect: true }).extend({
+  connectionId: z.string(),
+  executionId: z.string().uuid(),
+  confirmationToken: z.string().uuid().optional(),
+});
 function cell(value: unknown): string | number | boolean | null {
   if (value == null) return null;
   if (
@@ -41,7 +39,7 @@ function cell(value: unknown): string | number | boolean | null {
   if (value instanceof Uint8Array) return Buffer.from(value).toString("hex");
   return (
     JSON.stringify(value, (_key, item: unknown) =>
-      typeof item === "bigint" ? item.toString() : item
+      typeof item === "bigint" ? item.toString() : item,
     ) ?? String(value)
   );
 }
@@ -50,7 +48,7 @@ export const sqlProcedures = {
     .input(z.object({ connectionId: z.string(), query: validators.query }))
     .query(async ({ input }) => {
       const context = await savedQueryService.assertConnection(
-        input.connectionId
+        input.connectionId,
       );
       const session = await getQuorySession();
       await savedQueryService.assertConnection(context);
@@ -60,7 +58,7 @@ export const sqlProcedures = {
     }),
   executeSql: publicProcedure.input(sqlInput).mutation(async ({ input }) => {
     const context = await savedQueryService.assertConnection(
-      input.connectionId
+      input.connectionId,
     );
     const connection = await activeConnectionState.getActiveConnection();
     await savedQueryService.assertConnection(context);
@@ -136,7 +134,7 @@ export const sqlProcedures = {
         input.sql,
         parameters,
         protection !== "dangerously-write" && readOnly,
-        input.executionId
+        input.executionId,
       );
       await savedQueryService.assertConnection(context);
       if (!readOnly) await invalidateQuorySchema();
@@ -159,11 +157,11 @@ export const sqlProcedures = {
   }),
   cancelSql: publicProcedure
     .input(
-      z.object({ connectionId: z.string(), executionId: z.string().uuid() })
+      z.object({ connectionId: z.string(), executionId: z.string().uuid() }),
     )
     .mutation(async ({ input }) => {
       const context = await savedQueryService.assertConnection(
-        input.connectionId
+        input.connectionId,
       );
       const session = await getQuorySession();
       await savedQueryService.assertConnection(context);

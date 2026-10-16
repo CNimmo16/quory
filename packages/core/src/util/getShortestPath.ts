@@ -4,7 +4,7 @@ export default function getShortestPath(
   graph: Graph,
   sourceRef: string,
   targetRef: string,
-  via: string[]
+  via: string[],
 ) {
   if (new Set(via).size !== via.length) {
     throw new Error(`Duplicate table refs in "via" path: ${via.join(", ")}`);

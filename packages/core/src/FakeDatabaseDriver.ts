@@ -53,8 +53,8 @@ export default class FakeDatabaseDriver implements DatabaseDriver {
           genericDataType,
           isNullable,
           includedInPrimaryKey,
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -76,15 +76,15 @@ export default class FakeDatabaseDriver implements DatabaseDriver {
             foreignSchema,
             foreignTable,
             foreignColumn,
-          })
-        )
+          }),
+        ),
     );
   }
 
   async exec(): Promise<Row[]> {
     if (!this.mockedExecResponse) {
       throw new Error(
-        "Call mockExec() with a value to resolve with before calling exec() on FakeDatabaseDriver"
+        "Call mockExec() with a value to resolve with before calling exec() on FakeDatabaseDriver",
       );
     }
     return this.mockedExecResponse;

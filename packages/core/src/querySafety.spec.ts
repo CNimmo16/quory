@@ -73,7 +73,7 @@ describe.each(["postgres", "mysql", "sqlite"] as const)(
       const { sql, parameters } = await prepareQuery(
         schemas,
         filtered,
-        dialect
+        dialect,
       );
       expect(parameters).toEqual([hostile, "O'Connor", "", "100%_"]);
       parameters.forEach((value) => {
@@ -81,17 +81,17 @@ describe.each(["postgres", "mysql", "sqlite"] as const)(
       });
       if (dialect === "mysql") {
         expect(sql).toContain(
-          'FROM `pub"lic```.`Order.Items` AS `pub"lic``__Order.Items`'
+          'FROM `pub"lic```.`Order.Items` AS `pub"lic``__Order.Items`',
         );
         expect(sql).toContain('`select"``` DESC');
         expect(sql).toContain("IN (?,?,?)");
       } else {
         expect(sql).toContain(
-          'FROM "pub""lic`"."Order.Items" AS "pub""lic`__Order.Items"'
+          'FROM "pub""lic`"."Order.Items" AS "pub""lic`__Order.Items"',
         );
         expect(sql).toContain('"select""`" DESC');
         expect(sql).toContain(
-          dialect === "postgres" ? "IN ($2,$3,$4)" : "IN (?,?,?)"
+          dialect === "postgres" ? "IN ($2,$3,$4)" : "IN (?,?,?)",
         );
       }
       await runQuery(db, schemas, filtered);
@@ -104,7 +104,7 @@ describe.each(["postgres", "mysql", "sqlite"] as const)(
             ? " LIMIT $5 OFFSET $6"
             : " LIMIT ? OFFSET ?"),
         [...parameters, 25, 42],
-        expect.objectContaining({ signal: expect.any(AbortSignal) })
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
       const { sql: countSql } = await prepareQuery(schemas, filtered, dialect, {
         includeOrderBy: false,
@@ -113,7 +113,7 @@ describe.each(["postgres", "mysql", "sqlite"] as const)(
       expect(db.exec).toHaveBeenLastCalledWith(
         `SELECT COUNT(*) AS count FROM (${countSql}) AS quory_count`,
         parameters,
-        expect.objectContaining({ signal: expect.any(AbortSignal) })
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     });
 
@@ -134,12 +134,12 @@ describe.each(["postgres", "mysql", "sqlite"] as const)(
         const db = driver(dialect);
         await expect(runQuery(db, schemas, query)).rejects.toThrow("column");
         await expect(getCountForQuery(db, schemas, query)).rejects.toThrow(
-          "column"
+          "column",
         );
         expect(db.exec).not.toHaveBeenCalled();
-      }
+      },
     );
-  }
+  },
 );
 
 it.each([

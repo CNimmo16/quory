@@ -37,7 +37,7 @@ export function TextField({
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute right-0 top-0"
+            className="absolute top-0 right-0"
             aria-label={passwordVisible ? "Hide password" : "Show password"}
             aria-pressed={passwordVisible}
             onClick={() => setPasswordVisible(!passwordVisible)}

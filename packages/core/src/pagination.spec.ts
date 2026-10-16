@@ -62,10 +62,10 @@ it.each([
 ])("rejects limit %s before executing", async (limit) => {
   const driver = mock();
   await expect(
-    runQuery(driver, schemas, { ...query, limit } as Query)
+    runQuery(driver, schemas, { ...query, limit } as Query),
   ).rejects.toThrow("limit");
   await expect(
-    getCountForQuery(driver, schemas, { ...query, limit } as Query)
+    getCountForQuery(driver, schemas, { ...query, limit } as Query),
   ).rejects.toThrow("limit");
   expect(driver.exec).not.toHaveBeenCalled();
 });
@@ -74,16 +74,16 @@ it.each([-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, "0", null])(
   async (offset) => {
     const driver = mock();
     await expect(
-      runQuery(driver, schemas, { ...query, offset } as Query)
+      runQuery(driver, schemas, { ...query, offset } as Query),
     ).rejects.toThrow("offset");
     expect(driver.exec).not.toHaveBeenCalled();
-  }
+  },
 );
 it("caps omitted limits, preserves prepared pages, and counts all matching rows", async () => {
   const db = sqlite(":memory:");
   try {
     db.exec(
-      "CREATE TABLE items (id INTEGER PRIMARY KEY); WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<205) INSERT INTO items SELECT x FROM n"
+      "CREATE TABLE items (id INTEGER PRIMARY KEY); WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<205) INSERT INTO items SELECT x FROM n",
     );
     const driver: DatabaseDriver = {
       ...mock(),
@@ -97,13 +97,13 @@ it("caps omitted limits, preserves prepared pages, and counts all matching rows"
     expect(second.rows).toHaveLength(100);
     expect(second.rows[0]![0]!.data.id).toBe(101);
     expect(
-      (await runQuery(driver, schemas, { ...page, offset: 200 })).rows
+      (await runQuery(driver, schemas, { ...page, offset: 200 })).rows,
     ).toHaveLength(5);
     expect(
-      (await runQuery(driver, schemas, { ...page, offset: 205 })).rows
+      (await runQuery(driver, schemas, { ...page, offset: 205 })).rows,
     ).toHaveLength(0);
     expect(
-      (await getCountForQuery(driver, schemas, { ...page, limit: 1 })).count
+      (await getCountForQuery(driver, schemas, { ...page, limit: 1 })).count,
     ).toBe(205);
     const total = await getCountForQuery(driver, schemas, prepared);
     expect(total.meta.preparedQuery).toMatchObject({
@@ -126,13 +126,13 @@ it("deadlines abort driver execution and pre-aborted requests never execute", as
     return new Promise<never>(() => {});
   });
   await expect(
-    executeQuery(driver, "SELECT 1", [], { timeoutMs: 5 })
+    executeQuery(driver, "SELECT 1", [], { timeoutMs: 5 }),
   ).rejects.toThrow("timed out");
   expect(signal?.aborted).toBe(true);
   const controller = new AbortController();
   controller.abort(new Error("cancelled"));
   await expect(
-    executeQuery(driver, "SELECT 1", [], { signal: controller.signal })
+    executeQuery(driver, "SELECT 1", [], { signal: controller.signal }),
   ).rejects.toThrow("cancelled");
   expect(driver.exec).toHaveBeenCalledTimes(1);
 });

@@ -1,0 +1,53 @@
+@import "../../../../packages/config/theme/fonts.css";
+@import "tailwindcss";
+
+/* Reuse the desktop palette, font families, and system/light/dark theme rules. */
+@config "../../tailwind.config.cjs";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 35px;
+  }
+  body {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  a:focus-visible,
+  button:focus-visible {
+    outline: 3px solid;
+    @apply outline-ring;
+    outline-offset: 5px;
+  }
+  ::selection {
+    @apply bg-border;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    ::before,
+    ::after {
+      transition: none !important;
+    }
+  }
+}

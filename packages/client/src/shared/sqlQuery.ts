@@ -1,9 +1,7 @@
 import type { Query, SqlDialect, SqlParameter } from "@quory/core";
 
 export type WriteProtection =
-  | "read-only"
-  | "confirm-before-write"
-  | "dangerously-write";
+  "read-only" | "confirm-before-write" | "dangerously-write";
 export type CustomSqlQuery = {
   mode: "sql";
   sql: string;

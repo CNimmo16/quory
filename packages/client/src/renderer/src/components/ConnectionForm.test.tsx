@@ -46,7 +46,7 @@ describe("ConnectionForm", () => {
       <SavedConnectionForm
         initialConfig={{ ...savedConnection, colour: "blue" }}
         save={save}
-      />
+      />,
     );
     expect(screen.getAllByRole("radio")).toHaveLength(10);
     expect(screen.getByRole("radio", { name: "Blue" })).toBeChecked();
@@ -78,7 +78,7 @@ describe("ConnectionForm", () => {
     }
     render(<Form />);
     expect(
-      screen.getByRole("button", { name: "Save connection" })
+      screen.getByRole("button", { name: "Save connection" }),
     ).toBeDisabled();
     expect(screen.getByRole("button", { name: "Connect" })).toBeDisabled();
     await user.click(screen.getByRole("combobox", { name: /Database type/ }));
@@ -86,14 +86,14 @@ describe("ConnectionForm", () => {
     expect(screen.getByLabelText(/Port/)).toHaveValue(5432);
     expect(screen.getByLabelText(/Username/)).toHaveValue("postgres");
     expect(
-      screen.getByRole("combobox", { name: "SSL mode" })
+      screen.getByRole("combobox", { name: "SSL mode" }),
     ).toHaveTextContent("Disabled");
     await user.type(screen.getByLabelText(/^Password/), "secret");
     await user.click(screen.getByRole("button", { name: "Show password" }));
     expect(screen.getByLabelText(/^Password/)).toHaveAttribute("type", "text");
     expect(save).not.toHaveBeenCalled();
     expect(
-      screen.getByRole("button", { name: "Save connection" })
+      screen.getByRole("button", { name: "Save connection" }),
     ).toBeDisabled();
     await user.type(screen.getByLabelText(/Connection nickname/), "Local DB");
     await user.click(screen.getByRole("button", { name: "Save connection" }));
@@ -122,11 +122,11 @@ describe("ConnectionForm", () => {
         <SavedConnectionForm
           initialConfig={{ ...savedConnection, type }}
           save={save}
-        />
+        />,
       );
       await user.click(screen.getByRole("combobox", { name: "SSL mode" }));
       await user.click(
-        screen.getByRole("option", { name: "Verify certificate and hostname" })
+        screen.getByRole("option", { name: "Verify certificate and hostname" }),
       );
       await user.click(screen.getByText("Custom certificates (optional)"));
       await user.type(screen.getByLabelText("CA certificate"), "CA PEM");
@@ -146,7 +146,7 @@ describe("ConnectionForm", () => {
           key: "KEY PEM",
         },
       });
-    }
+    },
   );
 
   it("preserves saved connection details and SSL settings when reopening the form", async () => {
@@ -179,7 +179,7 @@ describe("ConnectionForm", () => {
     await user.click(
       screen.getByRole("option", {
         name: "Require SSL (no certificate verification)",
-      })
+      }),
     );
     await user.click(screen.getByRole("button", { name: "Save connection" }));
     expect(save).toHaveBeenLastCalledWith({
@@ -189,7 +189,7 @@ describe("ConnectionForm", () => {
     await user.click(screen.getByRole("combobox", { name: "SSL mode" }));
     await user.click(screen.getByRole("option", { name: "Disabled" }));
     expect(
-      screen.queryByText("Custom certificates (optional)")
+      screen.queryByText("Custom certificates (optional)"),
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Save connection" }));
     expect(save).toHaveBeenLastCalledWith({
@@ -218,7 +218,7 @@ describe("ConnectionForm", () => {
           isConnecting
           saveText="Save changes"
         />
-      </TooltipProvider>
+      </TooltipProvider>,
     );
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Connect" })).toBeDisabled();
@@ -230,20 +230,20 @@ it("defaults write protection to read only and saves the selected policy", async
   const save = vi.fn();
   render(<SavedConnectionForm initialConfig={savedConnection} save={save} />);
   expect(
-    screen.getByRole("combobox", { name: "Write protection" })
+    screen.getByRole("combobox", { name: "Write protection" }),
   ).toHaveTextContent("Read only");
   await user.click(screen.getByRole("combobox", { name: "Write protection" }));
   await user.click(
-    screen.getByRole("option", { name: "Confirm before write" })
+    screen.getByRole("option", { name: "Confirm before write" }),
   );
   await user.click(screen.getByRole("button", { name: "Save connection" }));
   expect(save).toHaveBeenLastCalledWith(
-    expect.objectContaining({ writeProtection: "confirm-before-write" })
+    expect.objectContaining({ writeProtection: "confirm-before-write" }),
   );
   await user.click(screen.getByRole("combobox", { name: "Write protection" }));
   await user.click(screen.getByRole("option", { name: "Dangerously write" }));
   await user.click(screen.getByRole("button", { name: "Save connection" }));
   expect(save).toHaveBeenLastCalledWith(
-    expect.objectContaining({ writeProtection: "dangerously-write" })
+    expect.objectContaining({ writeProtection: "dangerously-write" }),
   );
 });

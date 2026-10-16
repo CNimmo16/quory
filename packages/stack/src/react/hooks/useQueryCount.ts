@@ -2,7 +2,7 @@ import { RouterRequest } from "../../server/routes";
 import useQuory from "../useQuory";
 
 export default function useQueryCount(
-  query: RouterRequest<"queryCount">["query"] | null
+  query: RouterRequest<"queryCount">["query"] | null,
 ) {
   const { data, isFetching, error } = useQuory(
     "queryCount",
@@ -10,7 +10,7 @@ export default function useQueryCount(
       ? {
           query,
         }
-      : null
+      : null,
   );
 
   return {

@@ -1,7 +1,7 @@
 import { GenericDataType } from "@quory/core";
 
 export default function postgresDatatypeToGenericDatatype(
-  postgresDatatype: string
+  postgresDatatype: string,
 ): GenericDataType {
   const lookup: { [x: string]: GenericDataType } = {
     bigint: "number",

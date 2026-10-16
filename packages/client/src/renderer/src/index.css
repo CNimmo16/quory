@@ -1,33 +1,26 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "../../../../config/theme/fonts.css";
+
+@import "tailwindcss" source("./");
+@config "../../../tailwind.config.ts";
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 214.3 94.6% 92.7%;
-    --secondary-foreground: 224.3 76.3% 48%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 72.2% 50.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
   }
 
   * {
     @apply box-border border-border;
+  }
+
+  /* Preserve the Tailwind 3 defaults used by the existing controls. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #9ca3af;
   }
 
   body {
@@ -76,4 +69,15 @@
 
 .app-toolbar :is(input, textarea) {
   user-select: text;
+}
+
+@layer base {
+  code,
+  pre,
+  kbd,
+  samp,
+  input[type="number"],
+  .tabular-nums {
+    @apply font-mono;
+  }
 }

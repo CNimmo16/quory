@@ -16,7 +16,7 @@ export default async function runQuery(
   databaseDriver: DatabaseDriver,
   databaseSchemas: DatabaseSchema[],
   query: Query,
-  options?: ExecutionOptions
+  options?: ExecutionOptions,
 ): Promise<{
   sql: string;
   meta: {
@@ -50,8 +50,8 @@ export default async function runQuery(
         (column) =>
           `${quoteIdentifier(
             join.joinAlias,
-            databaseDriver.dialect
-          )}.${quoteIdentifier(column.name, databaseDriver.dialect)} ASC`
+            databaseDriver.dialect,
+          )}.${quoteIdentifier(column.name, databaseDriver.dialect)} ASC`,
       );
   });
   if (keyOrder.length)
@@ -61,19 +61,19 @@ export default async function runQuery(
   parameters.push(query.limit ?? 100);
   sql += ` LIMIT ${parameterPlaceholder(
     parameters.length,
-    databaseDriver.dialect
+    databaseDriver.dialect,
   )}`;
   parameters.push(query.offset ?? 0);
   sql += ` OFFSET ${parameterPlaceholder(
     parameters.length,
-    databaseDriver.dialect
+    databaseDriver.dialect,
   )}`;
 
   const execResult = await executeQuery(
     databaseDriver,
     sql,
     parameters,
-    options
+    options,
   ).catch((err) => {
     console.error(`Error while executing SQL: \n${sql}\n. Error below`);
     throw err;
@@ -91,7 +91,7 @@ export default async function runQuery(
         const table = findTableFromSchemas(
           databaseSchemas,
           schemaName,
-          tableName
+          tableName,
         );
         const columns = table.columns
           .filter((column) => join.select.includes(column.name))
@@ -101,11 +101,11 @@ export default async function runQuery(
               table,
               join.joinAlias,
               column,
-              join.resultAliases[column.name]
+              join.resultAliases[column.name],
             ).outerAlias,
           }));
         const keys = (recordKeyAliases[join.joinAlias] ?? []).map(
-          (alias) => row[alias]
+          (alias) => row[alias],
         );
         return {
           joinAlias: join.joinAlias,
@@ -119,7 +119,7 @@ export default async function runQuery(
           data: Object.fromEntries(
             columns.map((column) => {
               return [column.name, row[column.alias]!];
-            })
+            }),
           ),
         };
       });

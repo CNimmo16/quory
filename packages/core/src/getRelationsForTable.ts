@@ -7,7 +7,7 @@ export default function getRelationsForTable(
   databaseSchemas: DatabaseSchema[],
   schemaName: string,
   tableName: string,
-  maxJoins?: number
+  maxJoins?: number,
 ): (DatabaseTableInfo & {
   schemaName: string;
   shortestJoinPath: number;
@@ -18,7 +18,7 @@ export default function getRelationsForTable(
     table.columns.every(
       (column) =>
         column.foreignKeys.length === 0 &&
-        column.foreignKeyReferences.length === 0
+        column.foreignKeyReferences.length === 0,
     )
   ) {
     return [];
@@ -30,14 +30,14 @@ export default function getRelationsForTable(
     .flatMap((schema) =>
       schema.tables
         .filter(({ name }) => name !== tableName)
-        .map((_table) => ({ ..._table, schemaName: schema.name }))
+        .map((_table) => ({ ..._table, schemaName: schema.name })),
     )
     .map((foreignTable) => {
       try {
         const { weight: shortestJoinPath } = shortestPath(
           graph,
           `${schemaName}.${tableName}`,
-          `${foreignTable.schemaName}.${foreignTable.name}`
+          `${foreignTable.schemaName}.${foreignTable.name}`,
         );
         if (maxJoins && shortestJoinPath > maxJoins) {
           return null;

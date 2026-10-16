@@ -15,7 +15,7 @@ const queryFileSchema = queryDefinitionSchema.and(
     version: z.literal(1).optional(),
     id: z.string().optional(),
     nickname: z.string().trim().min(1),
-  })
+  }),
 );
 const manifestSchema = z.object({
   version: z.literal(1),
@@ -29,7 +29,7 @@ const isMissing = (error: unknown) =>
 const conflict = () =>
   Object.assign(
     new Error("This query changed on disk. Reopen it before saving."),
-    { status: 409 }
+    { status: 409 },
   );
 let metadataRepo:
   | ReturnType<
@@ -47,7 +47,7 @@ function metadata() {
 
 export async function initializeProjectFolder(
   folderPath: string,
-  name: string
+  name: string,
 ) {
   if (!isAbsolute(folderPath))
     throw new Error("Choose an absolute folder path.");
@@ -62,25 +62,25 @@ export async function initializeProjectFolder(
   let manifest: z.infer<typeof manifestSchema>;
   try {
     manifest = manifestSchema.parse(
-      JSON.parse(await fs.readFile(manifestPath, "utf8"))
+      JSON.parse(await fs.readFile(manifestPath, "utf8")),
     );
   } catch (error) {
     if (!isMissing(error))
       throw new Error(
-        "Could not read .quory/project.json. Check that it contains a valid Quory project."
+        "Could not read .quory/project.json. Check that it contains a valid Quory project.",
       );
     manifest = { version: 1, id: randomUUID(), name };
     try {
       await fs.writeFile(
         manifestPath,
         JSON.stringify(manifest, null, 2) + "\n",
-        { flag: "wx" }
+        { flag: "wx" },
       );
     } catch (writeError) {
       if ((writeError as NodeJS.ErrnoException).code !== "EEXIST")
         throw writeError;
       manifest = manifestSchema.parse(
-        JSON.parse(await fs.readFile(manifestPath, "utf8"))
+        JSON.parse(await fs.readFile(manifestPath, "utf8")),
       );
     }
   }
@@ -96,7 +96,10 @@ export async function initializeProjectFolder(
 }
 
 export class FolderQueryRepo {
-  constructor(private directory: string, private projectId: string) {}
+  constructor(
+    private directory: string,
+    private projectId: string,
+  ) {}
   private file(id: string) {
     if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id))
       throw new Error("Invalid query file ID.");
@@ -130,7 +133,7 @@ export class FolderQueryRepo {
       throw new Error(
         `Could not read query ${id}.json: ${
           error instanceof Error ? error.message : "Invalid JSON"
-        }`
+        }`,
       );
     }
   }
@@ -170,7 +173,7 @@ export class FolderQueryRepo {
             if ((error as { status?: number }).status === 404) return null;
             throw error;
           }
-        })
+        }),
     );
     return {
       rows: rows.filter((row): row is NonNullable<typeof row> => row !== null),
@@ -214,7 +217,7 @@ export class FolderQueryRepo {
               : { base: doc.base, limit: doc.limit, offset: doc.offset }),
           }),
           null,
-          2
+          2,
         ) + "\n";
       const rev = revision(contents);
       const target = this.file(doc._id);

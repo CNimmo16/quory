@@ -31,7 +31,7 @@ export function queriesMatch(schemas: DatabaseSchema[], a: Query, b: Query) {
 export function appendQueryVersion(
   history: QueryHistory,
   query: Query,
-  messageId?: string
+  messageId?: string,
 ): QueryHistory {
   return {
     past: [...history.past, history.present].slice(-QUERY_HISTORY_LIMIT),
@@ -45,7 +45,7 @@ export function appendQueryVersion(
 
 export function moveQueryHistory(
   history: QueryHistory,
-  action: QueryHistoryAction
+  action: QueryHistoryAction,
 ): QueryHistory | null {
   if (action === "undo") {
     const previous = history.past.at(-1);
@@ -55,7 +55,7 @@ export function moveQueryHistory(
       present: previous,
       future: [history.present, ...history.future].slice(
         0,
-        QUERY_HISTORY_LIMIT
+        QUERY_HISTORY_LIMIT,
       ),
     };
   }

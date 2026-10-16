@@ -11,7 +11,7 @@ vi.stubGlobal(
     observe() {}
     unobserve() {}
     disconnect() {}
-  }
+  },
 );
 if (typeof Element !== "undefined") {
   vi.stubGlobal("PointerEvent", MouseEvent);

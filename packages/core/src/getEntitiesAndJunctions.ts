@@ -7,13 +7,13 @@ const getRef = (table: { schemaName: string; name: string }) =>
   `${table.schemaName}.${table.name}`;
 
 export default function getEntitiesAndJunctions(
-  schemaRelationships: DatabaseSchema[]
+  schemaRelationships: DatabaseSchema[],
 ) {
   const allTables = schemaRelationships.flatMap((schema) =>
     schema.tables.map((table) => ({
       ...table,
       schemaName: schema.name,
-    }))
+    })),
   );
 
   const junctions = allTables
@@ -24,18 +24,18 @@ export default function getEntitiesAndJunctions(
             !(
               foreignKey.foreignSchemaName === table.schemaName &&
               foreignKey.foreignTableName === table.name
-            )
+            ),
         );
         return foreignKeysPointingAtOtherTables.length > 0;
       });
 
       const relationships = getTableRelationships(
         table,
-        table.schemaName
+        table.schemaName,
       ).filter(
         (ref) =>
           ref.foreignSchema !== table.schemaName ||
-          ref.foreignTable !== table.name
+          ref.foreignTable !== table.name,
       );
       if (relationships.length < 2) {
         return false;
@@ -50,7 +50,7 @@ export default function getEntitiesAndJunctions(
             (table.name.includes(assumedEntityName) ||
               table.name.includes(plural(assumedEntityName)))
           );
-        }
+        },
       );
 
       return tableNameResemblesJunction;

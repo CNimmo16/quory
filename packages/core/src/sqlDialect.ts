@@ -8,7 +8,7 @@ export function quoteIdentifier(name: string, dialect: SqlDialect): string {
 
 export function parameterPlaceholder(
   index: number,
-  dialect: SqlDialect
+  dialect: SqlDialect,
 ): string {
   return dialect === "postgres" ? `$${index}` : "?";
 }

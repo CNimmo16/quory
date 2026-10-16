@@ -8,21 +8,21 @@ export default async function getCountForQuery(
   databaseDriver: DatabaseDriver,
   databaseSchemas: DatabaseSchema[],
   query: Query,
-  options?: ExecutionOptions
+  options?: ExecutionOptions,
 ) {
   validateQuery(databaseSchemas, query);
   const { sql, parameters, preparedQuery } = await prepareQuery(
     databaseSchemas,
     query,
     databaseDriver.dialect,
-    { includeOrderBy: false }
+    { includeOrderBy: false },
   );
 
   const rows = await executeQuery(
     databaseDriver,
     `SELECT COUNT(*) AS count FROM (${sql}) AS quory_count`,
     parameters,
-    options
+    options,
   );
 
   const count = Number(rows[0]!.count);

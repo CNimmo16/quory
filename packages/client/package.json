@@ -7,8 +7,8 @@
   "homepage": "https://github.com/CNimmo16/quory",
   "scripts": {
     "lint": "eslint .",
-    "start": "electron-vite preview",
-    "serve": "electron-vite dev --watch",
+    "start": "node scripts/prepare-electron.mjs && electron-vite preview",
+    "serve": "node scripts/prepare-electron.mjs && electron-vite dev --watch",
     "build": "electron-vite build",
     "build:unpack": "electron-vite build && electron-builder --dir",
     "build:win": "electron-vite build && electron-builder --win",
@@ -16,7 +16,8 @@
     "build:linux": "electron-vite build && electron-builder --linux",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "rebuild:native": "node scripts/rebuild-native.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.127",
@@ -25,6 +26,7 @@
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/lang-sql": "^6.10.0",
     "@codemirror/language": "^6.13.1",
+    "@lezer/highlight": "^1.2.5",
     "@quory/sqlite": "workspace:*",
     "@radix-ui/react-context-menu": "^2.4.1",
     "@radix-ui/react-dialog": "^1.2.0",
@@ -53,7 +55,7 @@
     "radash": "^12.1.0",
     "react-icons": "catalog:",
     "sql-formatter": "^15.9.0",
-    "tailwind-merge": "^2.6.1",
+    "tailwind-merge": "^3.7.0",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -64,6 +66,7 @@
     "@quory/config": "workspace:*",
     "@quory/core": "workspace:*",
     "@quory/stack": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/router-devtools": "^1.92.3",
     "@tanstack/router-plugin": "^1.91.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -75,7 +78,6 @@
     "@types/react": "catalog:react18",
     "@types/react-dom": "catalog:react18",
     "@vitejs/plugin-react": "^4.3.1",
-    "autoprefixer": "^10.4.20",
     "electron": "31.0.2",
     "electron-builder": "^24.13.3",
     "electron-devtools-installer": "^4.0.0",
@@ -88,7 +90,7 @@
     "prebuild-install": "^7.1.2",
     "react": "catalog:react18",
     "react-dom": "catalog:react18",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
     "trpc-electron": "^0.1.1",
     "typescript": "^5.5.2",

@@ -5,13 +5,13 @@ it("preserves readable names and disambiguates duplicates and literal suffixes",
   const allocate = createAliasAllocator();
   expect(allocate("public__order_fulfilment")).toBe("public__order_fulfilment");
   expect(allocate("public__order_fulfilment__2")).toBe(
-    "public__order_fulfilment__2"
+    "public__order_fulfilment__2",
   );
   expect(allocate("public__order_fulfilment")).toBe(
-    "public__order_fulfilment__3"
+    "public__order_fulfilment__3",
   );
   expect(allocate("PUBLIC__ORDER_FULFILMENT")).toBe(
-    "PUBLIC__ORDER_FULFILMENT__4"
+    "PUBLIC__ORDER_FULFILMENT__4",
   );
 });
 

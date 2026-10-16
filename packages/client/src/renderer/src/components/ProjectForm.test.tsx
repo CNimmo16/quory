@@ -27,7 +27,7 @@ it("creates an app database project and opens it", async () => {
   expect(screen.queryByRole("textbox", { name: "Project folder" })).toBeNull();
   await user.type(
     screen.getByRole("textbox", { name: "Project name" }),
-    "Orders app"
+    "Orders app",
   );
   await user.click(screen.getByRole("button", { name: "Create project" }));
   await waitFor(() => expect(open).toHaveBeenCalledWith("project-1"));
@@ -44,18 +44,18 @@ it("accepts a typed folder or the native picker selection and imports that folde
   render(<ProjectForm onCreated={open} />);
   await user.type(
     screen.getByRole("textbox", { name: "Project name" }),
-    "Team app"
+    "Team app",
   );
   await user.click(screen.getByRole("radio", { name: /Project folder/ }));
   expect(screen.getByRole("button", { name: "Create project" })).toBeDisabled();
   await user.type(
     screen.getByRole("textbox", { name: "Project folder" }),
-    "/typed/repo"
+    "/typed/repo",
   );
   expect(screen.getByRole("button", { name: "Create project" })).toBeEnabled();
   await user.click(screen.getByRole("button", { name: "Browse…" }));
   expect(screen.getByRole("textbox", { name: "Project folder" })).toHaveValue(
-    "/repo/.quory"
+    "/repo/.quory",
   );
   await user.click(screen.getByRole("button", { name: "Create project" }));
   await waitFor(() => expect(open).toHaveBeenCalledWith("project-1"));
@@ -74,16 +74,16 @@ it("preserves a typed path when browsing is cancelled and displays file errors",
   render(<ProjectForm onCreated={open} />);
   await user.type(
     screen.getByRole("textbox", { name: "Project name" }),
-    "Team app"
+    "Team app",
   );
   await user.click(screen.getByRole("radio", { name: /Project folder/ }));
   await user.type(
     screen.getByRole("textbox", { name: "Project folder" }),
-    "/repo"
+    "/repo",
   );
   await user.click(screen.getByRole("button", { name: "Browse…" }));
   expect(screen.getByRole("textbox", { name: "Project folder" })).toHaveValue(
-    "/repo"
+    "/repo",
   );
   await user.click(screen.getByRole("button", { name: "Create project" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("broken.json");

@@ -24,7 +24,7 @@ export default function useQuery(
   query: RouterRequest<"query">["query"] | null,
   setQuery: (query: RouterRequest<"query">["query"]) => void,
   isolatedCache = false,
-  queryOptions?: Parameters<typeof useQuory<"query">>[2]
+  queryOptions?: Parameters<typeof useQuory<"query">>[2],
 ) {
   const context = useContext(QuoryContext);
   const { data: schemaData } = useFetchSchema();
@@ -39,11 +39,11 @@ export default function useQuery(
     queryOptions,
     {
       isolatedCache,
-    }
+    },
   );
 
   const [hiddenColumnRefs, setHiddenColumnRefs] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   const goToAdjacentJoin = useCallback(
@@ -54,7 +54,7 @@ export default function useQuery(
       targetFilter?: {
         column: string;
         value: string;
-      }
+      },
     ) => {
       if (!data) {
         throw new Error("No data");
@@ -72,7 +72,7 @@ export default function useQuery(
       const targetTable = findTableFromSchemas(
         schemaData.schemas,
         targetTableSchema,
-        targetTableName
+        targetTableName,
       );
       const where = targetFilter
         ? ({
@@ -91,7 +91,7 @@ export default function useQuery(
         sourceJoinParent.where = where;
       } else {
         const matchingChildJoins = sourceJoin.joins.filter(
-          (join) => join.tableRef === targetTableRef
+          (join) => join.tableRef === targetTableRef,
         );
         if (matchingChildJoins.length > 1) {
           throw new Error(`Multiple join instances select ${targetTableRef}`);
@@ -99,7 +99,7 @@ export default function useQuery(
         const matchingChildJoin = matchingChildJoins[0];
         if (matchingChildJoin) {
           matchingChildJoin.select = targetTable.columns.map(
-            ({ name }) => name
+            ({ name }) => name,
           );
           matchingChildJoin.where = where;
         } else {
@@ -114,7 +114,7 @@ export default function useQuery(
         }
       }
     },
-    [data, schemaData]
+    [data, schemaData],
   );
 
   const joinActions = useCallback(
@@ -133,7 +133,7 @@ export default function useQuery(
       const table = findTableFromSchemas(
         schemaData.schemas,
         schemaName,
-        tableName
+        tableName,
       );
       return {
         join: found.join,
@@ -148,7 +148,7 @@ export default function useQuery(
             .filter(
               ({ name }) =>
                 this.join.select.includes(name) &&
-                !hiddenColumnRefs.has(`${this.join.tableRef}.${name}`)
+                !hiddenColumnRefs.has(`${this.join.tableRef}.${name}`),
             )
             .map(({ name }) => name);
         },
@@ -156,6 +156,11 @@ export default function useQuery(
           setQuery(
             produce(data.preparedQuery, (draft) => {
               const join = findJoinRecursively(draft.base, joinAlias)!.join;
+              // An unselected ancestor remains in the query only to connect descendants.
+              if (columnsToSelect.length === 0 && join.joins.length > 0) {
+                join.select = [];
+                return;
+              }
               join.select = table.columns
                 .filter((column) => {
                   return (
@@ -164,7 +169,7 @@ export default function useQuery(
                   );
                 })
                 .map(({ name }) => name);
-            })
+            }),
           );
           setHiddenColumnRefs(
             produce((draft) => {
@@ -176,7 +181,7 @@ export default function useQuery(
                   draft.add(colRef);
                 }
               }
-            })
+            }),
           );
         },
         orderBy(
@@ -187,7 +192,7 @@ export default function useQuery(
           }: {
             clearExistingOrdersForJoin?: boolean;
             clearAllExistingOrders?: boolean;
-          } = {}
+          } = {},
         ) {
           setQuery(
             produce(data.preparedQuery, (draft) => {
@@ -226,7 +231,7 @@ export default function useQuery(
                   priority,
                 })),
               ];
-            })
+            }),
           );
         },
         setCondition(condition: BooleanCondition) {
@@ -239,7 +244,7 @@ export default function useQuery(
               } else {
                 join.where = condition;
               }
-            })
+            }),
           );
         },
         removeCondition() {
@@ -248,7 +253,7 @@ export default function useQuery(
               draft.offset = 0;
               const join = findJoinRecursively(draft.base, joinAlias)!.join;
               delete join.where;
-            })
+            }),
           );
         },
         removeJoin() {
@@ -258,7 +263,7 @@ export default function useQuery(
               const removeJoin = (
                 join: WritableDraft<PreparedJoinDef>,
                 joinAliasToRemove: string,
-                parent?: WritableDraft<PreparedJoinDef>
+                parent?: WritableDraft<PreparedJoinDef>,
               ) => {
                 if (join.joinAlias === joinAliasToRemove) {
                   if (!parent) {
@@ -274,12 +279,12 @@ export default function useQuery(
                   }
                 } else {
                   join.joins.forEach((j) =>
-                    removeJoin(j, joinAliasToRemove, join)
+                    removeJoin(j, joinAliasToRemove, join),
                   );
                 }
               };
               removeJoin(draft.base, this.join.joinAlias);
-            })
+            }),
           );
         },
         addJoin(targetTableRef: string) {
@@ -288,15 +293,15 @@ export default function useQuery(
               draft.offset = 0;
               const source = findJoinRecursively(
                 draft.base,
-                this.join.joinAlias
+                this.join.joinAlias,
               );
               if (!source) {
                 throw new Error(
-                  `Couldn't find join for alias ${this.join.joinAlias}`
+                  `Couldn't find join for alias ${this.join.joinAlias}`,
                 );
               }
               goToAdjacentJoin(draft, this.join.joinAlias, targetTableRef);
-            })
+            }),
           );
         },
         addJoinOnForeignKey(sourceColumnName: string, columnValue: string) {
@@ -313,27 +318,27 @@ export default function useQuery(
               const source = findJoinRecursively(draft.base, sourceJoinAlias);
               if (!source) {
                 throw new Error(
-                  `Couldn't find join for alias ${sourceJoinAlias}`
+                  `Couldn't find join for alias ${sourceJoinAlias}`,
                 );
               }
               const { join: sourceJoin } = source;
               const [sourceSchemaName, sourceTableName] = splitTableRef(
-                sourceJoin.tableRef
+                sourceJoin.tableRef,
               );
               const sourceTable = findTableFromSchemas(
                 schemaData.schemas,
                 sourceSchemaName,
-                sourceTableName
+                sourceTableName,
               );
               const sourceColumn = sourceTable.columns.find(
-                (column) => column.name === sourceColumnName
+                (column) => column.name === sourceColumnName,
               );
               if (!sourceColumn) {
                 throw new Error(`Column ${sourceColumnName} not found`);
               }
               if (sourceColumn.foreignKeys.length > 1) {
                 throw new Error(
-                  `Multiple relationships use column ${sourceColumnName}`
+                  `Multiple relationships use column ${sourceColumnName}`,
                 );
               }
               const fk = sourceColumn.foreignKeys[0];
@@ -343,10 +348,10 @@ export default function useQuery(
               const targetTable = findTableFromSchemas(
                 schemaData.schemas,
                 fk.foreignSchemaName,
-                fk.foreignTableName
+                fk.foreignTableName,
               );
               const targetColumn = targetTable.columns.find(
-                (column) => column.name === fk.foreignColumnName
+                (column) => column.name === fk.foreignColumnName,
               );
               if (!targetColumn) {
                 throw new Error(`Column ${fk.foreignColumnName} not found`);
@@ -358,15 +363,15 @@ export default function useQuery(
                 {
                   column: targetColumn.name,
                   value: columnValue,
-                }
+                },
               );
-            })
+            }),
           );
         },
         addJoinOnForeignKeyReference(
           targetTableRef: string,
           targetColumnName: string,
-          columnValue: string
+          columnValue: string,
         ) {
           if (!data) {
             throw new Error("No data");
@@ -378,7 +383,7 @@ export default function useQuery(
                 column: targetColumnName,
                 value: columnValue,
               });
-            })
+            }),
           );
         },
         hasCondition(condition: ValueCondition) {
@@ -400,7 +405,7 @@ export default function useQuery(
         },
       };
     },
-    [data, schemaData, hiddenColumnRefs, setQuery, goToAdjacentJoin]
+    [data, schemaData, hiddenColumnRefs, setQuery, goToAdjacentJoin],
   );
 
   const dataReturn = useMemo(() => {
@@ -413,8 +418,8 @@ export default function useQuery(
             columns: joinItem.columns.filter(
               (column) =>
                 !hiddenColumnRefs.has(
-                  `${joinItem.join.tableRef}.${column.name}`
-                )
+                  `${joinItem.join.tableRef}.${column.name}`,
+                ),
             ),
           })),
         }

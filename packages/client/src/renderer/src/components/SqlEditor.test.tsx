@@ -18,7 +18,7 @@ afterEach(() => vi.restoreAllMocks());
 it("formats SQL while preserving bound placeholders and quoted values", () => {
   const formatted = formatSql(
     "select * from orders where status=$1 limit $2",
-    "postgres"
+    "postgres",
   );
   expect(formatted).toContain("SELECT");
   expect(formatted).toContain("$1");
@@ -32,7 +32,7 @@ it("renders highlighted, locked SQL and requests conversion when clicked", async
       value="SELECT id FROM orders WHERE id = $1"
       readOnly
       onRequestEdit={edit}
-    />
+    />,
   );
   const editor = screen.getByRole("button", { name: "Edit SQL query" });
   const content = editor.querySelector(".cm-content")!;
@@ -44,7 +44,7 @@ it("renders highlighted, locked SQL and requests conversion when clicked", async
 
 it("uses current database metadata in the editor popup and disables spelling suggestions", async () => {
   const { container, rerender } = render(
-    <SqlEditor value="SELECT * FROM public.or" schemas={schemas} />
+    <SqlEditor value="SELECT * FROM public.or" schemas={schemas} />,
   );
   const content = container.querySelector(".cm-content")!;
   expect(content).toHaveAttribute("spellcheck", "false");
@@ -56,7 +56,7 @@ it("uses current database metadata in the editor popup and disables spelling sug
   });
   expect(await screen.findByRole("option")).toHaveTextContent("orders");
   expect(
-    screen.queryByRole("option", { name: /ORDER BY/ })
+    screen.queryByRole("option", { name: /ORDER BY/ }),
   ).not.toBeInTheDocument();
   rerender(
     <SqlEditor
@@ -67,15 +67,15 @@ it("uses current database metadata in the editor popup and disables spelling sug
           tables: [{ ...schemas[0]!.tables[0]!, name: "organisations" }],
         },
       ]}
-    />
+    />,
   );
   act(() => {
     startCompletion(view);
   });
   await waitFor(() =>
-    expect(screen.getByRole("option")).toHaveTextContent("organisations")
+    expect(screen.getByRole("option")).toHaveTextContent("organisations"),
   );
   expect(
-    screen.getAllByRole("option").map((option) => option.textContent)
+    screen.getAllByRole("option").map((option) => option.textContent),
   ).not.toContain("orders");
 });

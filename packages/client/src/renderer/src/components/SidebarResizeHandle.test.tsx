@@ -48,7 +48,7 @@ function show() {
   return render(
     <SidebarLayoutProvider>
       <Example />
-    </SidebarLayoutProvider>
+    </SidebarLayoutProvider>,
   );
 }
 it("resizes during dragging and enforces the minimum and half-viewport limit", () => {

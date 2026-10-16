@@ -36,13 +36,15 @@ describe("constraint-aware query results", () => {
       const schemas = await getSchemas(driver);
       const parents = schemas[0]!.tables.find((t) => t.name === "parents")!;
       expect(
-        parents.columns.filter((c) => c.includedInPrimaryKey).map((c) => c.name)
+        parents.columns
+          .filter((c) => c.includedInPrimaryKey)
+          .map((c) => c.name),
       ).toEqual(["tenant_id", "id"]);
       expect(
         getTableRelationships(
           schemas[0]!.tables.find((t) => t.name === "children")!,
-          "main"
-        )[0]!.columnPairs
+          "main",
+        )[0]!.columnPairs,
       ).toEqual([
         { localColumn: "tenant_id", foreignColumn: "tenant_id" },
         { localColumn: "parent_id", foreignColumn: "id" },
@@ -62,10 +64,10 @@ describe("constraint-aware query results", () => {
         expect(sql).toMatch(/ ON .* AND /);
         expect(rows).toHaveLength(1);
         expect(
-          rows[0]!.find((j) => j.tableRef === "main.parents")!.data.label
+          rows[0]!.find((j) => j.tableRef === "main.parents")!.data.label,
         ).toBe("correct");
       }
-    }
+    },
   );
 
   it("rejects parallel constraints for compile, execute, and count in either direction", async () => {
@@ -88,13 +90,13 @@ describe("constraint-aware query results", () => {
         },
       };
       await expect(prepareQuery(schemas, query)).rejects.toThrow(
-        "Multiple relationships"
+        "Multiple relationships",
       );
       await expect(runQuery(driver, schemas, query)).rejects.toThrow(
-        "Multiple relationships"
+        "Multiple relationships",
       );
       await expect(getCountForQuery(driver, schemas, query)).rejects.toThrow(
-        "Multiple relationships"
+        "Multiple relationships",
       );
     }
   });
@@ -109,7 +111,7 @@ describe("constraint-aware query results", () => {
     const schemas = await getSchemas(driver);
     const relationships = getTableRelationships(
       schemas[0]!.tables.find((table) => table.name === "children")!,
-      "main"
+      "main",
     );
     expect(relationships).toHaveLength(2);
     expect(relationships.map((ref) => ref.columnPairs.length)).toEqual([2, 2]);
@@ -120,7 +122,7 @@ describe("constraint-aware query results", () => {
           select: "*",
           joins: [{ tableRef: "main.parents", select: "*" }],
         },
-      })
+      }),
     ).rejects.toThrow("Multiple relationships");
   });
 
@@ -153,7 +155,7 @@ describe("constraint-aware query results", () => {
     const people = rows[0]!.filter((j) => j.tableRef === "main.people");
     expect(people.map((j) => j.data.name)).toEqual(["Alice", "Bob"]);
     expect(new Set(meta.joinsList.map((j) => j.joinAlias)).size).toBe(
-      meta.joinsList.length
+      meta.joinsList.length,
     );
     expect(people[0]!.joinAlias).not.toBe(people[1]!.joinAlias);
   });
@@ -162,15 +164,15 @@ describe("constraint-aware query results", () => {
     const tableName = "parent_" + "x".repeat(50);
     const columnName = "label_" + "y".repeat(50);
     const driver = database(
-      `CREATE TABLE ${tableName} (id INTEGER PRIMARY KEY, ${columnName} TEXT); INSERT INTO ${tableName} VALUES (1, 'value');`
+      `CREATE TABLE ${tableName} (id INTEGER PRIMARY KEY, ${columnName} TEXT); INSERT INTO ${tableName} VALUES (1, 'value');`,
     );
     const { sql, rows, meta } = await runQuery(
       driver,
       await getSchemas(driver),
-      { base: { tableRef: `main.${tableName}`, select: "*" } }
+      { base: { tableRef: `main.${tableName}`, select: "*" } },
     );
     expect(
-      new TextEncoder().encode(meta.preparedQuery.base.joinAlias).length
+      new TextEncoder().encode(meta.preparedQuery.base.joinAlias).length,
     ).toBeLessThanOrEqual(63);
     const alias = meta.preparedQuery.base.resultAliases[columnName]!;
     expect(new TextEncoder().encode(alias).length).toBeLessThanOrEqual(63);
@@ -180,7 +182,7 @@ describe("constraint-aware query results", () => {
 
   it("keeps legacy independent column relationships ambiguous", async () => {
     const driver = database(
-      `CREATE TABLE people (id INTEGER PRIMARY KEY); CREATE TABLE messages (id INTEGER PRIMARY KEY, sender INTEGER REFERENCES people(id), recipient INTEGER REFERENCES people(id));`
+      `CREATE TABLE people (id INTEGER PRIMARY KEY); CREATE TABLE messages (id INTEGER PRIMARY KEY, sender INTEGER REFERENCES people(id), recipient INTEGER REFERENCES people(id));`,
     );
     const schemas = await getSchemas(driver);
     for (const schema of schemas)
@@ -198,14 +200,14 @@ describe("constraint-aware query results", () => {
           select: "*",
           joins: [{ tableRef: "main.people", select: "*" }],
         },
-      })
+      }),
     ).rejects.toThrow("Multiple relationships");
   });
 
   it("orders pairs and rejects incomplete constraint metadata", () => {
     const column = (
       name: string,
-      position: number
+      position: number,
     ): DatabaseSchema["tables"][number]["columns"][number] => ({
       name,
       dataType: "INTEGER",
@@ -228,14 +230,14 @@ describe("constraint-aware query results", () => {
     expect(
       getTableRelationships(
         { name: "child", columns: [column("b", 2), column("a", 1)] },
-        "main"
-      )[0]!.columnPairs.map((pair) => pair.localColumn)
+        "main",
+      )[0]!.columnPairs.map((pair) => pair.localColumn),
     ).toEqual(["a", "b"]);
     expect(() =>
       getTableRelationships(
         { name: "child", columns: [column("b", 2)] },
-        "main"
-      )
+        "main",
+      ),
     ).toThrow("Incomplete");
   });
 });

@@ -20,7 +20,7 @@ export default function useQuory<P extends RouterPath>(
     isolatedCache: boolean;
   } = {
     isolatedCache: false,
-  }
+  },
 ) {
   const ctx = useContext(QuoryContext);
 
@@ -42,6 +42,6 @@ export default function useQuory<P extends RouterPath>(
       retry: false,
       ...args,
     },
-    ctx.queryClient
+    ctx.queryClient,
   );
 }

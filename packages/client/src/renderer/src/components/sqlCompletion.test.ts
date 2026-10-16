@@ -13,7 +13,7 @@ const schemas: DatabaseSchema[] = [
 async function complete(
   text: string,
   metadata = schemas,
-  dialect: SqlDialect = "postgres"
+  dialect: SqlDialect = "postgres",
 ) {
   const pos = text.indexOf("|");
   const state = EditorState.create({
@@ -22,7 +22,7 @@ async function complete(
   });
   const result = await createSqlCompletion(
     metadata,
-    dialect
+    dialect,
   )(new CompletionContext(state, pos, false));
   const options = result?.options ?? [];
   return { result, options, labels: options.map((option) => option.label) };
@@ -45,10 +45,10 @@ it("opens database suggestions immediately after FROM and schema qualification",
 });
 it("suggests qualified columns, including table aliases and implicit aliases", async () => {
   expect(
-    (await complete("SELECT public.orders.cr| FROM public.orders")).labels
+    (await complete("SELECT public.orders.cr| FROM public.orders")).labels,
   ).toEqual(["created_at"]);
   expect(
-    (await complete("SELECT o.cr| FROM public.orders AS o")).labels
+    (await complete("SELECT o.cr| FROM public.orders AS o")).labels,
   ).toEqual(["created_at"]);
   expect((await complete("SELECT o.st| FROM public.orders o")).labels).toEqual([
     "status",
@@ -59,9 +59,9 @@ it("resolves aliases declared beyond the initial parse viewport", async () => {
   expect(
     (
       await complete(
-        `SELECT o.cr| ${", 1".repeat(1500)} FROM public.orders AS o`
+        `SELECT o.cr| ${", 1".repeat(1500)} FROM public.orders AS o`,
       )
-    ).labels
+    ).labels,
   ).toEqual(["created_at"]);
 });
 it("suggests unqualified columns from tables in the current statement", async () => {
@@ -69,34 +69,34 @@ it("suggests unqualified columns from tables in the current statement", async ()
     "created_at",
   ]);
   expect(
-    (await complete("SELECT * FROM public.orders WHERE st|")).labels
+    (await complete("SELECT * FROM public.orders WHERE st|")).labels,
   ).toEqual(["status"]);
   expect(
     (
       await complete(
-        "SELECT em| FROM public.orders o JOIN public.users u ON u.id = o.user_id"
+        "SELECT em| FROM public.orders o JOIN public.users u ON u.id = o.user_id",
       )
-    ).labels
+    ).labels,
   ).toEqual(["email"]);
   expect(
-    (await complete("SELECT em| FROM public.orders")).labels
+    (await complete("SELECT em| FROM public.orders")).labels,
   ).not.toContain("email");
 });
 it("does not take column suggestions from comments, strings, or other statements", async () => {
   expect(
     (
       await complete(
-        "SELECT em| FROM public.orders; SELECT * FROM public.users"
+        "SELECT em| FROM public.orders; SELECT * FROM public.users",
       )
-    ).labels
+    ).labels,
   ).not.toContain("email");
   expect(
     (await complete("SELECT em| FROM public.orders -- JOIN public.users"))
-      .labels
+      .labels,
   ).not.toContain("email");
   expect((await complete("SELECT 'public.or|'")).labels).toEqual([]);
   expect(
-    (await complete("SELECT * FROM public.orders -- public.or|")).labels
+    (await complete("SELECT * FROM public.orders -- public.or|")).labels,
   ).toEqual([]);
 });
 it.each(["postgres", "mysql", "sqlite"] as const)(
@@ -110,29 +110,29 @@ it.each(["postgres", "mysql", "sqlite"] as const)(
     const result = await complete(
       "SELECT * FROM public.Or|",
       metadata,
-      dialect
+      dialect,
     );
     expect(result.labels).toEqual([name]);
     expect(result.options[0]!.apply).toBe(
-      quote + name.split(quote).join(quote + quote) + quote
+      quote + name.split(quote).join(quote + quote) + quote,
     );
     const quoted = await complete(
       `SELECT * FROM ${quote}public${quote}.${quote}Or|${quote}`,
       metadata,
-      dialect
+      dialect,
     );
     expect(quoted.labels).toHaveLength(1);
     expect(quoted.options[0]!.apply).toBe(
-      quote + name.split(quote).join(quote + quote) + quote
+      quote + name.split(quote).join(quote + quote) + quote,
     );
-  }
+  },
 );
 it("updates suggestions when database metadata changes", async () => {
   expect((await complete("SELECT * FROM audit.ev|")).labels).toEqual([
     "events",
   ]);
   expect((await complete("SELECT * FROM audit.ev|", fixture)).labels).toEqual(
-    []
+    [],
   );
 });
 it("keeps SQL keyword completion outside identifier positions", async () => {
@@ -150,7 +150,7 @@ it("filters by prefix rather than offering fuzzy matches from other names", asyn
     },
   ];
   expect((await complete("SELECT * FROM public.or|", metadata)).labels).toEqual(
-    ["orders"]
+    ["orders"],
   );
 });
 
@@ -167,7 +167,7 @@ it("resolves the order fulfilment alias in a JOIN ON expression", async () => {
   const result = await complete(
     `select * from "fulfilment"."order_fulfilment" of
 inner join "fulfilment"."shipping_label" sl on of.|`,
-    fulfilmentSchemas
+    fulfilmentSchemas,
   );
   expect(result.labels).toEqual(["id", "user_id", "created_at", "status"]);
 });
@@ -184,10 +184,10 @@ it.each([
     const result = await complete(
       `select * from "fulfilment"."order_fulfilment" ${alias}
 inner join "fulfilment"."shipping_label" sl on ${expression}`,
-      fulfilmentSchemas
+      fulfilmentSchemas,
     );
     expect(result.labels).toEqual(expected);
-  }
+  },
 );
 
 it("keeps each joined table alias distinct and does not leak aliases between statements", async () => {
@@ -196,17 +196,17 @@ it("keeps each joined table alias distinct and does not leak aliases between sta
       await complete(
         `select * from "fulfilment"."order_fulfilment" of
 inner join "fulfilment"."shipping_label" sl on sl.|`,
-        fulfilmentSchemas
+        fulfilmentSchemas,
       )
-    ).labels
+    ).labels,
   ).toEqual(["id", "email"]);
   expect(
     (
       await complete(
         `select * from "fulfilment"."order_fulfilment" of;
 select * from "fulfilment"."shipping_label" sl where of.|`,
-        fulfilmentSchemas
+        fulfilmentSchemas,
       )
-    ).labels
+    ).labels,
   ).toEqual([]);
 });

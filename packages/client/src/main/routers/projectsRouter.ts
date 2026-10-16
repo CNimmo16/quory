@@ -22,7 +22,7 @@ async function migrateLegacyData() {
     queryRepo.allDocs({ include_docs: true }),
   ]);
   const legacyConnections = connections.filter(
-    ({ doc }) => doc && !doc.projectId
+    ({ doc }) => doc && !doc.projectId,
   );
   const legacyQueries = queries.filter(({ doc }) => doc && !doc.projectId);
   if (!legacyConnections.length && !legacyQueries.length) return;
@@ -166,7 +166,7 @@ export default router({
           storage: z.literal("folder"),
           folderPath: z.string().trim().min(1),
         }),
-      ])
+      ]),
     )
     .mutation(async ({ input }) => {
       await ensureMigration();
@@ -176,7 +176,7 @@ export default router({
         try {
           const initialized = await initializeProjectFolder(
             input.folderPath,
-            input.name
+            input.name,
           );
           directory = initialized.directory;
           id = initialized.manifest.id;
@@ -196,7 +196,7 @@ export default router({
       }
       const { rows } = await projectRepo.allDocs({ include_docs: true });
       const existing = rows.find(
-        ({ doc }) => directory && doc?.directory === directory
+        ({ doc }) => directory && doc?.directory === directory,
       );
       if (existing) return { projectId: existing.id };
       // A cloned repository has the same shared manifest but a different local path.
@@ -238,6 +238,6 @@ export default router({
       title: "Choose a project folder or an existing .quory folder",
       properties: ["openDirectory", "showHiddenFiles"],
     });
-    return { path: result.canceled ? null : result.filePaths[0] ?? null };
+    return { path: result.canceled ? null : (result.filePaths[0] ?? null) };
   }),
 });

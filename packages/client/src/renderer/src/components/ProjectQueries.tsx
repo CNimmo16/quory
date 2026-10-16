@@ -49,7 +49,7 @@ export function ProjectQueries({
   onOpenQuery: (
     projectId: string,
     queryId: string,
-    connectionId?: string
+    connectionId?: string,
   ) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
@@ -61,7 +61,7 @@ export function ProjectQueries({
     {
       enabled: expanded,
       refetchInterval: expanded && project.storage === "folder" ? 3000 : false,
-    }
+    },
   );
   function queryItem(queryId: string, children: React.ReactNode) {
     return active && hasActiveConnection ? (
@@ -133,7 +133,7 @@ export function ProjectQueries({
         <ul
           id={listId}
           aria-label={`${project.name} queries`}
-          className="ml-5 border-l border-slate-200 py-1"
+          className="ml-5 border-l border-border py-1"
         >
           {error ? (
             <li className="px-3">
@@ -154,11 +154,11 @@ export function ProjectQueries({
                             {query.nickname}
                           </span>
                           {query.mode === "sql" && (
-                            <span className="rounded border px-1 font-mono text-[10px] font-medium text-teal-700">
+                            <span className="rounded-sm border px-1 font-mono text-[10px] font-medium text-primary-emphasis">
                               SQL
                             </span>
                           )}
-                        </>
+                        </>,
                       )}
                     </div>
                   </ContextMenuTrigger>

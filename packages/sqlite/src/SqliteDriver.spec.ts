@@ -51,7 +51,7 @@ describe("SqliteDriver", () => {
     const columns = await driver.getAllColumnsInDatabase();
 
     columns.sort((a, b) =>
-      `${a.tableName}.${a.name}`.localeCompare(`${b.tableName}.${b.name}`)
+      `${a.tableName}.${a.name}`.localeCompare(`${b.tableName}.${b.name}`),
     );
 
     expect(columns).toEqual<TableColumn[]>([
@@ -291,7 +291,7 @@ describe("SqliteDriver", () => {
 
   it("executes quoted identifiers and bound hostile values in an isolated in-memory database", async () => {
     sqliteClient.exec(
-      'CREATE TABLE "Order ""History""" ("id" INTEGER PRIMARY KEY, "select ""text""" TEXT)'
+      'CREATE TABLE "Order ""History""" ("id" INTEGER PRIMARY KEY, "select ""text""" TEXT)',
     );
     const value = "\\' OR 1=1; --\0雪";
     sqliteClient
@@ -324,10 +324,10 @@ describe("SqliteDriver", () => {
           ...query.base,
           orderBy: [{ column: "id, (SELECT 123)", direction: "asc" }],
         },
-      })
+      }),
     ).rejects.toThrow("column");
     expect(
-      await driver.exec('SELECT COUNT(*) AS count FROM "Order ""History"""')
+      await driver.exec('SELECT COUNT(*) AS count FROM "Order ""History"""'),
     ).toEqual([{ count: 2 }]);
   });
 

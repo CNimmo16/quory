@@ -14,7 +14,7 @@ export default function getWhereClauseFromConditions(
   tableAlias: string | null,
   where: Condition,
   dialect: SqlDialect,
-  parameters: SqlParameter[]
+  parameters: SqlParameter[],
 ) {
   const q = (name: string) => quoteIdentifier(name, dialect);
   const ref = tableAlias
@@ -30,7 +30,7 @@ export default function getWhereClauseFromConditions(
       !table.columns.some((column) => column.name === condition.column)
     ) {
       throw new Error(
-        `Where clause references column ${table.schemaName}.${table.name}.${condition.column} which does not exist`
+        `Where clause references column ${table.schemaName}.${table.name}.${condition.column} which does not exist`,
       );
     }
     switch (condition.operator) {
@@ -41,7 +41,7 @@ export default function getWhereClauseFromConditions(
           .join(` ${condition.operator.toUpperCase()} `)})`;
       default:
         return `${ref}.${q(
-          condition.column
+          condition.column,
         )} ${condition.operator.toUpperCase()} ${
           "value" in condition
             ? bindValue(condition.value)

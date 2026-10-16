@@ -37,7 +37,7 @@ export function ConnectionSslFields({
 }) {
   const id = useId();
   const [certificatesOpen, setCertificatesOpen] = useState(
-    !!(value?.ca || value?.cert || value?.key)
+    !!(value?.ca || value?.cert || value?.key),
   );
 
   return (
@@ -51,7 +51,7 @@ export function ConnectionSslFields({
             onChange(
               mode === "disabled"
                 ? undefined
-                : { ...value, mode: mode as DatabaseSslConfig["mode"] }
+                : { ...value, mode: mode as DatabaseSslConfig["mode"] },
             )
           }
         >
@@ -75,8 +75,8 @@ export function ConnectionSslFields({
           {!value
             ? "Connect without SSL encryption."
             : value.mode === "verify-full"
-            ? "Encrypt the connection and verify the server's certificate and hostname."
-            : "Encrypt the connection without verifying the server's identity. Use only with a trusted server."}
+              ? "Encrypt the connection and verify the server's certificate and hostname."
+              : "Encrypt the connection without verifying the server's identity. Use only with a trusted server."}
         </p>
       </div>
       {value && (
@@ -110,8 +110,8 @@ export function ConnectionSslFields({
                   name === "cert"
                     ? !!value.key?.trim()
                     : name === "key"
-                    ? !!value.cert?.trim()
-                    : false
+                      ? !!value.cert?.trim()
+                      : false
                 }
               />
             </div>

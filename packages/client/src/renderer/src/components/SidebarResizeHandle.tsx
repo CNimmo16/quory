@@ -39,7 +39,7 @@ export function SidebarResizeHandle({
       aria-controls={
         side === "left" ? "projects-navigation" : "query-chat-content"
       }
-      className={`absolute inset-y-0 z-20 w-1.5 cursor-col-resize touch-none select-none hover:bg-primary/20 focus-visible:bg-primary/20 focus-visible:outline-none ${
+      className={`absolute inset-y-0 z-20 w-1.5 cursor-col-resize touch-none select-none hover:bg-primary/20 focus-visible:bg-primary/20 focus-visible:outline-hidden ${
         side === "left" ? "-right-0.5" : "-left-0.5"
       }`}
       onPointerDown={(event) => {
@@ -60,8 +60,9 @@ export function SidebarResizeHandle({
         onResize(
           clamp(
             drag.current.width +
-              (event.clientX - drag.current.startX) * (side === "left" ? 1 : -1)
-          )
+              (event.clientX - drag.current.startX) *
+                (side === "left" ? 1 : -1),
+          ),
         );
       }}
       onPointerUp={finish}

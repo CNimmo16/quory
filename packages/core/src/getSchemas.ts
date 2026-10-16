@@ -2,12 +2,12 @@ import type { DatabaseSchema } from ".";
 import { DatabaseDriver } from ".";
 
 export default async function getSchemas(
-  databaseDriver: DatabaseDriver
+  databaseDriver: DatabaseDriver,
 ): Promise<DatabaseSchema[]> {
   const schemas: DatabaseSchema[] = [];
   const retrieveOrCreateTable = (
     schemaName: string,
-    tableName: string
+    tableName: string,
   ): DatabaseSchema["tables"][number] => {
     let schemaInfo = schemas.find(({ name }) => name === schemaName);
     if (!schemaInfo) {
@@ -34,7 +34,7 @@ export default async function getSchemas(
           (key) =>
             key.localSchema === schemaName &&
             key.localTable === tableName &&
-            key.localColumn === column.name
+            key.localColumn === column.name,
         )
         .map((key) => ({
           ...(key.constraintId !== undefined
@@ -54,7 +54,7 @@ export default async function getSchemas(
           (key) =>
             key.foreignSchema === schemaName &&
             key.foreignTable === tableName &&
-            key.foreignColumn === column.name
+            key.foreignColumn === column.name,
         )
         .map((key) => ({
           ...(key.constraintId !== undefined

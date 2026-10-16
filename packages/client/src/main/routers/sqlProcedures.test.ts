@@ -71,7 +71,7 @@ it("defaults old connections to read only and executes reads with database read 
     "SELECT $1 AS value",
     ["text"],
     true,
-    expect.any(String)
+    expect.any(String),
   );
 });
 it.each([
@@ -98,11 +98,11 @@ it("requires a single-use confirmation tied to exact SQL and bound values", asyn
     statement.sql,
     statement.parameters,
     false,
-    statement.executionId
+    statement.executionId,
   );
   expect(mocks.invalidate).toHaveBeenCalledOnce();
   await expect(
-    caller.executeSql({ ...statement, confirmationToken: pending.token })
+    caller.executeSql({ ...statement, confirmationToken: pending.token }),
   ).rejects.toMatchObject({ code: "CONFLICT" });
   expect(mocks.execute).toHaveBeenCalledOnce();
 });
@@ -121,21 +121,21 @@ it.each(["sql", "parameters", "connection"])(
         ...(change === "sql" ? { sql: "DELETE FROM users" } : {}),
         ...(change === "parameters" ? { parameters: ["changed"] } : {}),
         confirmationToken: pending.token,
-      })
+      }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
     expect(mocks.execute).not.toHaveBeenCalled();
-  }
+  },
 );
 it("executes dangerous writes without prompting and rejects batches and transaction controls", async () => {
   mocks.protection = "dangerously-write";
   expect((await caller.executeSql(input("DELETE FROM orders"))).status).toBe(
-    "executed"
+    "executed",
   );
   expect(mocks.execute).toHaveBeenCalledWith(
     "DELETE FROM orders",
     ["text"],
     false,
-    expect.any(String)
+    expect.any(String),
   );
   mocks.execute.mockClear();
   for (const sql of [

@@ -9,12 +9,12 @@ it("uses server-side binding and returns the actual query rows", async () => {
     getConnection: jest.fn().mockResolvedValue({ execute, release }),
   } as unknown as MySQLDriver["pool"];
   expect(
-    await driver.exec("SELECT name FROM users WHERE name = ?", [rows[0]!.name])
+    await driver.exec("SELECT name FROM users WHERE name = ?", [rows[0]!.name]),
   ).toEqual(rows);
   expect(release).toHaveBeenCalledTimes(1);
   expect(execute).toHaveBeenCalledWith(
     "SELECT name FROM users WHERE name = ?",
-    [rows[0]!.name]
+    [rows[0]!.name],
   );
 });
 
@@ -35,7 +35,7 @@ it("destroys a cancelled query's connection and never returns it to the pool", a
     () =>
       new Promise((_, reject) => {
         rejectQuery = reject;
-      })
+      }),
   );
   driver.pool = {
     getConnection: jest.fn().mockResolvedValue({ execute, release, destroy }),

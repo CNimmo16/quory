@@ -2,7 +2,7 @@
   "editor.codeActionsOnSave": {
     "source.fixAll": "explicit"
   },
-  "[typescriptreact][typescript][javascript][json][jsonc]": {
+  "[typescriptreact][typescript][javascript][json][jsonc][astro]": {
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },

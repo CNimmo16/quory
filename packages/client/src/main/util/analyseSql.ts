@@ -4,12 +4,12 @@
  */
 export function analyseSql(
   sql: string,
-  dialect: "postgres" | "mysql" | "sqlite" = "postgres"
+  dialect: "postgres" | "mysql" | "sqlite" = "postgres",
 ) {
   const words: string[] = [];
   let terminated = false;
   let executableComment = false;
-  for (let i = 0; i < sql.length; ) {
+  for (let i = 0; i < sql.length;) {
     const c = sql[i]!;
     if (/\s/.test(c)) {
       i++;
@@ -103,7 +103,7 @@ export function analyseSql(
     ].includes(words[0]!)
   )
     throw new Error(
-      "Transaction and session control statements are not supported. Each run uses its own transaction."
+      "Transaction and session control statements are not supported. Each run uses its own transaction.",
     );
   const writes = new Set([
     "INSERT",

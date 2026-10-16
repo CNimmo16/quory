@@ -30,7 +30,7 @@ export function QueryConnectionMenu({
   const [failure, setFailure] = useState<string | null>(null);
   const { data, error } = trpc.connections.listSavedConnections.useQuery(
     { projectId },
-    { enabled: open }
+    { enabled: open },
   );
   async function choose(connectionId?: string) {
     setPending(connectionId ?? "create");
@@ -42,7 +42,7 @@ export function QueryConnectionMenu({
       setFailure(
         cause instanceof Error
           ? cause.message
-          : "Could not connect to the database."
+          : "Could not connect to the database.",
       );
     } finally {
       setPending(null);
@@ -70,7 +70,7 @@ export function QueryConnectionMenu({
         align="start"
         sideOffset={8}
         aria-label="Choose query connection"
-        className="min-w-56 max-w-xs"
+        className="max-w-xs min-w-56"
       >
         <DropdownMenuLabel>Select a connection</DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -105,7 +105,7 @@ export function QueryConnectionMenu({
                 aria-hidden="true"
                 className={cn(
                   "size-2.5 shrink-0 rounded-full",
-                  connectionColours[connection.colour ?? "teal"].dot
+                  connectionColours[connection.colour ?? "teal"].dot,
                 )}
               />
             )}
@@ -118,7 +118,7 @@ export function QueryConnectionMenu({
           </p>
         )}
         {(failure || error) && (
-          <p role="alert" className="px-2 py-2 text-xs text-orange-700">
+          <p role="alert" className="px-2 py-2 text-xs text-warning">
             {failure ?? error?.message}
           </p>
         )}

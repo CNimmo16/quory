@@ -9,7 +9,7 @@ import { useOpenProject } from "../../hooks/useOpenProject";
 
 export const Route = createFileRoute("/projects/")({
   validateSearch: (
-    search: Record<string, unknown>
+    search: Record<string, unknown>,
   ): { expand?: string | undefined } => ({
     expand: typeof search.expand === "string" ? search.expand : undefined,
   }),
@@ -33,12 +33,15 @@ function ProjectsScreen() {
     );
   return (
     <div className="mx-auto flex min-h-full max-w-2xl flex-col justify-center px-8 py-12">
-      <FolderKanban aria-hidden="true" className="mb-5 size-9 text-teal-700" />
+      <FolderKanban
+        aria-hidden="true"
+        className="mb-5 size-9 text-primary-emphasis"
+      />
       <div className="mb-8 space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
           Create your first project
         </h1>
-        <p className="max-w-lg text-sm leading-relaxed text-slate-500">
+        <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
           Keep a set of queries together and run them against local, staging, or
           production connections.
         </p>

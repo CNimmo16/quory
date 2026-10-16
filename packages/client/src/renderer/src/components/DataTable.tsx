@@ -90,14 +90,14 @@ function DataTable(props: DataTableProps) {
   const visibleJoins = useMemo(() => {
     const aliases = [
       ...tableOrder.filter((alias) =>
-        unorderedJoins.some(({ join }) => join.joinAlias === alias)
+        unorderedJoins.some(({ join }) => join.joinAlias === alias),
       ),
       ...unorderedJoins
         .map(({ join }) => join.joinAlias)
         .filter((alias) => !tableOrder.includes(alias)),
     ];
-    return aliases.map(
-      (alias) => unorderedJoins.find(({ join }) => join.joinAlias === alias)!
+    return aliases.map((alias) =>
+      unorderedJoins.find(({ join }) => join.joinAlias === alias)!,
     );
   }, [unorderedJoins, tableOrder]);
   function moveTable(source: string, target: string) {
@@ -132,7 +132,7 @@ function DataTable(props: DataTableProps) {
         });
         return spans;
       }),
-    [rows, visibleJoins]
+    [rows, visibleJoins],
   );
   const columns = useMemo<Column[]>(
     () =>
@@ -151,14 +151,14 @@ function DataTable(props: DataTableProps) {
               join,
               joinIndex,
               columnIndex,
-            }))
+            })),
           ),
-    [visibleJoins, props.columns]
+    [visibleJoins, props.columns],
   );
 
   function getCell(
     rowIndex: number,
-    column: { join: Column["join"]; columnIndex: number; name: string }
+    column: { join: Column["join"]; columnIndex: number; name: string },
   ) {
     if (props.columns !== undefined) {
       const value = props.rows[rowIndex]?.[column.columnIndex] ?? null;
@@ -184,32 +184,34 @@ function DataTable(props: DataTableProps) {
         height,
       }}
       className={classNames(
-        "flex min-w-0 max-w-full flex-col overflow-hidden bg-white text-xs text-slate-700",
-        !embedded && "rounded-lg border border-slate-200"
+        "flex max-w-full min-w-0 flex-col overflow-hidden bg-card text-xs text-foreground",
+        !embedded && "rounded-lg border border-border",
       )}
     >
       {!embedded && (
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-slate-200 px-3 py-2.5">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border px-3 py-2.5">
           <div className="flex items-center gap-2">
             {isLoading ? (
               <span
                 role="status"
                 title="Running query…"
-                className="size-3.5 text-slate-500"
+                className="size-3.5 text-muted-foreground"
               >
                 <Spinner className="size-3.5" />
                 <span className="sr-only">Running query…</span>
               </span>
             ) : (
-              <Table2 className="size-3.5 text-slate-500" />
+              <Table2 className="size-3.5 text-muted-foreground" />
             )}
-            <span className="font-semibold text-slate-800">Results</span>
-            <span className="tabular-nums text-slate-500">
+            <span className="font-semibold text-foreground">Results</span>
+            <span className="text-muted-foreground tabular-nums">
               {props.rows.length} rows
             </span>
           </div>
           {summary && (
-            <div className="flex flex-wrap gap-3 text-slate-500">{summary}</div>
+            <div className="flex flex-wrap gap-3 text-muted-foreground">
+              {summary}
+            </div>
           )}
         </div>
       )}
@@ -217,7 +219,7 @@ function DataTable(props: DataTableProps) {
         role="region"
         aria-label="Scrollable query results"
         tabIndex={0}
-        className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-teal-600"
+        className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-primary"
         onScroll={() => setSelectedCell(null)}
         onMouseLeave={() => onChangeHighlightedJoinAlias?.(null)}
       >
@@ -237,10 +239,10 @@ function DataTable(props: DataTableProps) {
                         colSpan={joinColumns.length}
                         className={classNames(
                           "h-9 border-b px-3 font-semibold transition-colors",
-                          index > 0 && "border-l-2 border-l-slate-200",
+                          index > 0 && "border-l-2 border-l-border",
                           highlightedJoinAlias === join.joinAlias
-                            ? "border-b-teal-500 bg-teal-50 text-teal-900"
-                            : "border-b-slate-200 bg-slate-50 text-slate-700"
+                            ? "border-b-primary bg-primary-subtle text-primary-emphasis"
+                            : "border-b-border bg-background text-foreground",
                         )}
                         onDragOver={(event) => {
                           if (draggedAlias) {
@@ -248,7 +250,7 @@ function DataTable(props: DataTableProps) {
                             event.dataTransfer.dropEffect = "move";
                             const sourceIndex = visibleJoins.findIndex(
                               ({ join: source }) =>
-                                source.joinAlias === draggedAlias
+                                source.joinAlias === draggedAlias,
                             );
                             const bounds =
                               event.currentTarget.getBoundingClientRect();
@@ -270,7 +272,7 @@ function DataTable(props: DataTableProps) {
                         }}
                         onMouseEnter={() =>
                           onChangeHighlightedJoinAlias?.(
-                            join?.joinAlias ?? null
+                            join?.joinAlias ?? null,
                           )
                         }
                       >
@@ -282,12 +284,12 @@ function DataTable(props: DataTableProps) {
                               splitTableRef(join.tableRef)[1]
                             } table`}
                             title="Drag to reorder tables; use left and right arrow keys to move"
-                            className="flex min-w-0 cursor-grab items-center gap-2 rounded text-left focus-visible:outline-teal-600 active:cursor-grabbing"
+                            className="flex min-w-0 cursor-grab items-center gap-2 rounded-sm text-left focus-visible:outline-primary active:cursor-grabbing"
                             onDragStart={(event) => {
                               event.dataTransfer.effectAllowed = "move";
                               event.dataTransfer.setData(
                                 "text/plain",
-                                join.joinAlias
+                                join.joinAlias,
                               );
                               setDraggedAlias(join.joinAlias);
                             }}
@@ -299,8 +301,8 @@ function DataTable(props: DataTableProps) {
                                     (event.key === "ArrowLeft"
                                       ? -1
                                       : event.key === "ArrowRight"
-                                      ? 1
-                                      : 0)
+                                        ? 1
+                                        : 0)
                                 ];
                               if (
                                 target &&
@@ -309,14 +311,14 @@ function DataTable(props: DataTableProps) {
                                 event.preventDefault();
                                 moveTable(
                                   join.joinAlias,
-                                  target.join.joinAlias
+                                  target.join.joinAlias,
                                 );
                               }
                             }}
                           >
-                            <Table2 className="size-3.5 shrink-0 text-teal-600" />
+                            <Table2 className="size-3.5 shrink-0 text-primary-emphasis" />
                             <span
-                              className="max-w-[200px] truncate"
+                              className="max-w-50 truncate"
                               title={join.tableRef}
                             >
                               {splitTableRef(join.tableRef)[1]}
@@ -325,9 +327,10 @@ function DataTable(props: DataTableProps) {
                           {joinActions && (
                             <div className="ml-auto font-normal">
                               <TableColumnsMenu
+                                allowEmpty={join.joins.length > 0}
                                 table={table}
                                 visibleColumns={joinColumns.map(
-                                  (column) => column.name
+                                  (column) => column.name,
                                 )}
                                 actions={joinActions(join.joinAlias)}
                               />
@@ -335,7 +338,7 @@ function DataTable(props: DataTableProps) {
                           )}
                         </div>
                       </th>
-                    )
+                    ),
                 )}
               </tr>
             )}
@@ -343,20 +346,20 @@ function DataTable(props: DataTableProps) {
               {columns.map(
                 ({ key, join, joinIndex, columnIndex, name, readableName }) => {
                   const order = join?.orderBy?.find(
-                    (item) => item.column === name
+                    (item) => item.column === name,
                   );
                   const sort = (direction: "asc" | "desc") =>
                     join &&
                     joinActions?.(join.joinAlias).orderBy(
                       [{ column: name, direction }],
-                      { clearAllExistingOrders: true }
+                      { clearAllExistingOrders: true },
                     );
                   const SortIcon =
                     order?.direction === "asc"
                       ? ArrowUp
                       : order
-                      ? ArrowDown
-                      : ArrowUpDown;
+                        ? ArrowDown
+                        : ArrowUpDown;
                   return (
                     <th
                       key={key}
@@ -365,14 +368,14 @@ function DataTable(props: DataTableProps) {
                         !join || !joinActions
                           ? undefined
                           : order
-                          ? order.direction === "asc"
-                            ? "ascending"
-                            : "descending"
-                          : "none"
+                            ? order.direction === "asc"
+                              ? "ascending"
+                              : "descending"
+                            : "none"
                       }
                       className={classNames(
-                        "h-9 border-b border-slate-200 bg-white px-2 font-medium text-slate-500",
-                        columnIndex === 0 && joinIndex > 0 && "border-l-2"
+                        "h-9 border-b border-border bg-card px-2 font-medium text-muted-foreground",
+                        columnIndex === 0 && joinIndex > 0 && "border-l-2",
                       )}
                       onMouseEnter={() =>
                         onChangeHighlightedJoinAlias?.(join?.joinAlias ?? null)
@@ -383,16 +386,16 @@ function DataTable(props: DataTableProps) {
                           <>
                             <button
                               type="button"
-                              className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 text-left hover:text-teal-700 focus-visible:outline-teal-600"
+                              className="flex min-w-0 flex-1 items-center gap-2 rounded-sm px-1 py-1 text-left hover:text-primary-emphasis focus-visible:outline-primary"
                               aria-label={`Sort by ${readableName}`}
                               onClick={() =>
                                 sort(
-                                  order?.direction === "asc" ? "desc" : "asc"
+                                  order?.direction === "asc" ? "desc" : "asc",
                                 )
                               }
                             >
                               <span
-                                className="min-w-0 max-w-[200px] truncate"
+                                className="max-w-50 min-w-0 truncate"
                                 title={readableName}
                               >
                                 {readableName}
@@ -400,7 +403,9 @@ function DataTable(props: DataTableProps) {
                               <SortIcon
                                 className={classNames(
                                   "size-3 shrink-0",
-                                  order ? "text-teal-600" : "text-slate-400"
+                                  order
+                                    ? "text-primary-emphasis"
+                                    : "text-muted-foreground",
                                 )}
                               />
                             </button>
@@ -409,7 +414,7 @@ function DataTable(props: DataTableProps) {
                                 <button
                                   type="button"
                                   aria-label={`Options for ${readableName}`}
-                                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-teal-600"
+                                  className="rounded-sm p-1 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-primary"
                                 >
                                   <MoreHorizontal className="size-3.5" />
                                 </button>
@@ -429,15 +434,15 @@ function DataTable(props: DataTableProps) {
                                 <DropdownMenuItem
                                   disabled={
                                     visibleJoins[joinIndex]!.columns.length ===
-                                    1
+                                      1 && join.joins.length === 0
                                   }
                                   onSelect={() =>
                                     joinActions(
-                                      join.joinAlias
+                                      join.joinAlias,
                                     ).setSelectedColumns(
                                       visibleJoins[joinIndex]!.columns.filter(
-                                        (column) => column.name !== name
-                                      ).map((column) => column.name)
+                                        (column) => column.name !== name,
+                                      ).map((column) => column.name),
                                     )
                                   }
                                 >
@@ -449,7 +454,7 @@ function DataTable(props: DataTableProps) {
                           </>
                         ) : (
                           <span
-                            className="min-w-0 max-w-[200px] truncate px-1 py-1"
+                            className="max-w-50 min-w-0 truncate px-1 py-1"
                             title={readableName}
                           >
                             {readableName}
@@ -458,7 +463,7 @@ function DataTable(props: DataTableProps) {
                       </div>
                     </th>
                   );
-                }
+                },
               )}
             </tr>
           </thead>
@@ -497,15 +502,16 @@ function DataTable(props: DataTableProps) {
                       >
                         <span
                           className={classNames(
-                            "min-w-0 max-w-[200px] flex-1 truncate",
-                            cell?.type === "number" && "tabular-nums",
-                            cell?.rawValue == null && "italic text-slate-400"
+                            "max-w-50 min-w-0 flex-1 truncate",
+                            cell?.type === "number" && "font-mono tabular-nums",
+                            cell?.rawValue == null &&
+                              "text-muted-foreground italic",
                           )}
                         >
                           {text}
                         </span>
                         {cell?.foreignKey && cell.rawValue != null && (
-                          <Link className="size-3 shrink-0 text-teal-600" />
+                          <Link className="size-3 shrink-0 text-primary-emphasis" />
                         )}
                       </span>
                     );
@@ -514,14 +520,14 @@ function DataTable(props: DataTableProps) {
                         key={key}
                         rowSpan={rowSpan}
                         className={classNames(
-                          "select-none border-b border-slate-200 bg-white p-0 align-middle",
+                          "border-b border-border bg-card p-0 align-middle select-none",
                           columnIndex === 0 &&
                             joinIndex > 0 &&
-                            "border-l-2 border-l-slate-200"
+                            "border-l-2 border-l-border",
                         )}
                         onMouseEnter={() =>
                           onChangeHighlightedJoinAlias?.(
-                            join?.joinAlias ?? null
+                            join?.joinAlias ?? null,
                           )
                         }
                       >
@@ -534,11 +540,11 @@ function DataTable(props: DataTableProps) {
                             aria-label={`Follow relationship from ${label}`}
                             title={text}
                             style={{ height: rowSpan * ROW_HEIGHT - 1 }}
-                            className="flex w-full min-w-[140px] flex-col px-3 text-left hover:bg-slate-50 focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-teal-600"
+                            className="flex w-full min-w-35 flex-col px-3 text-left hover:bg-muted focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-primary"
                             onClick={() =>
                               joinActions(join.joinAlias).addJoinOnForeignKey(
                                 name,
-                                cell.rawValue.toString()
+                                cell.rawValue.toString(),
                               )
                             }
                           >
@@ -557,22 +563,22 @@ function DataTable(props: DataTableProps) {
                                 aria-label={label}
                                 title={text}
                                 style={{ height: rowSpan * ROW_HEIGHT - 1 }}
-                                className="flex w-full min-w-[140px] flex-col px-3 text-left hover:bg-slate-50 focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-teal-600"
+                                className="flex w-full min-w-35 flex-col px-3 text-left hover:bg-muted focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-primary"
                               >
                                 <PopoverAnchor asChild>{content}</PopoverAnchor>
                               </button>
                             </PopoverTrigger>
                             <PopoverContent
                               align="start"
-                              className="w-80 max-w-[calc(100vw-2rem)] space-y-3 border-slate-200 p-3 shadow-none"
+                              className="w-80 max-w-[calc(100vw-2rem)] space-y-3 border-border p-3 shadow-none"
                             >
-                              <div className="text-[11px] font-medium text-slate-500">
+                              <div className="text-[11px] font-medium text-muted-foreground">
                                 {tableName ? `${tableName} · ` : ""}
                                 {readableName}
                               </div>
-                              <div className="max-h-48 select-text overflow-auto whitespace-pre-wrap break-words text-sm text-slate-800">
+                              <div className="max-h-48 overflow-auto text-sm wrap-break-word whitespace-pre-wrap text-foreground select-text">
                                 {text || (
-                                  <span className="italic text-slate-400">
+                                  <span className="text-muted-foreground italic">
                                     Empty value
                                   </span>
                                 )}
@@ -609,14 +615,14 @@ function DataTable(props: DataTableProps) {
                         )}
                       </td>
                     );
-                  }
+                  },
                 )}
               </tr>
             ))}
           </tbody>
         </table>
         {props.rows.length === 0 && (
-          <p className="p-4 text-sm text-slate-500">{emptyMessage}</p>
+          <p className="p-4 text-sm text-muted-foreground">{emptyMessage}</p>
         )}
       </div>
     </Container>

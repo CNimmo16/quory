@@ -91,13 +91,13 @@ it("removes only the requested leaf instance and protects the base", async () =>
   });
   const next = removeQueryJoin(
     prepared.preparedQuery,
-    prepared.preparedQuery.base.joins[0]!.joinAlias
+    prepared.preparedQuery.base.joins[0]!.joinAlias,
   );
   expect(next.base.joins).toEqual([prepared.preparedQuery.base.joins[1]]);
   expect(() =>
     removeQueryJoin(
       prepared.preparedQuery,
-      prepared.preparedQuery.base.joinAlias
-    )
+      prepared.preparedQuery.base.joinAlias,
+    ),
   ).toThrow("Cannot remove base join");
 });

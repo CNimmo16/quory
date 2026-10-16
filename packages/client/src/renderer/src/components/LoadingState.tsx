@@ -22,7 +22,7 @@ export function LoadingState({
       role="status"
       className={cn(
         "flex h-full min-h-24 items-center justify-center gap-2 p-5 text-muted-foreground",
-        className
+        className,
       )}
     >
       <Spinner className="size-5" />

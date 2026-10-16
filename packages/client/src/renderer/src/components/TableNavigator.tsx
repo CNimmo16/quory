@@ -53,20 +53,23 @@ function TableNavigator({
       measureRef(element);
       panRef(element);
     },
-    [measureRef, panRef]
+    [measureRef, panRef],
   );
   const availableWidth = Math.max(1, (canvasWidth || width) - 32);
   const layout = useMemo(
     () => layoutTableDiagram(query.base, availableWidth),
-    [query, availableWidth]
+    [query, availableWidth],
   );
 
   return (
-    <section aria-label="Table relationships" className="min-w-0 bg-white">
-      <div className="flex items-center gap-2 px-4 pb-2 pt-3 text-xs">
-        <Network aria-hidden="true" className="size-3.5 text-slate-500" />
-        <h2 className="font-semibold text-slate-700">Relationships</h2>
-        <span className="text-slate-400">
+    <section aria-label="Table relationships" className="min-w-0 bg-card">
+      <div className="flex items-center gap-2 px-4 pt-3 pb-2 text-xs">
+        <Network
+          aria-hidden="true"
+          className="size-3.5 text-muted-foreground"
+        />
+        <h2 className="font-semibold text-foreground">Relationships</h2>
+        <span className="font-mono text-muted-foreground">
           {layout.nodes.length} {layout.nodes.length === 1 ? "table" : "tables"}
         </span>
         <div className="ml-auto flex items-center gap-1">
@@ -83,7 +86,7 @@ function TableNavigator({
               <Minus aria-hidden="true" className="size-3.5" />
             </Button>
           </Hint>
-          <span className="w-9 text-center text-[10px] tabular-nums text-slate-500">
+          <span className="w-9 text-center text-[10px] text-muted-foreground tabular-nums">
             {Math.round(canvas.view.scale * 100)}%
           </span>
           <Hint content="Zoom in">
@@ -120,15 +123,15 @@ function TableNavigator({
         tabIndex={0}
         aria-description="Drag to pan. Scroll to zoom. Use arrow keys to pan, plus or minus to zoom, and Home to reset."
         className={cn(
-          "relative touch-none select-none overflow-hidden focus-visible:outline focus-visible:outline-1 focus-visible:outline-teal-600",
-          canvas.dragging ? "cursor-grabbing" : "cursor-grab"
+          "relative touch-none overflow-hidden select-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-primary",
+          canvas.dragging ? "cursor-grabbing" : "cursor-grab",
         )}
         {...canvas.handlers}
         style={{
           height: Math.min(maxHeight, layout.height + 24),
-          backgroundColor: "#ffffff",
+          backgroundColor: "rgb(var(--card))",
           backgroundImage:
-            "radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
+            "radial-gradient(circle, rgb(var(--border)) 1px, transparent 1px)",
           backgroundSize: `${11 * canvas.view.scale}px ${
             11 * canvas.view.scale
           }px`,
@@ -154,7 +157,7 @@ function TableNavigator({
                 key={`add-${join.joinAlias}`}
                 points={points.map(({ x, y }) => `${x},${y}`).join(" ")}
                 fill="none"
-                className="stroke-slate-400"
+                className="stroke-muted-foreground"
                 strokeWidth={1.5}
                 strokeDasharray="3 3"
               />
@@ -164,12 +167,12 @@ function TableNavigator({
                 (a, b) =>
                   Number(
                     a.source === highlightedJoinAlias ||
-                      a.target === highlightedJoinAlias
+                      a.target === highlightedJoinAlias,
                   ) -
                   Number(
                     b.source === highlightedJoinAlias ||
-                      b.target === highlightedJoinAlias
-                  )
+                      b.target === highlightedJoinAlias,
+                  ),
               )
               .map((edge) => {
                 const active =
@@ -185,7 +188,7 @@ function TableNavigator({
                       fill="none"
                       strokeLinejoin="round"
                       strokeLinecap="round"
-                      className="stroke-white"
+                      className="stroke-primary-foreground"
                       strokeWidth={6}
                     />
                     <polyline
@@ -196,7 +199,9 @@ function TableNavigator({
                       strokeLinejoin="round"
                       strokeLinecap="round"
                       className={
-                        active ? "stroke-teal-600" : "stroke-slate-300"
+                        active
+                          ? "stroke-primary-emphasis"
+                          : "stroke-muted-foreground"
                       }
                       strokeWidth={active ? 2 : 1.5}
                     />
@@ -204,7 +209,11 @@ function TableNavigator({
                       cx={end.x}
                       cy={end.y}
                       r={2.5}
-                      className={active ? "fill-teal-600" : "fill-slate-400"}
+                      className={
+                        active
+                          ? "fill-primary-emphasis"
+                          : "fill-muted-foreground"
+                      }
                     />
                   </g>
                 );
@@ -216,7 +225,7 @@ function TableNavigator({
               const table = findTableFromSchemas(
                 schemas,
                 schemaName,
-                tableName
+                tableName,
               );
               const actions = joinActions(join.joinAlias);
               const visibleColumns = actions.getVisibleColumns();
@@ -224,22 +233,22 @@ function TableNavigator({
               const filters = countFilters(join.where);
               const isRequiredBridge = Boolean(
                 parent &&
-                  join.select.length === 0 &&
-                  !join.where &&
-                  !join.orderBy?.length &&
-                  join.joins.length > 0
+                join.select.length === 0 &&
+                !join.where &&
+                !join.orderBy?.length &&
+                join.joins.length > 0,
               );
               const linkedTables = join.joins
                 .map((child) => splitTableRef(child.tableRef)[1])
                 .join(", ");
               const repeated = layout.nodes.filter(
-                (node) => node.join.tableRef === join.tableRef
+                (node) => node.join.tableRef === join.tableRef,
               );
               const instance =
                 repeated.length > 1
                   ? ` · ${
                       repeated.findIndex(
-                        (node) => node.join.joinAlias === join.joinAlias
+                        (node) => node.join.joinAlias === join.joinAlias,
                       ) + 1
                     }`
                   : "";
@@ -253,10 +262,12 @@ function TableNavigator({
                   }`}
                   className={cn(
                     "absolute flex cursor-auto flex-col justify-between rounded-lg border p-2.5 transition-colors",
-                    hidden ? "bg-white" : "bg-slate-50",
+                    hidden ? "border-dashed bg-background" : "bg-muted-light",
                     highlightedJoinAlias === join.joinAlias
-                      ? "border-teal-600"
-                      : "border-slate-300"
+                      ? "border-primary ring-1 ring-primary/25"
+                      : hidden
+                        ? "border-muted-foreground/30"
+                        : "border-muted-foreground/50",
                   )}
                   style={{ left: x, top: y, width: nodeWidth, height }}
                   onMouseEnter={() =>
@@ -274,7 +285,9 @@ function TableNavigator({
                       aria-hidden="true"
                       className={cn(
                         "mr-1 size-3.5 shrink-0",
-                        hidden ? "text-slate-400" : "text-teal-700"
+                        hidden
+                          ? "text-muted-foreground"
+                          : "text-primary-emphasis",
                       )}
                     />
                     <Hint
@@ -286,10 +299,10 @@ function TableNavigator({
                         <button
                           type="button"
                           aria-label={`Show columns for ${tableName}`}
-                          className="min-w-0 flex-1 truncate rounded text-left text-sm font-medium text-slate-600 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600"
+                          className="min-w-0 flex-1 truncate rounded-sm text-left text-sm font-medium text-muted-foreground hover:text-primary-emphasis focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
                           onClick={() =>
                             actions.setSelectedColumns(
-                              table.columns.map((column) => column.name)
+                              table.columns.map((column) => column.name),
                             )
                           }
                         >
@@ -297,7 +310,7 @@ function TableNavigator({
                           {instance}
                         </button>
                       ) : (
-                        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
+                        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
                           {tableName}
                           {instance}
                         </span>
@@ -321,7 +334,7 @@ function TableNavigator({
                           size="icon"
                           variant="ghost"
                           disabled={isRequiredBridge}
-                          className="size-6 shrink-0 rounded text-slate-400 shadow-none hover:bg-red-50 hover:text-red-700"
+                          className="size-6 shrink-0 rounded-sm text-muted-foreground shadow-none hover:bg-destructive-subtle hover:text-destructive"
                           aria-label={`Remove ${tableName} from query`}
                           onClick={() => actions.removeJoin()}
                         >
@@ -332,6 +345,7 @@ function TableNavigator({
                   </div>
                   <div className="flex min-w-0 items-center justify-between gap-1">
                     <TableColumnsMenu
+                      allowEmpty={join.joins.length > 0}
                       table={table}
                       visibleColumns={visibleColumns}
                       actions={actions}
@@ -351,10 +365,10 @@ function TableNavigator({
                             : `Add filter for ${tableName}`
                         }
                         className={cn(
-                          "flex h-6 shrink-0 items-center gap-1 rounded px-1.5 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600",
+                          "flex h-6 shrink-0 items-center gap-1 rounded-sm px-1.5 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
                           filters
-                            ? "bg-teal-50 text-teal-800 hover:bg-teal-100"
-                            : "text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                            ? "bg-primary-subtle text-primary-emphasis hover:bg-primary-subtle"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
                         )}
                       >
                         <Filter aria-hidden="true" className="size-3" />
@@ -366,7 +380,7 @@ function TableNavigator({
                   </div>
                 </div>
               );
-            }
+            },
           )}
           {layout.placeholders.map(
             ({ join, x, y, width: placeholderWidth, height }) => (
@@ -383,7 +397,7 @@ function TableNavigator({
                   query={query}
                 />
               </div>
-            )
+            ),
           )}
         </div>
       </div>

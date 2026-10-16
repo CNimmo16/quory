@@ -76,7 +76,7 @@ const query: PreparedQuery = {
 function renderNavigator(
   navigatorQuery: PreparedQuery = query,
   showBreakdown = false,
-  navigatorSchemas = schemas
+  navigatorSchemas = schemas,
 ) {
   type JoinActions = ComponentProps<typeof TableNavigator>["joinActions"];
   const setSelectedColumns = vi.fn();
@@ -117,7 +117,7 @@ function renderNavigator(
         highlightedJoinAlias={null}
         onChangeHighlightedJoinAlias={vi.fn()}
       />
-    </TooltipProvider>
+    </TooltipProvider>,
   );
   return {
     setSelectedColumns,
@@ -151,13 +151,13 @@ describe("TableNavigator", () => {
     expect(
       within(base).queryByRole("button", {
         name: /Remove .* from query|Delete query|Actions for/,
-      })
+      }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Actions for/ })
+      screen.queryByRole("button", { name: /Actions for/ }),
     ).not.toBeInTheDocument();
     await user.click(
-      screen.getByRole("button", { name: "Remove orders from query" })
+      screen.getByRole("button", { name: "Remove orders from query" }),
     );
     expect(removeJoin).toHaveBeenCalledOnce();
   });
@@ -187,7 +187,7 @@ describe("TableNavigator", () => {
       },
     });
     expect(
-      screen.getByRole("button", { name: "Remove orders from query" })
+      screen.getByRole("button", { name: "Remove orders from query" }),
     ).toBeDisabled();
     expect(removeJoin).not.toHaveBeenCalled();
   });
@@ -195,14 +195,14 @@ describe("TableNavigator", () => {
   async function chooseFilterField(
     user: ReturnType<typeof userEvent.setup>,
     column: string,
-    operator: string
+    operator: string,
   ) {
     expect(
-      screen.getByRole("combobox", { name: "Search columns" })
+      screen.getByRole("combobox", { name: "Search columns" }),
     ).toHaveFocus();
     await user.keyboard(`${column}{Enter}`);
     expect(
-      screen.getByRole("combobox", { name: "Search operators" })
+      screen.getByRole("combobox", { name: "Search operators" }),
     ).toHaveFocus();
     await user.keyboard(`${operator}{Enter}`);
   }
@@ -224,7 +224,7 @@ describe("TableNavigator", () => {
       ],
     });
     expect(
-      screen.queryByRole("button", { name: "Apply" })
+      screen.queryByRole("button", { name: "Apply" }),
     ).not.toBeInTheDocument();
   });
 
@@ -237,7 +237,7 @@ describe("TableNavigator", () => {
     await user.keyboard("Ada{Shift>}{Enter}{/Shift}");
     await chooseFilterField(user, "id", ">");
     expect(
-      screen.getAllByRole("textbox", { name: "Filter value" })[1]
+      screen.getAllByRole("textbox", { name: "Filter value" })[1],
     ).toHaveFocus();
     await user.keyboard("42{Enter}");
     expect(setCondition).toHaveBeenCalledWith({
@@ -256,7 +256,7 @@ describe("TableNavigator", () => {
     await user.keyboard("{Enter}");
     await chooseFilterField(user, "name", "in");
     expect(
-      screen.getByRole("textbox", { name: "Filter values" })
+      screen.getByRole("textbox", { name: "Filter values" }),
     ).toHaveFocus();
     await user.keyboard("Ada{Enter}Grace{Control>}{Enter}{/Control}");
     expect(setCondition).toHaveBeenCalledWith({
@@ -291,14 +291,14 @@ describe("TableNavigator", () => {
     const user = userEvent.setup();
     const { addJoin } = renderNavigator(query, false, keyboardSchemas());
     await user.click(
-      screen.getByRole("button", { name: "Add related table to customers" })
+      screen.getByRole("button", { name: "Add related table to customers" }),
     );
     const search = screen.getByRole("combobox", { name: "Filter tables" });
     expect(search).toHaveFocus();
     await user.type(search, "order_");
     expect(screen.getByRole("option", { name: "order_items" })).toHaveAttribute(
       "aria-selected",
-      "true"
+      "true",
     );
     expect(search).toHaveFocus();
     await user.keyboard("{Enter}");
@@ -325,10 +325,10 @@ describe("TableNavigator", () => {
         },
       },
       false,
-      keyboardSchemas()
+      keyboardSchemas(),
     );
     await user.click(
-      screen.getByRole("button", { name: "Add related table to customers" })
+      screen.getByRole("button", { name: "Add related table to customers" }),
     );
     const search = screen.getByRole("combobox", { name: "Filter tables" });
     await user.type(search, "missing");
@@ -339,20 +339,20 @@ describe("TableNavigator", () => {
     await user.type(search, "order");
     expect(screen.getByRole("option", { name: "orders" })).toHaveAttribute(
       "aria-disabled",
-      "true"
+      "true",
     );
     expect(screen.getByRole("option", { name: "order_items" })).toHaveAttribute(
       "aria-selected",
-      "true"
+      "true",
     );
     await user.keyboard("{ArrowDown}");
     expect(
-      screen.getByRole("option", { name: "order_archive" })
+      screen.getByRole("option", { name: "order_archive" }),
     ).toHaveAttribute("aria-selected", "true");
     await user.keyboard("{ArrowUp}");
     expect(screen.getByRole("option", { name: "order_items" })).toHaveAttribute(
       "aria-selected",
-      "true"
+      "true",
     );
     await user.keyboard("{ArrowDown}{Enter}");
     expect(addJoin).toHaveBeenCalledWith("public.order_archive");
@@ -429,7 +429,7 @@ describe("TableNavigator", () => {
     const content = canvas.firstElementChild as HTMLElement;
     const user = userEvent.setup();
     await user.click(
-      screen.getByRole("button", { name: "Add related table to customers" })
+      screen.getByRole("button", { name: "Add related table to customers" }),
     );
     expect(screen.getByRole("dialog")).toBeVisible();
     expect(content.style.transform).toBe("translate(16px, 12px) scale(1)");
@@ -447,10 +447,12 @@ describe("TableNavigator", () => {
     const user = userEvent.setup();
     const { addJoin } = renderNavigator();
     await user.click(
-      screen.getByRole("button", { name: "Add related table to customers" })
+      screen.getByRole("button", { name: "Add related table to customers" }),
     );
     await user.click(
-      within(screen.getByRole("dialog")).getByRole("option", { name: "orders" })
+      within(screen.getByRole("dialog")).getByRole("option", {
+        name: "orders",
+      }),
     );
     expect(addJoin).toHaveBeenCalledWith("public.orders");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -476,7 +478,7 @@ describe("TableNavigator", () => {
     });
     renderNavigator(query, false, duplicateSchemas);
     await user.click(
-      screen.getByRole("button", { name: "Add related table to customers" })
+      screen.getByRole("button", { name: "Add related table to customers" }),
     );
     const popup = screen.getByRole("dialog");
     const search = within(popup).getByRole("combobox", {
@@ -484,11 +486,11 @@ describe("TableNavigator", () => {
     });
     await user.type(search, "phone");
     expect(
-      within(popup).queryAllByRole("option", { name: "orders" })
+      within(popup).queryAllByRole("option", { name: "orders" }),
     ).toHaveLength(0);
     await user.clear(search);
     expect(
-      within(popup).getAllByRole("option", { name: "orders" })
+      within(popup).getAllByRole("option", { name: "orders" }),
     ).toHaveLength(1);
   });
 
@@ -524,7 +526,7 @@ describe("TableNavigator", () => {
     });
     renderNavigator(query, false, relatedSchemas);
     await user.click(
-      screen.getByRole("button", { name: "Add related table to customers" })
+      screen.getByRole("button", { name: "Add related table to customers" }),
     );
     const popup = screen.getByRole("dialog");
     const search = within(popup).getByRole("combobox", {
@@ -533,7 +535,7 @@ describe("TableNavigator", () => {
     expect(popup.querySelector("input, button")).toBe(search);
     expect(within(popup).getByRole("option", { name: "orders" })).toBeVisible();
     expect(
-      within(popup).getByRole("option", { name: "shipments" })
+      within(popup).getByRole("option", { name: "shipments" }),
     ).toBeVisible();
     await user.type(search, "s");
     expect(
@@ -541,26 +543,26 @@ describe("TableNavigator", () => {
         .getAllByRole("option")
         .filter((button) =>
           ["orders", "shipments"].includes(
-            button.getAttribute("aria-label") ?? ""
-          )
+            button.getAttribute("aria-label") ?? "",
+          ),
         )
-        .map((button) => button.getAttribute("aria-label"))
+        .map((button) => button.getAttribute("aria-label")),
     ).toEqual(["orders", "shipments"]);
     await user.clear(search);
     await user.type(search, "SHIP");
     expect(
-      within(popup).queryByRole("option", { name: "orders" })
+      within(popup).queryByRole("option", { name: "orders" }),
     ).not.toBeInTheDocument();
     expect(
-      within(popup).getByRole("option", { name: "shipments" })
+      within(popup).getByRole("option", { name: "shipments" }),
     ).toBeVisible();
     await user.click(
-      within(popup).getByRole("button", { name: "Clear table search" })
+      within(popup).getByRole("button", { name: "Clear table search" }),
     );
     await user.type(search, "public.orders");
     expect(within(popup).getByRole("option", { name: "orders" })).toBeVisible();
     expect(
-      within(popup).queryByRole("option", { name: "shipments" })
+      within(popup).queryByRole("option", { name: "shipments" }),
     ).not.toBeInTheDocument();
     await user.clear(search);
     await user.type(search, "missing");
@@ -602,14 +604,14 @@ describe("TableNavigator", () => {
           },
         },
       },
-      true
+      true,
     );
     const summary = screen.getByRole("region", { name: "Query filters" });
     expect(summary).toHaveTextContent(
-      'id > "5" AND (name = "Ada" OR name = "Grace")'
+      'id > "5" AND (name = "Ada" OR name = "Grace")',
     );
     expect(
-      screen.getByRole("button", { name: "Edit 3 filters for customers" })
+      screen.getByRole("button", { name: "Edit 3 filters for customers" }),
     ).toBeVisible();
     await user.click(within(summary).getByRole("button"));
     const values = screen.getAllByRole("textbox", { name: "Filter value" });
@@ -663,7 +665,7 @@ describe("TableNavigator", () => {
     await user.clear(screen.getByRole("textbox", { name: "Filter value" }));
     await user.type(
       screen.getByRole("textbox", { name: "Filter value" }),
-      "Grace"
+      "Grace",
     );
     await user.click(screen.getByRole("button", { name: "Apply" }));
     expect(setCondition).toHaveBeenCalledWith({
@@ -674,7 +676,7 @@ describe("TableNavigator", () => {
     });
     expect(setSelectedColumns).not.toHaveBeenCalled();
     await user.click(
-      screen.getByRole("button", { name: "Show columns for customers" })
+      screen.getByRole("button", { name: "Show columns for customers" }),
     );
     expect(setSelectedColumns).toHaveBeenCalledWith(["id", "name"]);
   });
@@ -704,7 +706,7 @@ describe("TableNavigator", () => {
     filter.focus();
     await user.keyboard("{Enter}");
     expect(
-      screen.getByRole("textbox", { name: "Filter values" })
+      screen.getByRole("textbox", { name: "Filter values" }),
     ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Delete filter" }));
     await user.click(screen.getByRole("button", { name: "Apply" }));
@@ -723,17 +725,62 @@ describe("TableNavigator", () => {
     expect(setSelectedColumns).toHaveBeenCalledWith(["id", "name"]);
   });
 
+  it.each(["individual", "select all"])(
+    "allows clearing all columns on an ancestor using %s",
+    async (method) => {
+      const user = userEvent.setup();
+      const { setSelectedColumns } = renderNavigator({
+        base: {
+          ...query.base,
+          joins: [
+            {
+              tableRef: "public.orders",
+              joinAlias: "orders",
+              select: ["customer_id"],
+              resultAliases: {},
+              joins: [],
+            },
+          ],
+        },
+      });
+      await user.click(
+        screen.getByRole("button", {
+          name: "Edit displayed columns for customers",
+        }),
+      );
+      if (method === "select all") {
+        await user.click(
+          screen.getByRole("menuitemcheckbox", { name: "Select all" }),
+        );
+      } else {
+        await user.click(
+          screen.getByRole("menuitemcheckbox", { name: "name" }),
+        );
+        await user.click(screen.getByRole("menuitemcheckbox", { name: "id" }));
+      }
+      expect(
+        screen.getByRole("menuitemcheckbox", { name: "id" }),
+      ).not.toBeChecked();
+      expect(
+        screen.getByRole("menuitemcheckbox", { name: "name" }),
+      ).not.toBeChecked();
+      expect(setSelectedColumns).not.toHaveBeenCalled();
+      await user.click(screen.getByRole("menuitem", { name: "Apply" }));
+      expect(setSelectedColumns).toHaveBeenCalledWith([]);
+    },
+  );
+
   it("keeps at least one column, discards dismissed edits, and applies column choices only on Apply", async () => {
     const user = userEvent.setup();
     const { setSelectedColumns } = renderNavigator();
     await user.click(
       screen.getByRole("button", {
         name: "Edit displayed columns for customers",
-      })
+      }),
     );
     await user.click(screen.getByRole("menuitemcheckbox", { name: "name" }));
     expect(
-      screen.getByRole("menuitemcheckbox", { name: "id" })
+      screen.getByRole("menuitemcheckbox", { name: "id" }),
     ).toHaveAttribute("aria-disabled", "true");
     await user.click(screen.getByRole("menuitemcheckbox", { name: "id" }));
     expect(screen.getByRole("menuitemcheckbox", { name: "id" })).toBeChecked();
@@ -742,13 +789,13 @@ describe("TableNavigator", () => {
     await user.click(
       screen.getByRole("button", {
         name: "Edit displayed columns for customers",
-      })
+      }),
     );
     expect(
-      screen.getByRole("menuitemcheckbox", { name: "name" })
+      screen.getByRole("menuitemcheckbox", { name: "name" }),
     ).toBeChecked();
     await user.click(
-      screen.getByRole("menuitemcheckbox", { name: "Select all" })
+      screen.getByRole("menuitemcheckbox", { name: "Select all" }),
     );
     expect(screen.getByRole("menuitem", { name: "Apply" })).toBeVisible();
     await user.keyboard("{End}{Enter}");
@@ -759,24 +806,24 @@ describe("TableNavigator", () => {
     const user = userEvent.setup();
     const { setCondition, removeCondition } = renderNavigator();
     await user.click(
-      screen.getByRole("button", { name: "Add filter for customers" })
+      screen.getByRole("button", { name: "Add filter for customers" }),
     );
     await user.type(
       screen.getByRole("textbox", { name: "Filter value" }),
-      "42"
+      "42",
     );
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(setCondition).not.toHaveBeenCalled();
     expect(removeCondition).not.toHaveBeenCalled();
     await user.click(
-      screen.getByRole("button", { name: "Add filter for customers" })
+      screen.getByRole("button", { name: "Add filter for customers" }),
     );
     expect(screen.getByRole("textbox", { name: "Filter value" })).toHaveValue(
-      ""
+      "",
     );
     await user.type(
       screen.getByRole("textbox", { name: "Filter value" }),
-      "43"
+      "43",
     );
     await user.click(screen.getByRole("button", { name: "Apply" }));
     expect(setCondition).toHaveBeenCalledWith({
@@ -791,13 +838,13 @@ describe("TableNavigator", () => {
     const user = userEvent.setup();
     const { setCondition, removeCondition } = renderNavigator();
     await user.click(
-      screen.getByRole("button", { name: "Add filter for customers" })
+      screen.getByRole("button", { name: "Add filter for customers" }),
     );
     await user.click(screen.getByRole("option", { name: "name" }));
     await user.click(screen.getByRole("option", { name: "in" }));
     await user.type(
       screen.getByRole("textbox", { name: "Filter values" }),
-      "Ada{Enter}"
+      "Ada{Enter}",
     );
     await user.click(screen.getByRole("button", { name: "Delete filter" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -805,7 +852,7 @@ describe("TableNavigator", () => {
     expect(removeCondition).not.toHaveBeenCalled();
 
     await user.click(
-      screen.getByRole("button", { name: "Add filter for customers" })
+      screen.getByRole("button", { name: "Add filter for customers" }),
     );
     await user.click(screen.getByRole("button", { name: "Delete filter" }));
     await user.click(screen.getByRole("button", { name: "Apply" }));

@@ -1,0 +1,144 @@
+---
+import Layout from "../layouts/Layout.astro";
+import GitHubLink from "../components/GitHubLink.astro";
+import QueryWalkthrough from "../components/QueryWalkthrough";
+import BuiltFor from "../components/BuiltFor";
+import QuoryCloud from "../components/QuoryCloud.astro";
+---
+
+<Layout>
+  <section
+    class="mx-auto flex w-[min(1240px,_calc(100%_-_96px))] flex-col items-center gap-10 pt-[65px] pb-[70px] text-center max-[1100px]:w-[calc(100%_-_64px)] max-[1100px]:gap-[25px] max-[780px]:w-[calc(100%_-_40px)] max-[780px]:grid-cols-[1fr] max-[780px]:gap-[30px] max-[780px]:pt-[55px] max-[780px]:pb-[54px] max-[520px]:w-[calc(100%_-_36px)] max-[520px]:gap-[22px] max-[520px]:pt-[43px] min-[1450px]:gap-15"
+  >
+    <div class="w-full max-w-240">
+      <h1
+        class="mx-0 mt-0 mb-7 font-display text-[clamp(38px,5.4vw,76px)] leading-none tracking-[-2px] text-balance"
+      >
+        <span class="block font-sans text-[0.5em] leading-[2em] font-light mb-3">
+          SQL is great. Writing joins isn’t.
+        </span>
+        <span
+          class="block leading-[0.5em] font-medium tracking-normal text-primary"
+        >
+          Get answers faster with Quory.
+        </span>
+      </h1>
+      <p
+        class="mx-auto my-11 max-w-140 text-[16px] leading-none text-foreground max-[1100px]:text-[14px] max-[780px]:text-[16px] max-[520px]:mb-[26px] max-[520px]:text-[14px] min-[1450px]:text-[17px]"
+      >
+        Diagnose customer issues directly in your database - <i>fast</i>.
+      </p>
+      <div
+        class="flex items-center justify-center gap-[25px] max-[1100px]:gap-[17px] max-[520px]:gap-5"
+      >
+        <a
+          class="inline-flex min-h-13 items-center justify-center gap-3 rounded-[7px] bg-primary px-[23px] py-[13px] text-[14px] font-[550] text-primary-foreground [transition:background_0.2s,_transform_0.2s] hover:[transform:translateY(-2px)] hover:bg-primary-hover max-[1100px]:gap-[15px] max-[1100px]:px-[17px] max-[1100px]:text-[12px] max-[780px]:gap-[27px] max-[780px]:px-[22px] max-[780px]:text-[14px] max-[520px]:min-h-[47px] max-[520px]:gap-[22px] max-[520px]:px-[18px] max-[520px]:py-3 max-[520px]:text-[12px]"
+          href="https://github.com/CNimmo16/quory/releases/latest"
+        >
+          Download Quory
+        </a>
+        <a
+          class="inline-flex items-center gap-[15px] text-[13px] font-[550] hover:underline hover:underline-offset-[5px] max-[1100px]:gap-2 max-[1100px]:text-[11px] max-[780px]:text-[13px] max-[520px]:text-[11px]"
+          href="/docs/"
+        >
+          Explore the docs
+        </a>
+      </div>
+      <p
+        class="mt-[19px] flex items-center justify-center gap-[7px] text-[10px] text-muted-foreground max-[520px]:text-[9px]"
+      >
+        Available on macOS, Windows &amp; Linux.
+      </p>
+    </div>
+  </section>
+  <QueryWalkthrough client:load />
+  <section
+    class="mx-auto flex w-[min(1240px,_calc(100%_-_96px))] items-center justify-between gap-5 border-t border-b border-solid border-border px-0 py-7 text-[12px] max-[1100px]:w-[calc(100%_-_64px)] max-[780px]:w-[calc(100%_-_40px)] max-[780px]:flex-col max-[780px]:gap-[14px] max-[780px]:py-[22px] max-[520px]:w-[calc(100%_-_36px)] dark:rounded-full dark:bg-secondary-emphasis dark:px-8"
+    aria-label="Supported databases"
+  >
+    <p
+      class="m-0 text-[13px] text-muted-foreground max-[780px]:text-[11px] dark:text-background"
+    >
+      Meets your data where it lives.
+    </p>
+    <div
+      class="flex flex-wrap items-center justify-center gap-12 max-[1100px]:gap-7"
+    >
+      <a href="https://www.postgresql.org/" aria-label="PostgreSQL">
+        <img
+          class="block shrink-0 object-contain"
+          src="/logos/postgresql.svg"
+          width="115"
+          alt=""
+        />
+      </a>
+      <a href="https://www.mysql.com/">
+        <img
+          class="block shrink-0 object-contain"
+          src="/logos/mysql.svg"
+          width="104"
+          height="54"
+          alt="MySQL"
+        />
+      </a>
+      <a href="https://www.sqlite.org/">
+        <img
+          class="block shrink-0 object-contain"
+          src="/logos/sqlite.svg"
+          width="112"
+          height="50"
+          alt="SQLite"
+        />
+      </a>
+    </div>
+    <p
+      class="m-0 text-[13px] whitespace-nowrap text-muted-foreground max-[780px]:text-[11px] dark:text-background"
+    >
+      More coming soon…
+    </p>
+  </section>
+  <BuiltFor client:load />
+  <QuoryCloud />
+  <section
+    class="mx-auto mb-[78px] w-[min(1240px,_calc(100%_-_96px))] rounded-[24px] border border-solid border-primary-subtle bg-primary-subtle px-6 py-16 text-center max-[1100px]:w-[calc(100%_-_64px)] max-[780px]:mb-[50px] max-[780px]:w-[calc(100%_-_40px)] max-[520px]:w-[calc(100%_-_36px)] max-[520px]:px-6 max-[520px]:py-10"
+    aria-labelledby="open-source-title"
+  >
+    <span
+      class="mb-5 block text-[32px] leading-none text-muted-foreground"
+      aria-hidden="true"
+    >
+      ✳
+    </span>
+    <p
+      class="mt-0 mb-5 text-[11px] font-medium tracking-[1.6px] text-primary-emphasis uppercase"
+    >
+      Our open-source commitment
+    </p>
+    <h2
+      id="open-source-title"
+      class="m-0 font-display text-[52px] leading-[1.08] font-medium tracking-[-0.025em] max-[520px]:text-[38px]"
+    >
+      Faster answers.
+      <br />
+      Built in the open.
+    </h2>
+    <p
+      class="mx-auto mt-6 mb-0 max-w-[500px] text-[15px] leading-[1.85] text-foreground max-[520px]:text-[14px]"
+    >
+      Database clients are built for edits and complex queries. When you need to rapidly surface data across multiple tables, they slow you down.
+    </p>
+    <p
+      class="mx-auto mt-3.5 mb-0 max-w-[540px] text-[15px] leading-[1.85] text-foreground max-[520px]:text-[14px]"
+    >
+      We’re on a mission to help engineers in small teams. Diagnose customer issues fast, without writing complex SQL queries or building internal tooling.
+    </p>
+    <p
+      class="mx-auto mt-7 mb-4 max-w-[520px] text-[13px] leading-[1.85] text-muted-foreground"
+    >
+      We’re committed to building Quory in the open, with source code you can
+      inspect, learn from, and contribute to. Share an idea, report a bug, or
+      help shape what comes next.
+    </p>
+    <GitHubLink label="View Source on GitHub" />
+  </section>
+</Layout>

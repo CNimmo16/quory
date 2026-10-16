@@ -131,11 +131,11 @@ describe("getRelationsForTable", () => {
     const relationsForOrders = getRelationsForTable(
       mockRelationships,
       "order_data",
-      "orders"
+      "orders",
     );
 
     expect(
-      relationsForOrders.sort((a, b) => a.name.localeCompare(b.name))
+      relationsForOrders.sort((a, b) => a.name.localeCompare(b.name)),
     ).toEqual([
       {
         schemaName: "order_data",
@@ -254,7 +254,7 @@ describe("getRelationsForTable", () => {
       mockRelationships,
       "public",
       "movies",
-      1 // maxJoins
+      1, // maxJoins
     );
 
     expect(relationsForMovies).toEqual([

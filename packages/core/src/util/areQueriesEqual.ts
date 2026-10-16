@@ -5,7 +5,7 @@ import { JoinDef, Query } from "../prepareQuery";
 export default function areQueriesEqual(
   schemas: DatabaseSchema[],
   queryA: Query,
-  queryB: Query
+  queryB: Query,
 ) {
   const convertSelect = (join: JoinDef) => {
     if (typeof join.select === "string") {
@@ -29,7 +29,7 @@ export default function areQueriesEqual(
       JSON.stringify(joinA.orderBy || []) ===
         JSON.stringify(joinB.orderBy || []) &&
       (joinA.joins || []).every((subJoin, i) =>
-        areJoinsEqual(subJoin, (joinB.joins || [])[i])
+        areJoinsEqual(subJoin, (joinB.joins || [])[i]),
       )
     );
   };

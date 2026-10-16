@@ -11,7 +11,7 @@ export default function useFetchSchema() {
             schema.tables.map((table) => ({
               ...table,
               schemaName: schema.name,
-            }))
+            })),
           ),
         }
       : null,

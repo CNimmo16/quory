@@ -164,9 +164,9 @@ describe("PostgresDriver", () => {
           .filter((column) => column.includedInPrimaryKey)
           .map(
             ({ schemaName, tableName, name }) =>
-              `${schemaName}.${tableName}.${name}`
+              `${schemaName}.${tableName}.${name}`,
           )
-          .sort()
+          .sort(),
       ).toEqual(["public.records.id", "public.records.tenant_id"]);
       expect(columns).toEqual(
         expect.arrayContaining([
@@ -188,7 +188,7 @@ describe("PostgresDriver", () => {
             name: "id",
             includedInPrimaryKey: false,
           }),
-        ])
+        ]),
       );
     } finally {
       await reader.teardown();
@@ -220,7 +220,7 @@ describe("PostgresDriver", () => {
           dataType: "oid",
           genericDataType: "other",
         }),
-      ])
+      ]),
     );
   });
 
@@ -241,7 +241,7 @@ describe("PostgresDriver", () => {
       expect(
         relationships
           .filter((ref) => ref.constraintId === constraintId)
-          .sort((a, b) => a.columnPosition! - b.columnPosition!)
+          .sort((a, b) => a.columnPosition! - b.columnPosition!),
       ).toEqual([
         {
           constraintId,
@@ -288,7 +288,7 @@ describe("PostgresDriver", () => {
     const relationships = await driver.getAllForeignKeysInDatabase();
 
     expect(
-      relationships.sort((a, b) => b.localTable.localeCompare(a.localTable))
+      relationships.sort((a, b) => b.localTable.localeCompare(a.localTable)),
     ).toEqual<Relationship[]>([
       {
         localSchema: "public",

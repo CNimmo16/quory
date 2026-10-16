@@ -7,7 +7,7 @@ const executions = new WeakMap<
 export async function withQueryExecution<T>(
   database: ClientDatabase,
   id: string | undefined,
-  run: (signal?: AbortSignal) => Promise<T>
+  run: (signal?: AbortSignal) => Promise<T>,
 ) {
   const key = id ?? Symbol("query");
   let active = executions.get(database);

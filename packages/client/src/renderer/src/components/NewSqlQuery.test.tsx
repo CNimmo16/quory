@@ -44,7 +44,7 @@ it("keeps custom SQL creation available as a component without the global entryp
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/queries/$queryId",
       params: { queryId: "custom-sql" },
-    })
+    }),
   );
   expect(mocks.create).toHaveBeenCalledWith({ connectionId: "local", query });
   expect(mocks.invalidate).toHaveBeenCalledOnce();

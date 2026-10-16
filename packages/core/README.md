@@ -75,9 +75,9 @@ The returned schema could look like this for a database of books:
               // only foreign key relationships are detected currently
               "hasForeignKeyConstraint": true,
               // so this is always 1
-              "confidence": 1.0
-            }
-          ]
+              "confidence": 1.0,
+            },
+          ],
         },
         {
           "name": "author_id",
@@ -91,14 +91,14 @@ The returned schema could look like this for a database of books:
               "foreignTableName": "authors",
               "foreignColumnName": "id",
               "hasForeignKeyConstraint": true,
-              "confidence": 1.0
-            }
-          ]
-        }
-      ]
+              "confidence": 1.0,
+            },
+          ],
+        },
+      ],
       // ...more tables...
-    }
-  ]
+    },
+  ],
 }
 ```
 
@@ -114,7 +114,7 @@ import { getRelationsForTable } from "@quory/core";
 const relatedTables = getRelationsForTable(
   schemasWithRelationships,
   "public",
-  "books"
+  "books",
 );
 ```
 
@@ -125,18 +125,18 @@ In a the database imagined above, this may return something like:
   {
     "schemaName": "public",
     "tableName": "authors",
-    "shortestJoinPath": 1
+    "shortestJoinPath": 1,
   },
   {
     "schemaName": "public",
     "tableName": "book_categories",
-    "shortestJoinPath": 1
+    "shortestJoinPath": 1,
   },
   {
     "schemaName": "public",
     "tableName": "categories",
-    "shortestJoinPath": 2
-  }
+    "shortestJoinPath": 2,
+  },
 ]
 ```
 
@@ -152,7 +152,7 @@ import { getEntitiesAndJunctions } from "@quory/core";
 // load driver and get schemas...
 
 const { entities, junctions } = getEntitiesAndJunctions(
-  schemasWithRelationships
+  schemasWithRelationships,
 );
 ```
 
@@ -161,7 +161,7 @@ For our imaginary books database, this could return:
 ```jsonc
 {
   "entities": ["public.authors", "public.books", "public.categories"],
-  "junctions": ["public.book_categories"]
+  "junctions": ["public.book_categories"],
 }
 ```
 
@@ -204,14 +204,14 @@ This might return row data such as:
 [
   {
     "categories": {
-      "slug": "fiction"
-    }
+      "slug": "fiction",
+    },
   },
   {
     "categories": {
-      "slug": "horror"
-    }
-  }
+      "slug": "horror",
+    },
+  },
 ]
 ```
 
@@ -253,19 +253,19 @@ If there was another book with the same `author_id` with the category "thriller"
 [
   {
     "categories": {
-      "slug": "fiction"
-    }
+      "slug": "fiction",
+    },
   },
   {
     "categories": {
-      "slug": "horror"
-    }
+      "slug": "horror",
+    },
   },
   {
     "categories": {
-      "slug": "thriller"
-    }
-  }
+      "slug": "thriller",
+    },
+  },
 ]
 ```
 

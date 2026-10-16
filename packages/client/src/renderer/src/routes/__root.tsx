@@ -88,7 +88,7 @@ function RootLayout() {
       ? projectsCollapsed
         ? 48
         : layout.leftWidth
-      : 0
+      : 0,
   );
   const selectingProject = useRouterState({
     select: (state) => state.location.pathname.startsWith("/projects"),
@@ -110,7 +110,7 @@ function RootLayout() {
   } = trpc.connections.listSavedConnections.useQuery();
 
   const activeConnection = savedConnectionsData?.connections.find(
-    ({ isActive }) => isActive
+    ({ isActive }) => isActive,
   );
 
   const navigate = useNavigate();
@@ -168,7 +168,7 @@ function RootLayout() {
     // Do not visit the selection screen or add an extra navigation history entry.
     if (selectedQuery) return;
     await navigate(
-      query ? { to: "/queries/$queryId", params: query } : { to: "/queries" }
+      query ? { to: "/queries/$queryId", params: query } : { to: "/queries" },
     );
   }
 
@@ -197,7 +197,7 @@ function RootLayout() {
 
   if (projectsData.projects.length === 0)
     return (
-      <main ref={ref} className="h-full overflow-auto bg-slate-50">
+      <main ref={ref} className="h-full overflow-auto bg-background">
         <MainDimensionsContext.Provider value={{ width, height }}>
           {opening.error && (
             <Alert variant="destructive" className="mx-auto mt-6 max-w-xl">
@@ -240,10 +240,10 @@ function RootLayout() {
         <aside
           aria-label="Projects"
           style={{ width: projectsCollapsed ? 48 : layout.leftWidth }}
-          className="relative flex h-full shrink-0 select-none flex-col border-r bg-slate-50"
+          className="relative flex h-full shrink-0 flex-col border-r bg-background select-none"
         >
           <div
-            className={`flex h-14 shrink-0 items-center gap-2 border-b text-xs font-semibold text-slate-500 ${
+            className={`flex h-14 shrink-0 items-center gap-2 border-b text-xs font-semibold text-muted-foreground ${
               projectsCollapsed ? "justify-center px-1" : "px-3"
             }`}
           >
@@ -341,7 +341,7 @@ function RootLayout() {
         >
           <MainDimensionsContext.Provider value={{ width, height }}>
             {!selectingProject && !queryScreen && (
-              <div className="flex justify-end border-b bg-white px-5 py-3">
+              <div className="flex justify-end border-b bg-card px-5 py-3">
                 <ConnectionBadge />
               </div>
             )}

@@ -69,19 +69,19 @@ it("runs only on request and preserves duplicate column names and null values", 
   expect(mocks.execute).not.toHaveBeenCalled();
   await user.click(screen.getByRole("button", { name: "Run SQL" }));
   expect(
-    await screen.findByRole("region", { name: "Scrollable query results" })
+    await screen.findByRole("region", { name: "Scrollable query results" }),
   ).toHaveTextContent("Paid");
   expect(screen.getAllByRole("columnheader", { name: "value" })).toHaveLength(
-    2
+    2,
   );
   expect(screen.getByText("NULL")).toBeVisible();
   expect(
-    screen.getByRole("table", { name: "Query results table" })
+    screen.getByRole("table", { name: "Query results table" }),
   ).toBeVisible();
   await user.click(screen.getByRole("button", { name: "value: Paid" }));
   expect(screen.getByRole("dialog")).toHaveTextContent("Paid");
   expect(
-    screen.queryByRole("button", { name: "Filter on this value" })
+    screen.queryByRole("button", { name: "Filter on this value" }),
   ).not.toBeInTheDocument();
   await user.keyboard("{Escape}");
   expect(mocks.execute).toHaveBeenCalledWith(
@@ -89,7 +89,7 @@ it("runs only on request and preserves duplicate column names and null values", 
       connectionId: "local",
       sql: "SELECT 1",
       executionId: expect.any(String),
-    })
+    }),
   );
 });
 it("requires explicit confirmation of the exact write and allows cancellation", async () => {
@@ -125,7 +125,7 @@ it("requires explicit confirmation of the exact write and allows cancellation", 
 it("allows editing converted parameters and blocks incomplete parameter JSON", async () => {
   const user = userEvent.setup();
   render(
-    <Show initial={{ mode: "sql", sql: "SELECT $1", parameters: ["paid"] }} />
+    <Show initial={{ mode: "sql", sql: "SELECT $1", parameters: ["paid"] }} />,
   );
   const parameters = screen.getByRole("textbox", {
     name: /Bound parameters \(JSON/,
@@ -135,6 +135,6 @@ it("allows editing converted parameters and blocks incomplete parameter JSON", a
   await user.paste('["finalised"]');
   await user.click(screen.getByRole("button", { name: "Run SQL" }));
   expect(mocks.execute).toHaveBeenCalledWith(
-    expect.objectContaining({ parameters: ["finalised"] })
+    expect.objectContaining({ parameters: ["finalised"] }),
   );
 });

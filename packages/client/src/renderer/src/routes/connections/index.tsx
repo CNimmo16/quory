@@ -10,7 +10,7 @@ import { ArrowLeft } from "lucide-react";
 export const Route = createFileRoute("/connections/")({
   component: RouteComponent,
   validateSearch: (
-    search: Record<string, unknown>
+    search: Record<string, unknown>,
   ): { queryId?: string; create?: boolean; select?: boolean } => ({
     ...(typeof search.queryId === "string" ? { queryId: search.queryId } : {}),
     ...(search.create === true || search.create === "true"
@@ -66,7 +66,7 @@ function CreateConnectionForm({
   const error = saveConnectionError;
 
   return (
-    <div className="mx-auto max-w-[600px] p-5">
+    <div className="mx-auto max-w-150 p-5">
       {selecting && (
         <Button
           variant="ghost"

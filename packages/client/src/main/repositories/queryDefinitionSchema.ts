@@ -18,6 +18,6 @@ export const customSqlSchema = z.object({
 export const queryDefinitionSchema: z.ZodType<QueryDefinition> = z.union([
   customSqlSchema,
   validators.query.and(
-    z.object({ mode: z.literal("relationship").optional() })
+    z.object({ mode: z.literal("relationship").optional() }),
   ),
 ]);

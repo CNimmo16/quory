@@ -30,6 +30,6 @@ if (!rootElement.innerHTML) {
       <GlobalProviders>
         <RouterProvider router={router} />
       </GlobalProviders>
-    </StrictMode>
+    </StrictMode>,
   );
 }

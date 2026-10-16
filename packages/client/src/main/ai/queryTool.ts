@@ -35,7 +35,7 @@ const filterNode = z
     values: z
       .array(z.string())
       .describe(
-        "One value for a scalar comparison; multiple for in/not in; empty for and/or."
+        "One value for a scalar comparison; multiple for in/not in; empty for and/or.",
       ),
     children: z
       .array(z.number().int().nonnegative())
@@ -50,7 +50,7 @@ export const upsertQuerySchema = z
       .min(1)
       .max(2000)
       .describe(
-        "Brief user-facing explanation of the query and any changes, including relevant displayed fields, filters, and ordering."
+        "Brief user-facing explanation of the query and any changes, including relevant displayed fields, filters, and ordering.",
       ),
     limit: z.number().int().min(1).max(100).optional(),
     offset: z
@@ -72,23 +72,23 @@ export const upsertQuerySchema = z
               .nonnegative()
               .nullable()
               .describe(
-                "null for the first/base table. Other tables reference an earlier table's array index."
+                "null for the first/base table. Other tables reference an earlier table's array index.",
               ),
             columns: z
               .array(z.string())
               .describe(
-                "Displayed columns: choose a focused set of exact schema column names relevant to the user's request. Users can show more later. Use [] for tables needed only to filter or connect other tables. Use ['*'] only for an explicit all-columns request or to preserve an existing all-column selection. Preserve existing selections on unrelated amendments."
+                "Displayed columns: choose a focused set of exact schema column names relevant to the user's request. Users can show more later. Use [] for tables needed only to filter or connect other tables. Use ['*'] only for an explicit all-columns request or to preserve an existing all-column selection. Preserve existing selections on unrelated amendments.",
               ),
             via: z
               .array(viaStep)
               .describe(
-                "Ordered table waypoints: strings or objects with tableRef and optional fromColumnName/toColumnName or usingConstraintId (never both). Either column name alone is allowed if unambiguous. Include destination as the final step to select its incoming relationship; [] for the default path."
+                "Ordered table waypoints: strings or objects with tableRef and optional fromColumnName/toColumnName or usingConstraintId (never both). Either column name alone is allowed if unambiguous. Include destination as the final step to select its incoming relationship; [] for the default path.",
               ),
             conditions: z
               .array(filterNode)
               .max(80)
               .describe(
-                "No filters: []. Otherwise index 0 is the root; and/or nodes reference later child indexes. Every node must be used."
+                "No filters: []. Otherwise index 0 is the root; and/or nodes reference later child indexes. Every node must be used.",
               ),
             orderBy: z.array(
               z
@@ -97,10 +97,10 @@ export const upsertQuerySchema = z
                   direction: z.enum(["asc", "desc"]),
                   priority: z.number().int().nonnegative(),
                 })
-                .strict()
+                .strict(),
             ),
           })
-          .strict()
+          .strict(),
       )
       .min(1)
       .max(16),
@@ -127,7 +127,7 @@ export function queryFromTool(input: UpsertQueryInput): Query {
           node.children.some((child) => child <= index)
         )
           throw new Error(
-            "Boolean filters need later child indexes and no column or values."
+            "Boolean filters need later child indexes and no column or values.",
           );
         return {
           operator: node.operator,
@@ -186,7 +186,7 @@ export function queryFromTool(input: UpsertQueryInput): Query {
 
 export async function validateAssistantQuery(
   schemas: DatabaseSchema[],
-  query: Query
+  query: Query,
 ) {
   validateQuery(schemas, query);
   // The shared planner resolves complete constraints and rejects ambiguity.

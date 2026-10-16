@@ -9,7 +9,7 @@ import { z } from "zod";
 
 /** The caller owns this handler and must dispose it when its session ends. */
 export default async function makeQuoryRequestHandler(
-  config: QuoryRequestHandlerConfig
+  config: QuoryRequestHandlerConfig,
 ) {
   const database = await ClientDatabaseService.makeClientDatabase(config);
   let disposed = false;
@@ -26,7 +26,7 @@ export default async function makeQuoryRequestHandler(
     operations.add(pending);
     void pending.then(
       () => operations.delete(pending),
-      () => operations.delete(pending)
+      () => operations.delete(pending),
     );
     return pending;
   }
@@ -46,7 +46,7 @@ export default async function makeQuoryRequestHandler(
         },
         () => {
           refreshing = undefined;
-        }
+        },
       );
     }
     return refreshing;
@@ -75,7 +75,7 @@ export default async function makeQuoryRequestHandler(
         const { sql, parameters } = await prepareQuery(
           database.schemas,
           query,
-          database.driver.dialect
+          database.driver.dialect,
         );
         return { sql, parameters, dialect: database.driver.dialect };
       }),
@@ -83,7 +83,7 @@ export default async function makeQuoryRequestHandler(
       sql: string,
       parameters: SqlParameter[],
       readOnly: boolean,
-      executionId: string
+      executionId: string,
     ) =>
       track(() =>
         withQueryExecution(database, executionId, async (signal) => {
@@ -95,7 +95,7 @@ export default async function makeQuoryRequestHandler(
           if (signal?.aborted) abort();
           const timer = setTimeout(
             () => controller.abort(new Error("Query timed out.")),
-            15_000
+            15_000,
           );
           try {
             return await database.driver.execSql(sql, parameters, {
@@ -107,7 +107,7 @@ export default async function makeQuoryRequestHandler(
             clearTimeout(timer);
             signal?.removeEventListener("abort", abort);
           }
-        })
+        }),
       ),
     refreshSchema: () =>
       track(() => {

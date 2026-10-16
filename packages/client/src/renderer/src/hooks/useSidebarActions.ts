@@ -8,7 +8,7 @@ export function useSidebarActions(
   projectId: string,
   project: Project,
   revision: string,
-  active: boolean
+  active: boolean,
 ) {
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
   const [name, setName] = useState("");
@@ -60,7 +60,7 @@ export function useSidebarActions(
       await refresh();
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Could not rename this item."
+        cause instanceof Error ? cause.message : "Could not rename this item.",
       );
     }
   }
@@ -99,7 +99,7 @@ export function useSidebarActions(
       await refresh(!query);
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Could not delete this item."
+        cause instanceof Error ? cause.message : "Could not delete this item.",
       );
     }
   }

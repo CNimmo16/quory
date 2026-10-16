@@ -32,18 +32,18 @@ export function TagsInput({
   }
 
   return (
-    <div className="flex min-h-8 min-w-40 flex-1 flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 focus-within:ring-1 focus-within:ring-teal-600">
+    <div className="flex min-h-8 min-w-40 flex-1 flex-wrap items-center gap-1 rounded-md border border-border bg-card px-2 py-1 focus-within:ring-1 focus-within:ring-primary">
       {value.map((tag) => (
         <Badge
           key={tag}
           variant="secondary"
-          className="gap-1 border border-teal-100 bg-teal-50 text-[10px] font-medium text-teal-800 hover:bg-teal-100"
+          className="gap-1 border border-primary bg-primary-subtle text-[10px] font-medium text-primary-emphasis hover:bg-primary-subtle"
         >
           {tag}
           <button
             type="button"
             aria-label={`Remove ${tag}`}
-            className="rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => onChange(value.filter((item) => item !== tag))}
           >
@@ -56,7 +56,7 @@ export function TagsInput({
         aria-label="Filter values"
         placeholder={value.length ? undefined : "Add values"}
         value={draft}
-        className="h-5 w-20 min-w-20 flex-1 border-0 p-0 text-xs text-slate-700 shadow-none focus-visible:ring-0"
+        className="h-5 w-20 min-w-20 flex-1 border-0 p-0 text-xs text-foreground shadow-none focus-visible:ring-0"
         onChange={(event) => setDraft(event.target.value)}
         onFocus={onFocus}
         onBlur={() => {

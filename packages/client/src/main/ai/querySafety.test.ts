@@ -31,15 +31,15 @@ describe("shared entry-path validation", () => {
     const db = database();
     await expect(runQuery(db.driver, schemas, query)).rejects.toThrow("column");
     await expect(
-      routes.query.handle({ database: db }, { query })
+      routes.query.handle({ database: db }, { query }),
     ).rejects.toThrow("column");
     await expect(
-      routes.queryCount.handle({ database: db }, { query })
+      routes.queryCount.handle({ database: db }, { query }),
     ).rejects.toThrow("column");
     const tool = structuredClone(orderQuery);
     tool.tables[0]!.orderBy[0]!.column = "id, (SELECT 123)";
     await expect(
-      validateAssistantQuery(schemas, queryFromTool(tool))
+      validateAssistantQuery(schemas, queryFromTool(tool)),
     ).rejects.toThrow("column");
     expect(db.driver.exec).not.toHaveBeenCalled();
   });
@@ -79,14 +79,14 @@ describe("shared entry-path validation", () => {
       },
     };
     await expect(
-      validateAssistantQuery(unusual, query)
+      validateAssistantQuery(unusual, query),
     ).resolves.toBeUndefined();
     const db = { ...database(), schemas: unusual };
     await routes.query.handle({ database: db }, { query });
     expect(db.driver.exec).toHaveBeenCalledWith(
       expect.stringContaining('"message "" text" DESC'),
       [100, 0],
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 });
@@ -95,7 +95,7 @@ it("accepts prepared queries resubmitted by the editor through HTTP", async () =
   const { preparedQuery } = await prepareQuery(schemas, simple);
   const db = database();
   await expect(
-    routes.query.handle({ database: db }, { query: preparedQuery })
+    routes.query.handle({ database: db }, { query: preparedQuery }),
   ).resolves.toBeDefined();
   expect(db.driver.exec).toHaveBeenCalledTimes(1);
 });
@@ -120,29 +120,27 @@ it.each([
     await expect(runQuery(db.driver, schemas, query)).rejects.toThrow();
     await expect(validateAssistantQuery(schemas, query)).rejects.toThrow();
     await expect(
-      routes.query.handle({ database: db }, { query })
+      routes.query.handle({ database: db }, { query }),
     ).rejects.toThrow();
     await expect(
-      routes.queryCount.handle({ database: db }, { query })
+      routes.queryCount.handle({ database: db }, { query }),
     ).rejects.toThrow();
-    const { query: savedQueryValidator } = await import(
-      "../../../../stack/src/server/validators"
-    );
+    const { query: savedQueryValidator } =
+      await import("../../../../stack/src/server/validators");
     expect(savedQueryValidator.safeParse(query).success).toBe(false);
     const { upsertQuerySchema } = await import("./queryTool");
     expect(
-      upsertQuerySchema.safeParse({ ...orderQuery, ...pagination }).success
+      upsertQuerySchema.safeParse({ ...orderQuery, ...pagination }).success,
     ).toBe(false);
     expect(db.driver.exec).not.toHaveBeenCalled();
-  }
+  },
 );
 
 it("keeps counts lazy, binds offset, and preserves pagination through persistence validation", async () => {
   const db = database();
   const query = { ...simple, limit: 20, offset: 40 };
-  const { query: validator } = await import(
-    "../../../../stack/src/server/validators"
-  );
+  const { query: validator } =
+    await import("../../../../stack/src/server/validators");
   const prepared = (await prepareQuery(schemas, query)).preparedQuery;
   const saved = validator.parse(JSON.parse(JSON.stringify(prepared)));
   expect(saved).toMatchObject({ limit: 20, offset: 40 });
@@ -166,7 +164,7 @@ it("cancels only the requested database execution", async () => {
   const executionId = "d6cdd730-bd80-4b2d-8fe6-56cccd44113f";
   const running = routes.query.handle(
     { database: db },
-    { query: simple, executionId }
+    { query: simple, executionId },
   );
   const rejected = expect(running).rejects.toThrow("cancelled");
   await new Promise((resolve) => setTimeout(resolve, 0));

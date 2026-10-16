@@ -18,7 +18,7 @@ describe("MySQLDriver", () => {
 
   beforeEach(async () => {
     await mysqlContainer.executeQuery(
-      `DROP database test; CREATE database test;`
+      `DROP database test; CREATE database test;`,
     );
 
     driver = new MySQLDriver({
@@ -121,7 +121,7 @@ describe("MySQLDriver", () => {
           isNullable: true,
           includedInPrimaryKey: false,
         },
-      ].sort()
+      ].sort(),
     );
   });
 
@@ -142,7 +142,7 @@ describe("MySQLDriver", () => {
       expect(
         relationships
           .filter((ref) => ref.constraintId === constraintId)
-          .sort((a, b) => a.columnPosition! - b.columnPosition!)
+          .sort((a, b) => a.columnPosition! - b.columnPosition!),
       ).toEqual([
         {
           constraintId,
@@ -190,8 +190,8 @@ describe("MySQLDriver", () => {
 
     expect(
       relationships.sort((a, b) =>
-        JSON.stringify(a).localeCompare(JSON.stringify(b))
-      )
+        JSON.stringify(a).localeCompare(JSON.stringify(b)),
+      ),
     ).toEqual<Relationship[]>([
       {
         localSchema: "test",

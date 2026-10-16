@@ -196,7 +196,7 @@ export function ConnectionForm({
                 />
                 <span
                   aria-hidden="true"
-                  className={`flex size-7 items-center justify-center rounded-full text-white peer-checked:ring-2 peer-checked:ring-slate-700 peer-checked:ring-offset-2 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-teal-600 ${connectionColours[colour].dot}`}
+                  className={`flex size-7 items-center justify-center rounded-full text-primary-foreground peer-checked:ring-2 peer-checked:ring-foreground peer-checked:ring-offset-2 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-primary ${connectionColours[colour].dot}`}
                 >
                   {(config.colour ?? "teal") === colour && (
                     <Check className="size-4" />
@@ -236,8 +236,8 @@ export function ConnectionForm({
             {config.writeProtection === "dangerously-write"
               ? "SQL can change or delete data without confirmation."
               : config.writeProtection === "confirm-before-write"
-              ? "You must confirm each SQL statement that may change data."
-              : "SQL cannot change data on this connection."}
+                ? "You must confirm each SQL statement that may change data."
+                : "SQL cannot change data on this connection."}
           </p>
         </div>
         {errorMessage && (
@@ -252,7 +252,7 @@ export function ConnectionForm({
               isSaving ||
               !typeSpecificFieldsWithDefaults ||
               Object.keys(typeSpecificFieldsWithDefaults).some(
-                (field) => !config[field as keyof typeof config]
+                (field) => !config[field as keyof typeof config],
               ) ||
               !config.nickname
             }

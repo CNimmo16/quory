@@ -45,7 +45,7 @@ function ConnectedQuoryProvider({ children }: { children: React.ReactNode }) {
         const executionId = crypto.randomUUID();
         const cancel = () => {
           void invoke({ path: "cancelQuery", data: { executionId } }).catch(
-            () => {}
+            () => {},
           );
         };
         signal?.throwIfAborted();

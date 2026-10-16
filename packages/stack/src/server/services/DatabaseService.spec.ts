@@ -29,12 +29,12 @@ beforeEach(() => {
   jest
     .mocked(PostgresDriver)
     .mockImplementation(
-      () => ({ testConnection, teardown } as unknown as PostgresDriver)
+      () => ({ testConnection, teardown }) as unknown as PostgresDriver,
     );
   jest
     .mocked(MySQLDriver)
     .mockImplementation(
-      () => ({ testConnection, teardown } as unknown as MySQLDriver)
+      () => ({ testConnection, teardown }) as unknown as MySQLDriver,
     );
 });
 
@@ -71,7 +71,7 @@ describe.each(["postgres", "mysql"] as const)("%s SSL connections", (type) => {
           key: "KEY PEM",
           ...(type === "mysql" && { verifyIdentity: true }),
         },
-      })
+      }),
     );
   });
 
@@ -85,7 +85,7 @@ describe.each(["postgres", "mysql"] as const)("%s SSL connections", (type) => {
           rejectUnauthorized: false,
           ...(type === "mysql" && { verifyIdentity: false }),
         }),
-      })
+      }),
     );
   });
 
@@ -98,7 +98,7 @@ describe.each(["postgres", "mysql"] as const)("%s SSL connections", (type) => {
         ssl: expect.objectContaining({
           rejectUnauthorized: true,
         }),
-      })
+      }),
     );
     expect(jest.mocked(Driver).mock.calls[0]![0].ssl).not.toHaveProperty("ca");
   });
@@ -108,7 +108,7 @@ describe.each(["postgres", "mysql"] as const)("%s SSL connections", (type) => {
     await expect(
       makeClientDatabase({
         database: { ...database, type, ssl: { mode: "verify-full" } },
-      })
+      }),
     ).rejects.toMatchObject({ name: "DatabaseConnectionFailedError" });
     expect(Driver).toHaveBeenCalledTimes(1);
     expect(getSchemas).not.toHaveBeenCalled();
@@ -120,7 +120,7 @@ it("disposes after metadata initialization failure and preserves the error", asy
   jest.mocked(getSchemas).mockRejectedValue(new Error("metadata failed"));
   teardown.mockRejectedValue(new Error("cleanup failed"));
   await expect(makeClientDatabase({ database })).rejects.toThrow(
-    "metadata failed"
+    "metadata failed",
   );
   expect(teardown).toHaveBeenCalledTimes(1);
 });

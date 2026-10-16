@@ -3,7 +3,7 @@ type TableRef = readonly [schemaName: string, tableName: string];
 /** Rank one relationship group; callers keep adjacent and indirect groups separate. */
 export function filterRelatedTables(
   tables: TableRef[],
-  search: string
+  search: string,
 ): TableRef[] {
   const term = search.trim().toLowerCase();
   if (!term) return tables;
@@ -18,12 +18,12 @@ export function filterRelatedTables(
         target === term
           ? 0
           : target.startsWith(term)
-          ? 1
-          : index > 0 && /[_\s-]/.test(target[index - 1]!)
-          ? 2
-          : index >= 0
-          ? 3
-          : 4;
+            ? 1
+            : index > 0 && /[_\s-]/.test(target[index - 1]!)
+              ? 2
+              : index >= 0
+                ? 3
+                : 4;
       return [{ table, rank, index, length: target.length }];
     })
     .sort(
@@ -32,7 +32,7 @@ export function filterRelatedTables(
         a.index - b.index ||
         a.length - b.length ||
         a.table[1].localeCompare(b.table[1]) ||
-        a.table[0].localeCompare(b.table[0])
+        a.table[0].localeCompare(b.table[0]),
     )
     .map(({ table }) => table);
 }

@@ -35,7 +35,7 @@ export default function normalizeVia(via: ViaStep[] = []): ViaTableStep[] {
       (step.fromColumnName !== undefined || step.toColumnName !== undefined)
     ) {
       throw new Error(
-        "A via step can specify usingConstraintId or column names, not both."
+        "A via step can specify usingConstraintId or column names, not both.",
       );
     }
     return {

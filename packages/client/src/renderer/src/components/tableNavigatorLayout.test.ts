@@ -17,7 +17,7 @@ function table(alias: string, joins: PreparedJoinDef[] = []): PreparedJoinDef {
 function chain(length: number, prefix = "chain"): PreparedJoinDef {
   return table(
     `${prefix}_${length}`,
-    length > 1 ? [chain(length - 1, prefix)] : []
+    length > 1 ? [chain(length - 1, prefix)] : [],
   );
 }
 const branch = table("root", [
@@ -42,7 +42,7 @@ describe("responsive relationship layout", () => {
       for (const base of [table("single"), chain(20), branch]) {
         const layout = layoutTableDiagram(base, width);
         expect(
-          new Set(layout.nodes.map((node) => node.join.joinAlias)).size
+          new Set(layout.nodes.map((node) => node.join.joinAlias)).size,
         ).toBe(layout.nodes.length);
         expect(layout.edges).toHaveLength(layout.nodes.length - 1);
         expect(layout.placeholders).toHaveLength(layout.nodes.length);
@@ -50,10 +50,10 @@ describe("responsive relationship layout", () => {
           expect(placeholder.x).toBeGreaterThanOrEqual(0);
           expect(placeholder.x + placeholder.width).toBeLessThanOrEqual(width);
           expect(placeholder.y + placeholder.height).toBeLessThanOrEqual(
-            layout.height
+            layout.height,
           );
           const source = layout.nodes.find(
-            (node) => node.join.joinAlias === placeholder.join.joinAlias
+            (node) => node.join.joinAlias === placeholder.join.joinAlias,
           )!;
           expect(placeholder.points[0]!.y).toBe(source.y + source.height);
           expect(placeholder.points[1]!.y).toBe(placeholder.y);
@@ -71,7 +71,7 @@ describe("responsive relationship layout", () => {
         }
         for (const edge of layout.edges) {
           const target = layout.nodes.find(
-            (node) => node.join.joinAlias === edge.target
+            (node) => node.join.joinAlias === edge.target,
           )!;
           expect(target.parent?.joinAlias).toBe(edge.source);
           for (const [i, point] of edge.points.entries()) {
@@ -94,13 +94,13 @@ describe("responsive relationship layout", () => {
                     Math.min(point.x, next.x) < node.x + node.width;
               expect(
                 crosses,
-                `${edge.source} → ${edge.target} crosses ${node.join.joinAlias}`
+                `${edge.source} → ${edge.target} crosses ${node.join.joinAlias}`,
               ).toBe(false);
             }
           }
         }
       }
-    }
+    },
   );
 
   it("wraps deep relationships onto lower rows as available space decreases", () => {
@@ -112,7 +112,7 @@ describe("responsive relationship layout", () => {
     expect(new Set(medium.nodes.map((node) => node.row)).size).toBe(2);
     expect(new Set(narrow.nodes.map((node) => node.row)).size).toBe(4);
     expect(narrow.nodes.map((node) => node.join.joinAlias)).toEqual(
-      wide.nodes.map((node) => node.join.joinAlias)
+      wide.nodes.map((node) => node.join.joinAlias),
     );
   });
 });

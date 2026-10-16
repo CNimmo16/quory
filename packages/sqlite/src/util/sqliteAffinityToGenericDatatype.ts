@@ -1,7 +1,7 @@
 import { GenericDataType } from "@quory/core";
 
 export default function sqliteAffinityToGenericDatatype(
-  sqliteDataType: string
+  sqliteDataType: string,
 ): GenericDataType {
   const lookup: { [x: string]: GenericDataType } = {
     TEXT: "text",

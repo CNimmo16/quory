@@ -8,7 +8,7 @@ it.each([
   "SELECT $tag$hello;delete$tag$",
   "SELECT 1 /* nested /* comment */ remaining */",
 ])("identifies a protected read: %s", (sql) =>
-  expect(analyseSql(sql).readOnly).toBe(true)
+  expect(analyseSql(sql).readOnly).toBe(true),
 );
 it.each([
   "WITH x AS (DELETE FROM orders RETURNING *) SELECT * FROM x",
@@ -19,7 +19,7 @@ it.each([
   "SELECT nextval('sequence')",
   "SELECT 1 /*!40101 INTO OUTFILE 'file' */",
 ])("requires write permissions: %s", (sql) =>
-  expect(analyseSql(sql).readOnly).toBe(false)
+  expect(analyseSql(sql).readOnly).toBe(false),
 );
 it.each([
   "SELECT 1; DELETE FROM orders",
@@ -30,7 +30,7 @@ it.each([
   "BEGIN",
   "COMMIT",
 ])("rejects ambiguous batches and transaction escape: %s", (sql) =>
-  expect(() => analyseSql(sql)).toThrow()
+  expect(() => analyseSql(sql)).toThrow(),
 );
 it("handles dialect-specific comment rules", () => {
   expect(analyseSql("--comment\nSELECT 1", "postgres").readOnly).toBe(true);

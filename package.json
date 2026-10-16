@@ -3,19 +3,27 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "pnpm -r run build",
-    "dev": "pnpm -r --parallel run build:watch",
+    "build": "pnpm --filter './packages/*' -r run build",
+    "dev": "pnpm --filter './packages/*' -r --parallel run build:watch",
     "serve": "pnpm --filter @quory/client run serve",
-    "test": "pnpm -r --parallel run test",
-    "lint": "pnpm -r run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "test": "pnpm --filter './packages/*' -r --parallel run test",
+    "lint": "pnpm --filter './packages/*' -r run lint",
+    "format": "prettier --config prettierrc.json --write \"**/*.{ts,tsx,astro,md,json}\"",
     "changeset": "pnpm build && changeset",
-    "ci:release": "pnpm build && pnpm lint && pnpm test && changeset version && changeset publish"
+    "ci:release": "pnpm build && pnpm lint && pnpm test && changeset version && changeset publish",
+    "marketing:dev": "pnpm --filter @quory/marketing dev",
+    "marketing:build": "pnpm --filter @quory/marketing build",
+    "marketing:start": "pnpm --filter @quory/marketing start",
+    "rebuild:native": "pnpm --filter @quory/client rebuild:native"
   },
   "devDependencies": {
     "node-gyp": "^10.3.1",
-    "prettier": "2.8.4",
-    "prettier-plugin-tailwindcss": "^0.2.4"
+    "prettier": "3.9.10",
+    "prettier-plugin-astro": "0.14.1",
+    "prettier-plugin-tailwindcss": "0.8.1",
+    "prettier-plugin-tailwindcss-canonical-classes": "0.1.6",
+    "react": "catalog:react19",
+    "react-dom": "catalog:react19"
   },
   "engines": {
     "pnpm": ">=12.0.0 <13",

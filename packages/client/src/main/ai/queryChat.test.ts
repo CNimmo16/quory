@@ -87,7 +87,7 @@ beforeEach(() => {
     await upsert(
       queryFromTool(orderQuery),
       orderQuery.nickname,
-      orderQuery.summary
+      orderQuery.summary,
     );
     return { queryUpdated: true, text: orderQuery.summary };
   });
@@ -107,7 +107,7 @@ describe("chat persistence", () => {
             statusCode: 429,
           }),
         ],
-      })
+      }),
     );
     await expect(caller.chat(input())).rejects.toThrow("out of credits");
     expect(mocks.put).not.toHaveBeenCalled();
@@ -185,13 +185,13 @@ describe("chat persistence", () => {
               role: "assistant",
               content: "Showing two rows.",
             }),
-          ])
+          ]),
         );
         expect(
-          messages.some((message: ChatMessage) => message.historyAction)
+          messages.some((message: ChatMessage) => message.historyAction),
         ).toBe(false);
         return { queryUpdated: false, text: "Which date range?" };
-      }
+      },
     );
     const next = await caller.chat({
       ...input(),
@@ -206,7 +206,7 @@ describe("chat persistence", () => {
   it("rejects a query owned by another project and stale revisions", async () => {
     const initial = await caller.chat(input());
     await expect(
-      caller.chat({ ...input(), queryId: initial.queryId!, revision: "stale" })
+      caller.chat({ ...input(), queryId: initial.queryId!, revision: "stale" }),
     ).rejects.toThrow("changed");
     mocks.project = "other-project";
     mocks.connection.mockResolvedValue("another-connection");
@@ -220,7 +220,7 @@ describe("chat persistence", () => {
         connectionId: "another-connection",
         queryId: initial.queryId!,
         revision: initial.revision!,
-      })
+      }),
     ).rejects.toThrow("different project");
     expect(mocks.assistant).toHaveBeenCalledOnce();
   });
@@ -231,7 +231,7 @@ describe("chat persistence", () => {
       await upsert(
         queryFromTool(orderQuery),
         orderQuery.nickname,
-        orderQuery.summary
+        orderQuery.summary,
       );
     });
     await expect(
@@ -239,14 +239,14 @@ describe("chat persistence", () => {
         ...input(),
         queryId: initial.queryId!,
         revision: initial.revision!,
-      })
+      }),
     ).rejects.toThrow("changed");
     expect(docs.get(initial.queryId!)!._rev).toBe("2-manual-edit");
   });
   it("does not save after the active connection changes", async () => {
     mocks.connection.mockResolvedValue("connection-2");
     await expect(caller.chat(input())).rejects.toThrow(
-      "active connection changed"
+      "active connection changed",
     );
     expect(mocks.put).not.toHaveBeenCalled();
   });
@@ -258,11 +258,11 @@ it("rejects switching away and back during chat generation", async () => {
     await upsert(
       queryFromTool(orderQuery),
       orderQuery.nickname,
-      orderQuery.summary
+      orderQuery.summary,
     );
   });
   await expect(caller.chat(input())).rejects.toThrow(
-    "active connection changed"
+    "active connection changed",
   );
   expect(mocks.put).not.toHaveBeenCalled();
 });
