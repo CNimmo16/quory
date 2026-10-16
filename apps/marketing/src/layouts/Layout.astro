@@ -3,7 +3,7 @@ import "../styles/global.css";
 import GitHubLink from "../components/GitHubLink.astro";
 import DownloadEmailModal from "../components/DownloadEmailModal.astro";
 import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
-import logoUrl from "../../../../packages/config/branding/quory-logo.svg?url";
+import QuoryLogo from "../../../../packages/config/branding/quory-logo.svg";
 import palette from "../../../../packages/config/theme/palette.json";
 interface Props {
   title?: string;
@@ -52,12 +52,11 @@ const {
         href="/"
         aria-label="Quory home"
       >
-        <img
-          class="h-10 w-auto max-[780px]:h-[34px] max-[520px]:h-[30px]"
-          src={logoUrl}
+        <QuoryLogo
+          class="h-10 w-auto text-primary max-[780px]:h-[34px] max-[520px]:h-[30px] dark:text-[#54a4a9] [&_g]:fill-current"
           width="120"
           height="40"
-          alt=""
+          aria-hidden="true"
         />
       </a>
       <nav
@@ -106,7 +105,12 @@ const {
     >
       <div>
         <a class="inline-flex items-center" href="/" aria-label="Quory home">
-          <img class="h-8 w-auto" src={logoUrl} width="96" height="32" alt="" />
+          <QuoryLogo
+            class="h-8 w-auto text-primary dark:text-[#54a4a9] [&_g]:fill-current"
+            width="96"
+            height="32"
+            aria-hidden="true"
+          />
         </a>
       </div>
       <div class="text-right max-[520px]:text-left">

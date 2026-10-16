@@ -21,7 +21,7 @@ import QuoryCloud from "../components/QuoryCloud.astro";
           SQL is great. Writing joins isn’t.
         </span>
         <span
-          class="block leading-[0.5em] font-medium tracking-normal text-primary"
+          class="block leading-[0.5em] font-medium tracking-normal text-primary dark:text-[#54a4a9]"
         >
           Get answers faster with Quory.
         </span>
@@ -46,20 +46,18 @@ import QuoryCloud from "../components/QuoryCloud.astro";
   </section>
   <QueryWalkthrough client:load />
   <section
-    class="mx-auto flex w-[min(1240px,_calc(100%_-_96px))] items-center justify-between gap-5 border-t border-b border-solid border-border px-0 py-7 text-[12px] max-[1100px]:w-[calc(100%_-_64px)] max-[780px]:w-[calc(100%_-_40px)] max-[780px]:flex-col max-[780px]:gap-[14px] max-[780px]:py-[22px] max-[520px]:w-[calc(100%_-_36px)] dark:rounded-full dark:bg-secondary-emphasis dark:px-8"
+    class="mx-auto flex w-[min(1240px,_calc(100%_-_96px))] items-center justify-between gap-5 border-t border-b border-solid border-border px-0 py-7 text-[12px] max-[1100px]:w-[calc(100%_-_64px)] max-[780px]:w-[calc(100%_-_40px)] max-[780px]:flex-col max-[780px]:gap-[14px] max-[780px]:py-[22px] max-[520px]:w-[calc(100%_-_36px)]"
     aria-label="Supported databases"
   >
-    <p
-      class="m-0 text-[13px] text-muted-foreground max-[780px]:text-[11px] dark:text-background"
-    >
+    <p class="m-0 text-[13px] text-muted-foreground max-[780px]:text-[11px]">
       Meets your data where it lives.
     </p>
     <div
-      class="flex flex-wrap items-center justify-center gap-12 max-[1100px]:gap-7"
+      class="grid max-w-full grid-cols-3 items-center gap-12 max-[1100px]:gap-7 max-[520px]:gap-5"
     >
       <a href="https://www.postgresql.org/" aria-label="PostgreSQL">
         <img
-          class="block shrink-0 object-contain"
+          class="block shrink-0 object-contain dark:[filter:grayscale(1)_invert(1)_brightness(1.5)]"
           src="/logos/postgresql.svg"
           width="115"
           alt=""
@@ -67,7 +65,7 @@ import QuoryCloud from "../components/QuoryCloud.astro";
       </a>
       <a href="https://www.mysql.com/">
         <img
-          class="block shrink-0 object-contain"
+          class="block shrink-0 object-contain dark:[filter:grayscale(1)_invert(1)_brightness(1.5)]"
           src="/logos/mysql.svg"
           width="104"
           height="54"
@@ -76,7 +74,7 @@ import QuoryCloud from "../components/QuoryCloud.astro";
       </a>
       <a href="https://www.sqlite.org/">
         <img
-          class="block shrink-0 object-contain"
+          class="block shrink-0 object-contain dark:[filter:grayscale(1)_invert(1)_brightness(1.5)]"
           src="/logos/sqlite.svg"
           width="112"
           height="50"
@@ -85,7 +83,7 @@ import QuoryCloud from "../components/QuoryCloud.astro";
       </a>
     </div>
     <p
-      class="m-0 text-[13px] whitespace-nowrap text-muted-foreground max-[780px]:text-[11px] dark:text-background"
+      class="m-0 text-[13px] whitespace-nowrap text-muted-foreground max-[780px]:text-[11px]"
     >
       More coming soon…
     </p>
