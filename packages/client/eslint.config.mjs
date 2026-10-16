@@ -9,5 +9,12 @@ export default [
   },
   ...base,
   ...react,
-  ...node
+  ...node,
+  {
+    // Packaging hooks run as CommonJS (including electron-builder's signing hook).
+    files: ['scripts/*.cjs'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off'
+    }
+  }
 ]
