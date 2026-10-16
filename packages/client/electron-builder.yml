@@ -31,8 +31,9 @@ nsis:
 
 # mac targets:
 mac:
-  icon: build/icon.icns
+  icon: build/Quory.icon
   target: [dmg]
+  identity: "-"
   sign: scripts/sign-adhoc.cjs
   hardenedRuntime: false
   entitlements: build/entitlements.mac.plist
@@ -44,6 +45,7 @@ mac:
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
 dmg:
+  icon: build/icon.icns
   artifactName: ${productName}-${version}-mac-${arch}.${ext}
 
 # linux targets:

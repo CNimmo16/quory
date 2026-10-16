@@ -1,5 +1,6 @@
 const { execFileSync } = require("node:child_process");
 const { existsSync } = require("node:fs");
+const assert = require("node:assert/strict");
 const { resolve, join } = require("node:path");
 const [platform, arch] = process.argv.slice(2);
 const folder =
@@ -39,9 +40,33 @@ execFileSync(executable, ["-e", probe, manifest, arch], {
   stdio: "inherit",
   timeout: 60000,
 });
-if (platform === "mac")
+if (platform === "mac") {
+  // The modern system-masked icon and the legacy fallback must both ship.
+  assert(
+    existsSync(join(resources, "Assets.car")),
+    "Missing compiled Icon Composer catalog",
+  );
+  assert(
+    existsSync(join(resources, "icon.icns")),
+    "Missing legacy icon fallback",
+  );
+  const iconName = execFileSync(
+    "/usr/libexec/PlistBuddy",
+    [
+      "-c",
+      "Print :CFBundleIconName",
+      join(root, "quory.app/Contents/Info.plist"),
+    ],
+    { encoding: "utf8" },
+  ).trim();
+  assert.equal(
+    iconName,
+    "Icon",
+    "Application must reference the compiled native icon",
+  );
   execFileSync(
     "codesign",
     ["--verify", "--deep", "--strict", join(root, "quory.app")],
     { stdio: "inherit" },
   );
+}

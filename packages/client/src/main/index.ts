@@ -10,7 +10,12 @@ import {
 } from "electron-devtools-installer";
 
 let mainWindow: BrowserWindow | null = null;
-const icon = join(app.getAppPath(), "resources/icon.png");
+const icon = join(
+  app.getAppPath(),
+  process.platform === "darwin"
+    ? "resources/icon-mac.png"
+    : "resources/icon.png",
+);
 
 if (!app.isPackaged) loadAIEnvironment();
 

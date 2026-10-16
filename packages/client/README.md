@@ -23,6 +23,26 @@ development server launched before this watch option was enabled to pick it up.
 The interaction tests cover connection forms, searchable table selection, filter
 editing, and applying or dismissing column selections.
 
+## Desktop icons
+
+macOS packaging requires Xcode 26 or newer, selected with `xcode-select`. Release
+CI selects Xcode 26.3 on both Mac runners. electron-builder 26 compiles
+`build/Quory.icon` into the native asset catalog and an ICNS fallback, so macOS 26
+can apply its standard icon shape and appearance variants. Older Macs use the
+fallback. Windows and Linux continue using `build/icon.ico` and `build/icon.png`.
+
+Edit the macOS document in Apple's Icon Composer. Keep the white background
+separate from the teal mark. After changing it, regenerate the committed disk
+image and development Dock assets from the client directory:
+
+```sh
+pnpm exec node scripts/generate-mac-icon.cjs
+```
+
+The release smoke test checks the asset catalog, fallback, bundle icon reference,
+native modules, and ad-hoc signature. No Apple signing account or notarization
+credentials are required.
+
 ## Query assistant
 
 Copy the root `.env.example` to `.env.local` and set `AI_PROVIDER`, `AI_MODEL`,

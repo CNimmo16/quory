@@ -37,7 +37,7 @@ catalogs:
     react: ^19.0.0
     react-dom: ^19.0.0
 
-# electron-builder 24 requires a flat node_modules layout for packaging.
+# Keep the flat node_modules layout used by desktop packaging.
 nodeLinker: hoisted
 
 # Preserve the native modules and Electron installation steps used by the app.
@@ -46,6 +46,7 @@ allowBuilds:
   better-sqlite3: true
   cpu-features: true
   electron: true
+  electron-winstaller: true
   esbuild: true
   sharp: true
   fsevents: true

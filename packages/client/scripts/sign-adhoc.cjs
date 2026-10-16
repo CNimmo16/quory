@@ -1,4 +1,4 @@
-// electron-builder 24's custom signing hook: no certificate or Apple account.
+// Custom signing hook: no certificate or Apple account.
 const { createRequire } = require("node:module");
 const builderRequire = createRequire(
   require.resolve("app-builder-lib/package.json"),
