@@ -257,8 +257,8 @@ importers:
         version: 2.27.11
     devDependencies:
       node:
-        specifier: runtime:20.20.2
-        version: runtime:20.20.2
+        specifier: runtime:22.23.3
+        version: runtime:22.23.3
       node-gyp:
         specifier: ^10.3.1
         version: 10.3.1(supports-color@8.1.1)
@@ -7678,148 +7678,6 @@ packages:
 
   node-releases@2.0.19:
     resolution: {integrity: sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==}
-
-  node@runtime:20.20.2:
-    resolution:
-      type: variations
-      variants:
-        - resolution:
-            archive: tarball
-            bin:
-              node: bin/node
-            integrity: sha256-PGD1QGmlOtj/7vKw8R4fiDM7Et7P7XVbJs4/y14tl+Q=
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-aix-ppc64.tar.gz
-          targets:
-            - cpu: ppc64
-              os: aix
-        - resolution:
-            archive: tarball
-            bin:
-              node: bin/node
-            integrity: sha256-Rm4F80d8IN+3IwVN/r/+Vbx0Zg7nf2EhZvyhIdrLZbY=
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-darwin-arm64.tar.gz
-          targets:
-            - cpu: arm64
-              os: darwin
-        - resolution:
-            archive: tarball
-            bin:
-              node: bin/node
-            integrity: sha256-i+b15LsSjIJ3T4oLjXocwTZaeXfZZXzs4Mpkez/gTmE=
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-darwin-x64.tar.gz
-          targets:
-            - cpu: x64
-              os: darwin
-        - resolution:
-            archive: tarball
-            bin:
-              node: bin/node
-            integrity: sha256-R+9z1UPs9usZQ19sA6CsSAmzvw3Wsmx8Vx78KmVyp00=
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-linux-arm64.tar.gz
-          targets:
-            - cpu: arm64
-              os: linux
-        - resolution:
-            archive: tarball
-            bin:
-              node: bin/node
-            integrity: sha256-jhXxIechyTVBMgUxiNTBoY6p40XAGe5ED7JW492n3xU=
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-linux-armv7l.tar.gz
-          targets:
-            - cpu: armv7l
-              os: linux
-        - resolution:
-            archive: tarball
-            bin:
-              node: bin/node
-            integrity: sha256-Xy/Q4M1nrqwNuACzNBUcrm6nDqM3SHsm95rJDj/hJuE=
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-linux-ppc64le.tar.gz
-          targets:
-            - cpu: ppc64le
-              os: linux
-        - resolution:
-            archive: tarball
-            bin:
-              node: bin/node
-            integrity: sha256-7hyhGT51ptMbYAfFdd7KEbEW6Epr2hNq4ODb4ZOZiJw=
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-linux-s390x.tar.gz
-          targets:
-            - cpu: s390x
-              os: linux
-        - resolution:
-            archive: tarball
-            bin:
-              node: bin/node
-            integrity: sha256-GeVvCCVRAgfdkE8If+UvqgpOtrKqtfDqejODDQSIi4s=
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-linux-x64.tar.gz
-          targets:
-            - cpu: x64
-              os: linux
-        - resolution:
-            archive: zip
-            bin:
-              node: node.exe
-            integrity: sha256-1cWx1W9/lGmDDrH1fv7sCmqQeMCp6IzVtLS0j0bCIGk=
-            prefix: node-v20.20.2-win-arm64
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-win-arm64.zip
-          targets:
-            - cpu: arm64
-              os: win32
-        - resolution:
-            archive: zip
-            bin:
-              node: node.exe
-            integrity: sha256-3DcA/dV6Y+7bj9fjx7qqMuanQKG5BBZ/9CBLxo7Yv3c=
-            prefix: node-v20.20.2-win-x64
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-win-x64.zip
-          targets:
-            - cpu: x64
-              os: win32
-        - resolution:
-            archive: zip
-            bin:
-              node: node.exe
-            integrity: sha256-zTTV2i8269hO1XJSdW7lEkR9tFAtn544yo3MtRGws1I=
-            prefix: node-v20.20.2-win-x86
-            type: binary
-            url: https://nodejs.org/download/release/v20.20.2/node-v20.20.2-win-x86.zip
-          targets:
-            - cpu: x86
-              os: win32
-        - resolution:
-            archive: tarball
-            bin:
-              node: bin/node
-            integrity: sha256-dUmHKo0b5GcNUhnzncCu1uZDLJdvPNJVQ7wkmqhQ8EE=
-            type: binary
-            url: https://unofficial-builds.nodejs.org/download/release/v20.20.2/node-v20.20.2-linux-arm64-musl.tar.gz
-          targets:
-            - cpu: arm64
-              os: linux
-              libc: musl
-        - resolution:
-            archive: tarball
-            bin:
-              node: bin/node
-            integrity: sha256-CjNbQ7XwoyednEEbMzpVzpjAK4dboUAzlSyAnviax3M=
-            type: binary
-            url: https://unofficial-builds.nodejs.org/download/release/v20.20.2/node-v20.20.2-linux-x64-musl.tar.gz
-          targets:
-            - cpu: x64
-              os: linux
-              libc: musl
-    version: 20.20.2
-    hasBin: true
 
   node@runtime:22.23.3:
     resolution:
@@ -18384,8 +18242,6 @@ snapshots:
   node-mock-http@1.0.5: {}
 
   node-releases@2.0.19: {}
-
-  node@runtime:20.20.2: {}
 
   node@runtime:22.23.3: {}
 
