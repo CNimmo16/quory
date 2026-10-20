@@ -1,5 +1,6 @@
 ---
 import DefaultHead from "@astrojs/starlight/components/Head.astro";
+import Analytics from "../Analytics.astro";
 import palette from "../../../../../packages/config/theme/palette.json";
 
 // Adapt the shared palette to Starlight without loading marketing's Tailwind reset.
@@ -31,6 +32,7 @@ function theme(tokens: typeof palette.light, dark = false) {
 ---
 
 <DefaultHead />
+<Analytics />
 <style
   is:inline
   set:html={`:root { ${theme(palette.dark, true)} } :root[data-theme="light"] { ${theme(palette.light)} }`}

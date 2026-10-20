@@ -73,6 +73,69 @@ migrations run before deployment. The desktop release workflow is independent.
 See [Cloudflare setup](./CLOUDFLARE.md) for the environment settings, one-time
 Cloudflare setup, local development, and exporting the email list.
 
+## PostHog and homepage experiment
+
+The main site and Starlight docs use PostHog EU project **312110**, sharing the
+desktop app's public project token. Events carry `app: quory-marketing`. Production
+builds capture pageviews, unhandled browser exceptions, and session replay when
+enabled in the project. Input values are masked; console logs, network headers,
+and bodies are not recorded. URL queries/fragments are removed from event and
+replay URLs so confirmation tokens are not collected. Signup events do not include
+email addresses. Development and localhost previews send no telemetry.
+
+The production deployment uploads hidden sourcemaps under release name
+`quory-marketing`, using the Git commit SHA as the version. Uploads happen before
+deployment, and maps are deleted before Cloudflare receives the assets. Configure
+these in GitHub Actions' **production** environment (repository settings also work):
+
+| Name | Type | Value |
+| --- | --- | --- |
+| `POSTHOG_CLI_API_KEY` | Secret | Personal API key with Error tracking: Write and Organization: Read, authorized for this project. |
+| `POSTHOG_CLI_PROJECT_ID` | Variable | `312110` |
+
+The [draft experiment](https://eu.posthog.com/project/312110/experiments/102804)
+uses [feature flag `marketing-homepage-copy-v1`](https://eu.posthog.com/project/312110/feature_flags/322578).
+Only the hero eyebrow, headline,
+and description change; CTAs and the rest of the page stay consistent. Copy lives
+in `src/lib/homepage-copy.ts`, with control HTML in `src/pages/index.astro`.
+
+| Variant | Split | Headline |
+| --- | --- | --- |
+| `control` | 34% | Get answers faster with Quory. |
+| `customer-issues` | 33% | Find the answer. Fix it faster. |
+| `skip-the-joins` | 33% | Your next answer is a click away. |
+
+Assignment uses PostHog's anonymous visitor ID. The page records standard
+`$feature_flag_called` exposure only after rendering a recognized variant. Missing
+or disabled flags, failed requests, and a 1.5-second fallback deadline retain the
+server-rendered control without enrolling the visitor. No-JS visitors also see
+control. Late responses never swap already visible copy.
+
+Primary metric: **Installer download conversion**, a funnel from experiment
+exposure to `marketing_download_started` within **7 days**. The event is sent only
+when an available installer is initiated on the install page (automatic start or
+manual retry), not when opening a platform picker or email modal. It measures
+download starts, not successful downloads or installations.
+
+Secondary metric: **Accepted waitlist signup conversion**, exposure to
+`marketing_waitlist_submitted` within **7 days**. This is a successful signup API
+response from either the download or Cloud form; it is not email confirmation,
+and repeated signup requests can emit repeated events. Funnel metrics count users
+who convert rather than the number of attempts. Event definitions are created
+without sending synthetic production events.
+
+Keep the experiment as a **draft until this code is deployed**, then launch it in
+PostHog. Local previews can force each copy variant without collecting data:
+
+```text
+http://127.0.0.1:4321/?copy_variant=control
+http://127.0.0.1:4321/?copy_variant=customer-issues
+http://127.0.0.1:4321/?copy_variant=skip-the-joins
+```
+
+The override is ignored on the deployed site. Use PostHog's experiment results
+for conversion comparisons and replay filters for individual variants.
+
 ## Database logo sources
 
 Official assets are stored locally in `public/logos/`:

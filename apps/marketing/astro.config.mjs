@@ -54,6 +54,7 @@ export default defineConfig({
     }),
   ],
   vite: {
+    build: { sourcemap: "hidden" },
     // Content sync during `astro check` uses production mode. Keep its React
     // prebundles separate so checks/builds cannot overwrite a running dev server's.
     cacheDir:

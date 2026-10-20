@@ -1,3 +1,5 @@
+import { trackWaitlistSubmitted } from "./analytics";
+
 interface Turnstile {
   render(container: HTMLElement, options: Record<string, unknown>): string;
   reset(id: string): void;
@@ -97,6 +99,7 @@ export function signupForm(form: HTMLFormElement) {
       throw new Error(
         result.error || "Signup is unavailable. Please try again later.",
       );
+    trackWaitlistSubmitted(source);
     return result.message as string;
   }
   return { prepare, submit, message };

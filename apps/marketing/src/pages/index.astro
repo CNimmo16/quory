@@ -8,26 +8,40 @@ import QuoryCloud from "../components/QuoryCloud.astro";
 ---
 
 <Layout>
+  <script is:inline>
+    // A bounded wait avoids flashing the control before a test variant arrives.
+    // No JS, a blocked SDK, or a slow network always leaves readable control copy.
+    document.documentElement.dataset.homepageCopy = "pending";
+    setTimeout(() => { document.documentElement.dataset.homepageCopy = "ready"; }, 1500);
+  </script>
+  <style is:global>
+    html[data-homepage-copy="pending"] [data-homepage-copy-content] { visibility: hidden; }
+  </style>
   <section
     class="mx-auto flex w-[min(1240px,_calc(100%_-_96px))] flex-col items-center gap-10 pt-[65px] pb-[70px] text-center max-[1100px]:w-[calc(100%_-_64px)] max-[1100px]:gap-[25px] max-[780px]:w-[calc(100%_-_40px)] max-[780px]:grid-cols-[1fr] max-[780px]:gap-[30px] max-[780px]:pt-[55px] max-[780px]:pb-[54px] max-[520px]:w-[calc(100%_-_36px)] max-[520px]:gap-[22px] max-[520px]:pt-[43px] min-[1450px]:gap-15"
   >
     <div class="w-full max-w-240">
       <h1
+        data-homepage-copy-content
         class="mx-0 mt-0 mb-7 font-display text-[clamp(38px,5.4vw,76px)] leading-none tracking-[-2px] text-balance"
       >
         <span
+          data-copy-eyebrow
           class="mb-3 block font-sans text-[0.5em] leading-[1.3em] md:leading-[2.2em] font-light tracking-normal"
         >
           SQL is great. Writing joins isn't.
         </span>
         <span
+          data-copy-headline
           class="block leading-[0.9em] md:leading-[0.5em] font-medium tracking-normal text-primary dark:text-[#54a4a9]"
         >
           Get answers faster with Quory.
         </span>
       </h1>
       <p
-        class="mx-auto my-11 max-w-140 text-[16px] leading-none text-foreground max-[1100px]:text-[14px] max-[780px]:text-[16px] max-[520px]:mb-[26px] max-[520px]:text-[14px] min-[1450px]:text-[17px]"
+        data-homepage-copy-content
+        data-copy-description
+        class="mx-auto my-11 max-w-140 text-[16px] text-foreground max-[1100px]:text-[14px] max-[780px]:text-[16px] max-[520px]:mb-[26px] max-[520px]:text-[14px] min-[1450px]:text-[17px]"
       >
         Diagnose customer issues directly in your database - <i>fast</i>.
       </p>
@@ -151,3 +165,8 @@ import QuoryCloud from "../components/QuoryCloud.astro";
     <DownloadButton />
   </section>
 </Layout>
+
+<script>
+  import { initializeHomepageExperiment } from "../lib/homepage-experiment";
+  initializeHomepageExperiment();
+</script>

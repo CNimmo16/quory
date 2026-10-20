@@ -70,6 +70,15 @@ jobs:
       - name: Prepare production configuration
         run: node apps/marketing/scripts/deployment-config.mjs
       - run: pnpm --filter @quory/marketing build
+      - name: Inject and upload PostHog sourcemaps
+        working-directory: apps/marketing
+        env:
+          POSTHOG_CLI_HOST: https://eu.posthog.com
+          POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}
+          POSTHOG_CLI_PROJECT_ID: ${{ vars.POSTHOG_CLI_PROJECT_ID }}
+        run: |
+          pnpm exec posthog-cli sourcemap inject --directory dist --release-name quory-marketing --release-version "$GITHUB_SHA"
+          pnpm exec posthog-cli sourcemap upload --directory dist --release-name quory-marketing --release-version "$GITHUB_SHA" --delete-after
       - name: Prepare Worker secrets
         env:
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}

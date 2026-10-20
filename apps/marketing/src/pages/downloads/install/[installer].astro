@@ -197,12 +197,19 @@ const platform = osNames[target.os as OS];
   </section>
 </Layout>
 <script>
+  import { trackDownloadStarted } from "../../../lib/analytics";
   import { fallbackManifest, loadManifest } from "../../../lib/downloads";
   const page = document.querySelector<HTMLElement>("[data-installer]")!;
   const link = page.querySelector<HTMLAnchorElement>("[data-installer-link]")!;
   const status = page.querySelector<HTMLElement>("[data-download-status]")!;
   const url = new URL(window.location.href);
   const start = url.searchParams.get("start") === "1";
+  let currentVersion = fallbackManifest.version;
+  link.addEventListener("click", () => {
+    if (link.hasAttribute("href") && !link.hidden) {
+      trackDownloadStarted(page.dataset.installer!, currentVersion, "manual");
+    }
+  });
   // Consume the request before downloading, so refreshing/back won't download again.
   if (start) {
     url.searchParams.delete("start");
@@ -219,6 +226,7 @@ const platform = osNames[target.os as OS];
       return;
     }
     link.href = asset.url;
+    currentVersion = manifest.version;
     page.querySelector("[data-installer-version]")!.textContent =
       `Version ${manifest.version}`;
     status.textContent = start
@@ -228,6 +236,7 @@ const platform = osNames[target.os as OS];
       ? "Download not starting? Try again"
       : "Download installer";
     if (start) {
+      trackDownloadStarted(asset.id, manifest.version, "automatic");
       // GitHub serves an attachment, leaving this instructions page in place.
       window.location.assign(asset.url);
     }

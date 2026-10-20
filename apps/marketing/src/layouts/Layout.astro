@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import GitHubLink from "../components/GitHubLink.astro";
 import DownloadEmailModal from "../components/DownloadEmailModal.astro";
+import Analytics from "../components/Analytics.astro";
 import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
 import QuoryLogo from "../../../../packages/config/branding/quory-logo.svg";
 import palette from "../../../../packages/config/theme/palette.json";
@@ -36,6 +37,7 @@ const {
     <meta property="og:type" content="website" />
     <link rel="icon" type="image/svg+xml" href={iconUrl} />
     <title>{title}</title>
+    <Analytics />
   </head>
   <body class="bg-background font-sans text-foreground">
     <a
