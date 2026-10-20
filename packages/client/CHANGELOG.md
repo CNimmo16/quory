@@ -1,5 +1,11 @@
 # @quory/client
 
+## 1.0.9
+
+### Patch Changes
+
+- 479d978: Fix desktop packaging on Windows, Linux, and Apple Silicon Macs, including optional native module handling and cross-platform build commands.
+
 ## 1.0.8
 
 ### Patch Changes
