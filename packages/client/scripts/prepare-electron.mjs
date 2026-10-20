@@ -36,7 +36,7 @@ const probe = `
   const appRequire = require('node:module').createRequire(process.argv[1]);
   appRequire('leveldown');
   appRequire('pouchdb');
-  appRequire('cpu-features');
+  appRequire('ssh2');
   const Database = appRequire('better-sqlite3');
   const db = new Database(':memory:');
   db.prepare('SELECT 1').get();

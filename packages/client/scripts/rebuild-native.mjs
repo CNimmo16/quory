@@ -13,8 +13,14 @@ const manifests = new Set([
   require.resolve("leveldown/package.json"),
   pouchdbRequire.resolve("leveldown/package.json"),
   require.resolve("better-sqlite3/package.json"),
-  require.resolve("cpu-features/package.json"),
 ]);
+// ssh2 uses cpu-features only as an optimization. pnpm may omit it when its
+// optional install fails (for example on Windows), so only rebuild it if present.
+try {
+  manifests.add(require.resolve("cpu-features/package.json"));
+} catch (error) {
+  if (error.code !== "MODULE_NOT_FOUND") throw error;
+}
 
 for (const manifest of manifests) {
   const { name, version } = JSON.parse(readFileSync(manifest, "utf8"));

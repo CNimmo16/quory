@@ -56,7 +56,7 @@ linux:
     - deb
   maintainer: CNimmo16
   category: Utility
-  executableName: ${productName}
+  executableName: quory
   artifactName: ${productName}-${version}-linux-${arch}.${ext}
 # prepare-electron.mjs rebuilds and probes native modules before packaging.
 npmRebuild: false

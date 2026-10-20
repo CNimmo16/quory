@@ -31,6 +31,12 @@ CI selects Xcode 26.3 on both Mac runners. electron-builder 26 compiles
 can apply its standard icon shape and appearance variants. Older Macs use the
 fallback. Windows and Linux continue using `build/icon.ico` and `build/icon.png`.
 
+The Apple Silicon release runner uses macOS 26 to avoid an Xcode asset runtime
+crash on macOS 15. The Intel runner remains on macOS 15. Windows uses the
+Windows 2022 runner with Visual Studio 2022, supported by the pinned node-gyp.
+The optional `cpu-features` optimization is rebuilt when installed; missing it
+does not prevent SSH or packaging from working.
+
 Edit the macOS document in Apple's Icon Composer. Keep the white background
 separate from the teal mark. After changing it, regenerate the committed disk
 image and development Dock assets from the client directory:

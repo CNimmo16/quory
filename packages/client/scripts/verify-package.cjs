@@ -28,6 +28,7 @@ const probe = `
  const assert = require('node:assert/strict');
  assert.equal(process.arch, process.argv[2]);
  req('pouchdb');
+ req('ssh2');
  const sqliteReq = require('node:module').createRequire(req.resolve('@quory/sqlite/package.json'));
  const Database = sqliteReq('better-sqlite3');
  const db = new Database(':memory:');
