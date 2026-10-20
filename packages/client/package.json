@@ -1,6 +1,11 @@
 {
   "name": "@quory/client",
   "version": "1.0.8",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CNimmo16/quory.git",
+    "directory": "packages/client"
+  },
   "description": "Quory Electron client",
   "main": "./out/main/index.js",
   "author": "CNimmo16",

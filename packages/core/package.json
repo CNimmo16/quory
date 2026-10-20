@@ -1,6 +1,11 @@
 {
   "name": "@quory/core",
   "version": "7.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CNimmo16/quory.git",
+    "directory": "packages/core"
+  },
   "description": "Quickly extract relationships from any database",
   "keywords": [
     "database",

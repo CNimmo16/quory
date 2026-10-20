@@ -1,6 +1,11 @@
 {
   "name": "@quory/mysql",
   "version": "2.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CNimmo16/quory.git",
+    "directory": "packages/mysql"
+  },
   "description": "MySQL driver for Quory",
   "type": "module",
   "main": "./dist/index.cjs",

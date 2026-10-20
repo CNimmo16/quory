@@ -243,6 +243,8 @@ After building the packages, run `pnpm test` from the root directory to run pack
 
 Run `pnpm changeset` to build the packages and record a change for release. CI installs dependencies with `pnpm install --frozen-lockfile` and runs `pnpm ci:release` to build, lint, test, version, and publish through Changesets.
 
+The release workflow uses npm trusted publishing through pnpm, without an `NPM_TOKEN` secret. Each public package (`@quory/client`, `@quory/core`, `@quory/mysql`, `@quory/postgres`, `@quory/sqlite`, and `@quory/stack`) must have a GitHub Actions trusted publisher configured on npm with owner `CNimmo16`, repository `quory`, workflow filename `release.yml`, and no environment name. The publisher must allow direct publishing (`npm publish`). A registry 404 during publishing can indicate a missing, expired, or mismatched trusted publisher; it does not necessarily mean the package is missing. See [npm's trusted publishing documentation](https://docs.npmjs.com/trusted-publishers/).
+
 ## Marketing website
 
 The static Astro marketing site lives in [`apps/marketing`](apps/marketing/README.md). Run `pnpm marketing:dev` to start it at http://127.0.0.1:4321. Edit marketing copy in its Astro pages and shared layout. The Starlight documentation is at `/docs/`, with Markdown and MDX guides in [`apps/marketing/src/content/docs/docs`](apps/marketing/src/content/docs/docs).

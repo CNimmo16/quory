@@ -1,6 +1,11 @@
 {
   "name": "@quory/stack",
   "version": "1.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CNimmo16/quory.git",
+    "directory": "packages/stack"
+  },
   "description": "Integrate Quory into your existing web app",
   "type": "module",
   "exports": {
