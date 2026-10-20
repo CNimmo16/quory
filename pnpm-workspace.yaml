@@ -42,6 +42,9 @@ nodeLinker: hoisted
 
 # Preserve the native modules and Electron installation steps used by the app.
 allowBuilds:
+  '@posthog/cli': true
+  # PostHog's core-js dependency only prints a funding notice at install time.
+  core-js: false
   workerd: true
   better-sqlite3: true
   cpu-features: true

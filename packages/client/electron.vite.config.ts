@@ -12,6 +12,7 @@ export default defineConfig({
   main: {
     plugins: [extPlugin],
     build: {
+      sourcemap: "hidden",
       rollupOptions: {
         external: ["pg"],
       },
@@ -20,12 +21,14 @@ export default defineConfig({
   preload: {
     plugins: [extPlugin],
     build: {
+      sourcemap: "hidden",
       rollupOptions: {
         external: ["pg"],
       },
     },
   },
   renderer: {
+    build: { sourcemap: "hidden" },
     resolve: {
       dedupe: ["react", "react-dom"],
       alias: {

@@ -133,6 +133,17 @@ jobs:
         run: node -e "if(require('./packages/client/package.json').version !== process.env.RELEASE_VERSION) process.exit(1)"
       - name: Build JS packages
         run: pnpm run build
+      - name: Inject and upload PostHog sourcemaps
+        working-directory: packages/client
+        shell: bash
+        env:
+          POSTHOG_CLI_HOST: https://eu.posthog.com
+          POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}
+          POSTHOG_CLI_PROJECT_ID: ${{ vars.POSTHOG_CLI_PROJECT_ID }}
+          RELEASE_VERSION: ${{ needs.determine-client-version.outputs.publishedClientVersion }}
+        run: |
+          pnpm exec posthog-cli sourcemap inject --directory out --release-name quory-client --release-version "$RELEASE_VERSION"
+          pnpm exec posthog-cli sourcemap upload --directory out --release-name quory-client --release-version "$RELEASE_VERSION"
       - name: Test native module preparation
         run: node --test packages/client/scripts/rebuild-native.test.mjs
       - name: Prepare Electron native modules

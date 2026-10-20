@@ -1,3 +1,4 @@
+import { shutdownTelemetry } from "./telemetry";
 import { app, shell, BrowserWindow } from "electron";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
@@ -116,6 +117,8 @@ app.on("before-quit", (event) => {
   if (shutdownStarted) return;
   shutdownStarted = true;
   void shutdownQuorySessions()
+    .catch(console.error)
+    .then(shutdownTelemetry)
     .catch(console.error)
     .finally(() => {
       shutdownComplete = true;

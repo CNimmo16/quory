@@ -23,6 +23,50 @@ development server launched before this watch option was enabled to pick it up.
 The interaction tests cover connection forms, searchable table selection, filter
 editing, and applying or dismissing column selections.
 
+## PostHog
+
+Packaged builds send uncaught main-process and renderer JavaScript exceptions,
+unhandled promise rejections, and errors caught by the React router to PostHog EU.
+The development server and tests do not initialize telemetry; previewing a
+production renderer build does. Native crashes and handled
+database/IPC errors are not automatically reported. The public project token and
+ingestion endpoint live in `src/shared/telemetry.ts`.
+
+Enable **Session Replay** in the matching PostHog project's settings. The renderer
+bundles the recorder and exception extension locally, without permitting remote
+scripts in Electron's content security policy. Replay masks all text and input
+values, including query results and SQL, and redacts tooltip/accessibility text.
+Console, network body/header, and canvas recording are disabled. Click and pageview
+analytics are disabled. Error messages and stack traces are still captured.
+
+Add these repository settings under **Settings → Secrets and variables → Actions**:
+
+| Name | Type | Value |
+| --- | --- | --- |
+| `POSTHOG_CLI_API_KEY` | Secret | A PostHog **personal API key** with **Error tracking: Write** and **Organization: Read**, authorized for this project. |
+| `POSTHOG_CLI_PROJECT_ID` | Variable | The numeric project ID from PostHog project settings (or `/project/<id>` in its URL). |
+
+The public `phc_` token is already configured; it is not the personal upload key.
+CI uses `https://eu.posthog.com` for uploads. Each platform builds hidden sourcemaps,
+injects chunk IDs into the output, uploads the maps with the client release version,
+and then packages that same output. Missing credentials or failed uploads fail the
+release job. Maps are excluded from installers. No personal API key is available
+to the app build or runtime.
+
+After the first release, launch an installer, navigate the app, and verify a masked
+recording in PostHog. In its renderer DevTools, run
+`setTimeout(() => { throw new Error("Quory PostHog smoke test"); }, 0)` and check
+Error Tracking for the exception and linked replay. An error thrown from DevTools
+has no bundled source map; verify symbolication with an error originating in app
+code. CI upload and live ingestion need the credentials/project settings above.
+
+`posthog-node` is pinned to 5.10.0 for Electron 31's Node 20 runtime; newer releases
+require a newer Node patch. Revisit the pin when upgrading Electron.
+
+References: [sourcemap upload](https://posthog.com/docs/error-tracking/upload-source-maps/cli),
+[bundling SDK extensions for Electron](https://posthog.com/docs/libraries/js), and
+[replay privacy](https://posthog.com/docs/session-replay/privacy).
+
 ## Desktop icons
 
 macOS packaging requires Xcode 26 or newer, selected with `xcode-select`. Release

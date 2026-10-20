@@ -1,3 +1,4 @@
+import { initializeTelemetry, captureRendererException } from "./telemetry";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import {
@@ -12,7 +13,12 @@ import { routeTree } from "./routeTree.gen";
 import GlobalProviders from "./GlobalProviders";
 
 // Create a new router instance
-const router = createRouter({ routeTree, history: createHashHistory() });
+initializeTelemetry();
+const router = createRouter({
+  routeTree,
+  history: createHashHistory(),
+  defaultOnCatch: captureRendererException,
+});
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {

@@ -3,6 +3,7 @@ productName: quory
 directories:
   buildResources: build
 files:
+  - "!**/*.map"
   - "!**/.env*"
   - "!**/.vscode/*"
   - "!src/*"
