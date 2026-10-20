@@ -1,7 +1,7 @@
 import { EditorState } from "@uiw/react-codemirror";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { sql } from "@codemirror/lang-sql";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import type { DatabaseSchema, SqlDialect } from "@quory/core";
 import { schemas as fixture } from "../../../../test/queryFixtures";
 import { createSqlCompletion, sqlDialect } from "./sqlCompletion";
@@ -63,6 +63,56 @@ it("resolves aliases declared beyond the initial parse viewport", async () => {
       )
     ).labels,
   ).toEqual(["created_at"]);
+});
+it("resolves aliases when parsing exceeds a single time slice", async () => {
+  const time = Date.now();
+  let ticks = 0;
+  // Exhaust each parser work budget without depending on machine speed.
+  const clock = vi
+    .spyOn(Date, "now")
+    .mockImplementation(() => time + Math.floor(++ticks / 100) * 100);
+  try {
+    expect(
+      (
+        await complete(
+          `SELECT o.cr| ${", 1".repeat(1500)} FROM public.orders AS o`,
+        )
+      ).labels,
+    ).toEqual(["created_at"]);
+  } finally {
+    clock.mockRestore();
+  }
+});
+it("cancels completion when the document changes between parse slices", async () => {
+  let time = Date.now();
+  const clock = vi.spyOn(Date, "now").mockImplementation(() => (time += 100));
+  try {
+    const state = EditorState.create({
+      doc: `SELECT o.cr ${", 1".repeat(1500)} FROM public.orders AS o`,
+      extensions: [sql({ dialect: sqlDialect("postgres") })],
+    });
+    const context = new CompletionContext(state, "SELECT o.cr".length, false);
+    let abort: (() => void) | undefined;
+    vi.spyOn(context, "addEventListener").mockImplementation(
+      (_type, listener, options) => {
+        if (options?.onDocChange) abort = listener;
+      },
+    );
+    const pending = createSqlCompletion(schemas, "postgres")(context);
+    expect(abort).toBeDefined();
+    abort!();
+    expect(await pending).toBeNull();
+  } finally {
+    clock.mockRestore();
+  }
+});
+it("does not wait for parsing when no SQL language is installed", async () => {
+  const state = EditorState.create({ doc: "SELECT o.cr" });
+  expect(
+    await createSqlCompletion(schemas, "postgres")(
+      new CompletionContext(state, state.doc.length, false),
+    ),
+  ).toBeNull();
 });
 it("suggests unqualified columns from tables in the current statement", async () => {
   expect((await complete("SELECT cr| FROM public.orders")).labels).toEqual([

@@ -12,7 +12,11 @@ import {
   type CompletionSource,
   type CompletionResult,
 } from "@codemirror/autocomplete";
-import { ensureSyntaxTree, syntaxTree } from "@codemirror/language";
+import {
+  ensureSyntaxTree,
+  language as editorLanguage,
+  syntaxTree,
+} from "@codemirror/language";
 import type { DatabaseSchema, SqlDialect } from "@quory/core";
 import { quoteIdentifier } from "@quory/core";
 
@@ -84,12 +88,24 @@ export function createSqlCompletion(
       : unquote(name).toLowerCase();
 
   return async (context) => {
+    let aborted = context.aborted;
+    if (aborted || !context.state.facet(editorLanguage)) return null;
+    context.addEventListener(
+      "abort",
+      () => {
+        aborted = true;
+      },
+      { onDocChange: true },
+    );
     // The initial/background parse may stop before FROM (especially while
-    // editing SELECT in a long statement). Complete a bounded parse before
-    // resolving table aliases that can occur after the cursor.
-    const tree =
-      ensureSyntaxTree(context.state, context.state.doc.length) ??
-      syntaxTree(context.state);
+    // editing SELECT in a long statement). A timed-out parse is incomplete,
+    // so keep working in short slices instead of resolving aliases against it.
+    let tree = ensureSyntaxTree(context.state, context.state.doc.length, 10);
+    while (!tree) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      if (aborted) return null;
+      tree = ensureSyntaxTree(context.state, context.state.doc.length, 10);
+    }
     const completionContext =
       tree !== syntaxTree(context.state)
         ? new CompletionContext(
