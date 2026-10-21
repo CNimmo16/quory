@@ -89,6 +89,7 @@ jobs:
     needs: determine-client-version
     if: needs.determine-client-version.outputs.publishedClientVersion != ''
     name: Package ${{ matrix.platform }} ${{ matrix.arch }}
+    environment: production
     permissions:
       contents: read
     strategy:
