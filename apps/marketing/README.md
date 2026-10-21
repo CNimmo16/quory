@@ -107,9 +107,14 @@ in `src/lib/homepage-copy.ts`, with control HTML in `src/pages/index.astro`.
 
 Assignment uses PostHog's anonymous visitor ID. The page records standard
 `$feature_flag_called` exposure only after rendering a recognized variant. Missing
-or disabled flags, failed requests, and a 1.5-second fallback deadline retain the
-server-rendered control without enrolling the visitor. No-JS visitors also see
-control. Late responses never swap already visible copy.
+or disabled flags and failed requests retain the server-rendered control without
+enrolling the visitor. An inline script gives the SDK and flag request a combined
+500 ms budget before revealing control. If a recognized assignment arrives sooner,
+it is applied while hidden. The copy fades in over 160 ms, with no animation for
+reduced-motion users. Once revealed, neither late responses nor flag refreshes
+change it or enroll the visitor in an unseen variant. The fallback works even if
+the SDK is blocked; no-JS visitors see control immediately. This is a bounded
+client-side wait, not server-side assignment or guaranteed instant variant rendering.
 
 Primary metric: **Installer download conversion**, a funnel from experiment
 exposure to `marketing_download_started` within **7 days**. The event is sent only

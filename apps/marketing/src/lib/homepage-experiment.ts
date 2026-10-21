@@ -25,9 +25,14 @@ export function initializeHomepageExperiment() {
     return;
   }
   analytics.onFeatureFlags((_flags, _variants, context) => {
-    // Never switch copy after the timeout or record exposure to unseen variants.
+    // Once the text starts fading in, never change it or enroll a late variant.
     if (root.dataset.homepageCopy !== "pending") return;
-    if (context?.errorsLoading) {
+    const deadline = Number(root.dataset.homepageCopyDeadline);
+    if (
+      !Number.isFinite(deadline) ||
+      Date.now() >= deadline ||
+      context?.errorsLoading
+    ) {
       root.dataset.homepageCopy = "ready";
       return;
     }
@@ -42,4 +47,7 @@ export function initializeHomepageExperiment() {
     }
     root.dataset.homepageCopy = "ready";
   });
+  // The SDK skips its initial flag request when remote config says there are
+  // no flags. Request an explicit result so a draft/disabled test reveals control.
+  if (root.dataset.homepageCopy === "pending") analytics.reloadFeatureFlags();
 }
