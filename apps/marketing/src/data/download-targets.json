@@ -29,7 +29,7 @@
     "arch": "x64",
     "format": "AppImage",
     "label": "AppImage · 64-bit",
-    "suffix": "linux-x64.AppImage"
+    "suffix": "linux-x86_64.AppImage"
   },
   {
     "id": "linux-x64-deb",
@@ -37,6 +37,6 @@
     "arch": "x64",
     "format": "deb",
     "label": "Debian / Ubuntu · 64-bit",
-    "suffix": "linux-x64.deb"
+    "suffix": "linux-amd64.deb"
   }
 ]

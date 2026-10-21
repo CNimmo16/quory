@@ -83,10 +83,10 @@ describe("homepage copy assignment", () => {
 
   it("previews locally without enrolling a visitor", () => {
     mocks.local.mockReturnValue(true);
-    history.replaceState(null, "", "/?copy_variant=customer-issues");
+    history.replaceState(null, "", "/?copy_variant=support");
     initializeHomepageExperiment();
     expect(document.querySelector("[data-copy-headline]")?.textContent).toBe(
-      homepageCopy["customer-issues"].headline,
+      homepageCopy.support.headline,
     );
     expect(mocks.onFeatureFlags).not.toHaveBeenCalled();
     history.replaceState(null, "", "/");
