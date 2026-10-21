@@ -1,5 +1,11 @@
 # @quory/client
 
+## 1.0.10
+
+### Patch Changes
+
+- bddc743: Add PostHog error tracking and masked session replay to the desktop client, with release sourcemap uploads.
+
 ## 1.0.9
 
 ### Patch Changes
