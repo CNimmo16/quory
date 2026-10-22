@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      client_version:
+        description: "Existing desktop release version to rebuild and publish (for example 1.0.10)"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -12,6 +18,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   npm:
+    if: github.event_name == 'push'
     name: Release to npm
     runs-on: ubuntu-latest
     permissions:
@@ -40,6 +47,7 @@ jobs:
           node --test packages/client/scripts/rebuild-native.test.mjs
           pnpm --filter @quory/marketing test:worker
           node --test scripts/downloads/release.test.mjs
+          node --test scripts/downloads/select-release.test.cjs
           pnpm --filter @quory/marketing build
 
       - name: Check npm trusted publishing
@@ -61,33 +69,34 @@ jobs:
 
   determine-client-version:
     needs: npm
+    if: ${{ !cancelled() && (needs.npm.result == 'success' || (github.event_name == 'workflow_dispatch' && needs.npm.result == 'skipped')) }}
 
     name: Determine client version
 
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/github-script@v7
         id: getPublishedPackages
         env:
           PUBLISHED_PACKAGES: ${{needs.npm.outputs.publishedPackages}}
+          REQUESTED_VERSION: ${{ inputs.client_version }}
         with:
           result-encoding: string
           script: |
-            const publishedPackages = JSON.parse(process.env.PUBLISHED_PACKAGES || '[]');
-            const clientPackage = publishedPackages.find((pkg) => pkg.name === '@quory/client');
-            if (!clientPackage) {
-              return '';
-            }
-            console.info(`Found published client version: ${clientPackage.version}`);
-            return clientPackage.version;
+            return await require('./scripts/downloads/select-release.cjs')({
+              github, context, core,
+              publishedPackages: JSON.parse(process.env.PUBLISHED_PACKAGES || '[]'),
+              requestedVersion: process.env.REQUESTED_VERSION,
+            });
 
     outputs:
       publishedClientVersion: ${{ steps.getPublishedPackages.outputs.result }}
 
   electron:
     needs: determine-client-version
-    if: needs.determine-client-version.outputs.publishedClientVersion != ''
+    if: ${{ !cancelled() && needs.determine-client-version.result == 'success' && needs.determine-client-version.outputs.publishedClientVersion != '' }}
     name: Package ${{ matrix.platform }} ${{ matrix.arch }}
     environment: production
     permissions:
@@ -170,6 +179,7 @@ jobs:
   desktop-downloads:
     name: Publish complete desktop download set
     needs: [determine-client-version, electron]
+    if: ${{ !cancelled() && needs.determine-client-version.result == 'success' && needs.electron.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

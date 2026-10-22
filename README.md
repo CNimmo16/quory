@@ -247,6 +247,26 @@ The release workflow uses npm trusted publishing through pnpm, without an `NPM_T
 
 The **Check npm trusted publishing** step checks the OIDC token exchange separately for every public package and reports npm's rejection before the build and publish command runs. Successful exchange confirms the workflow identity was accepted; it does not verify permission to publish directly rather than stage a release. Tokens are never logged or saved.
 
+Desktop publishing can recover after npm has already released a version. On each
+successful push run, CI checks the current client version's GitHub release and
+rebuilds its desktop installers if any installer, `downloads.json`, or
+`SHA256SUMS.txt` is missing. Complete releases are skipped. Builds always check out
+the existing `@quory/client@<version>` tag, using the workflow's current runner and
+environment configuration.
+
+To retry a specific release without running npm publishing, open **Actions →
+Release → Run workflow**, select `main`, and enter `client_version` (for example
+`1.0.10`). The equivalent command is:
+
+```sh
+gh workflow run release.yml --ref main -f client_version=1.0.10
+```
+
+This requires an existing stable GitHub release and rebuilds all four platform
+targets, uploads the complete installer set, and then updates the website
+manifest. Use this manual path to retry manifest promotion even if all release
+assets were already uploaded. It does not publish npm packages or bump versions.
+
 ## Marketing website
 
 The static Astro marketing site lives in [`apps/marketing`](apps/marketing/README.md). Run `pnpm marketing:dev` to start it at http://127.0.0.1:4321. Edit marketing copy in its Astro pages and shared layout. The Starlight documentation is at `/docs/`, with Markdown and MDX guides in [`apps/marketing/src/content/docs/docs`](apps/marketing/src/content/docs/docs).
