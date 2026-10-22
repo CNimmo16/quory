@@ -70,6 +70,13 @@ export function getAnalytics() {
   return posthog;
 }
 
+export function trackDownloadModalOpened(installerId: string) {
+  captureConversion("marketing_download_modal_opened", {
+    installer_id: installerId,
+    page_path: window.location.pathname,
+  });
+}
+
 export function trackDownloadStarted(
   installerId: string,
   version: string,

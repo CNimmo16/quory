@@ -61,6 +61,7 @@ import SignupVerification from "./SignupVerification.astro";
 </dialog>
 
 <script>
+  import { trackDownloadModalOpened } from "../lib/analytics";
   import { targets, osNames, type OS } from "../lib/downloads";
   import { signupForm } from "../lib/signup";
 
@@ -110,6 +111,7 @@ import SignupVerification from "./SignupVerification.astro";
     form.reset();
     signup.message("");
     dialog.showModal();
+    trackDownloadModalOpened(target.id);
     void signup.prepare();
   });
 

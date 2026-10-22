@@ -11,7 +11,9 @@ beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.stubEnv("PROD", true);
-  vi.stubGlobal("window", { location: { hostname: "usequory.com" } });
+  vi.stubGlobal("window", {
+    location: { hostname: "usequory.com", pathname: "/" },
+  });
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -25,6 +27,7 @@ describe("marketing analytics", () => {
       vi.stubGlobal("window", { location: { hostname } });
       const analytics = await import("./analytics");
       analytics.getAnalytics();
+      analytics.trackDownloadModalOpened("macos-arm64-dmg");
       analytics.trackWaitlistSubmitted("cloud");
       expect(sdk.init).not.toHaveBeenCalled();
       expect(sdk.capture).not.toHaveBeenCalled();
@@ -66,11 +69,17 @@ describe("marketing analytics", () => {
     ).toBe("https://usequory.com/confirm/");
   });
 
-  it("records download and accepted waitlist events without collecting emails", async () => {
+  it("records modal opens, downloads and accepted waitlist events without collecting emails", async () => {
     const analytics = await import("./analytics");
+    analytics.trackDownloadModalOpened("macos-arm64-dmg");
     analytics.trackDownloadStarted("macos-arm64-dmg", "1.0.8", "automatic");
     analytics.trackWaitlistSubmitted("download");
     expect(sdk.capture.mock.calls).toEqual([
+      [
+        "marketing_download_modal_opened",
+        { installer_id: "macos-arm64-dmg", page_path: "/" },
+        { send_instantly: true },
+      ],
       [
         "marketing_download_started",
         {

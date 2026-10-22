@@ -122,6 +122,13 @@ when an available installer is initiated on the install page (automatic start or
 manual retry), not when opening a platform picker or email modal. It measures
 download starts, not successful downloads or installations.
 
+The download email modal records `marketing_download_modal_opened` after opening,
+with `installer_id` and `page_path`. To measure homepage modal drop-off, use a
+funnel from this event filtered to `page_path: /` to `marketing_download_started`.
+Both the primary download button and platform picker options record the event
+when they open the modal; closing the modal without continuing does not record a
+download start.
+
 Secondary metric: **Accepted waitlist signup conversion**, exposure to
 `marketing_waitlist_submitted` within **7 days**. This is a successful signup API
 response from either the download or Cloud form; it is not email confirmation,
