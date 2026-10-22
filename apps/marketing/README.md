@@ -129,6 +129,13 @@ Both the primary download button and platform picker options record the event
 when they open the modal; closing the modal without continuing does not record a
 download start.
 
+`marketing_download_modal_continued` records the next step, immediately before
+leaving the modal, with `installer_id`, `page_path`, and `method`:
+`email_signup` after an accepted signup, `empty_email` when submitting without an
+email, or `skip` when clicking “No thanks - just download”. Closing the modal or a
+failed signup does not record continuation. Use opened → continued → download
+started as the funnel, with a breakdown by `method` on the continued step.
+
 Secondary metric: **Accepted waitlist signup conversion**, exposure to
 `marketing_waitlist_submitted` within **7 days**. This is a successful signup API
 response from either the download or Cloud form; it is not email confirmation,

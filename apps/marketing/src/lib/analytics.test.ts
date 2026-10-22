@@ -28,6 +28,7 @@ describe("marketing analytics", () => {
       const analytics = await import("./analytics");
       analytics.getAnalytics();
       analytics.trackDownloadModalOpened("macos-arm64-dmg");
+      analytics.trackDownloadModalContinued("macos-arm64-dmg", "skip");
       analytics.trackWaitlistSubmitted("cloud");
       expect(sdk.init).not.toHaveBeenCalled();
       expect(sdk.capture).not.toHaveBeenCalled();
@@ -96,6 +97,20 @@ describe("marketing analytics", () => {
       ],
     ]);
   });
+
+  it.each(["email_signup", "empty_email", "skip"] as const)(
+    "records modal continuation via %s without collecting emails",
+    async (method) => {
+      const { trackDownloadModalContinued } = await import("./analytics");
+      trackDownloadModalContinued("macos-arm64-dmg", method);
+      expect(sdk.capture).toHaveBeenCalledTimes(1);
+      expect(sdk.capture).toHaveBeenCalledWith(
+        "marketing_download_modal_continued",
+        { installer_id: "macos-arm64-dmg", page_path: "/", method },
+        { send_instantly: true },
+      );
+    },
+  );
 
   it("does not let an analytics failure interrupt a conversion", async () => {
     sdk.capture.mockImplementationOnce(() => {

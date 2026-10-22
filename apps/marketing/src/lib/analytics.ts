@@ -77,6 +77,17 @@ export function trackDownloadModalOpened(installerId: string) {
   });
 }
 
+export function trackDownloadModalContinued(
+  installerId: string,
+  method: "email_signup" | "empty_email" | "skip",
+) {
+  captureConversion("marketing_download_modal_continued", {
+    installer_id: installerId,
+    page_path: window.location.pathname,
+    method,
+  });
+}
+
 export function trackDownloadStarted(
   installerId: string,
   version: string,

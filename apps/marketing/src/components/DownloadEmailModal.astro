@@ -61,7 +61,10 @@ import SignupVerification from "./SignupVerification.astro";
 </dialog>
 
 <script>
-  import { trackDownloadModalOpened } from "../lib/analytics";
+  import {
+    trackDownloadModalOpened,
+    trackDownloadModalContinued,
+  } from "../lib/analytics";
   import { targets, osNames, type OS } from "../lib/downloads";
   import { signupForm } from "../lib/signup";
 
@@ -74,6 +77,7 @@ import SignupVerification from "./SignupVerification.astro";
   let sending = false;
   let generation = 0;
   let destination: string | undefined;
+  let installerId: string | undefined;
   let returnFocus: HTMLElement | undefined;
 
   document.addEventListener("click", (event) => {
@@ -99,6 +103,7 @@ import SignupVerification from "./SignupVerification.astro";
 
     event.preventDefault();
     destination = link.href;
+    installerId = target.id;
     const picker = link.closest<HTMLElement>("[data-download-picker]");
     returnFocus = picker
       ? (picker
@@ -115,9 +120,12 @@ import SignupVerification from "./SignupVerification.astro";
     void signup.prepare();
   });
 
-  function continueDownload() {
-    if (!destination) return;
+  function continueDownload(
+    method: Parameters<typeof trackDownloadModalContinued>[1],
+  ) {
+    if (!destination || !installerId || !dialog.open) return;
     const href = destination;
+    trackDownloadModalContinued(installerId, method);
     dialog.close();
     window.location.assign(href);
   }
@@ -129,7 +137,7 @@ import SignupVerification from "./SignupVerification.astro";
       .querySelector<HTMLInputElement>("#download-email")!
       .value.trim();
     if (!email) {
-      continueDownload();
+      continueDownload("empty_email");
       return;
     }
     const current = generation;
@@ -138,7 +146,7 @@ import SignupVerification from "./SignupVerification.astro";
     signup.message("Sending your confirmation email…");
     try {
       await signup.submit(email, "download");
-      if (current === generation && dialog.open) continueDownload();
+      if (current === generation && dialog.open) continueDownload("email_signup");
     } catch (error) {
       if (current === generation && dialog.open) {
         signup.message(
@@ -156,7 +164,9 @@ import SignupVerification from "./SignupVerification.astro";
       }
     }
   });
-  dialog.querySelector(".skip")!.addEventListener("click", continueDownload);
+  dialog.querySelector(".skip")!.addEventListener("click", () => {
+    continueDownload("skip");
+  });
   dialog
     .querySelector(".close")!
     .addEventListener("click", () => dialog.close());
@@ -177,6 +187,7 @@ import SignupVerification from "./SignupVerification.astro";
     submit.disabled = false;
     form.reset();
     destination = undefined;
+    installerId = undefined;
     returnFocus?.focus({ preventScroll: true });
     returnFocus = undefined;
   });
