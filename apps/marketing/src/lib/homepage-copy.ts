@@ -7,13 +7,13 @@ export const homepageCopy = {
     description: "Diagnose customer issues directly in your database - fast.",
   },
   support: {
-    eyebrow: "Your database has the answers to customer queries",
-    headline: "Support them faster with Quory.",
+    eyebrow: "Your database has the answers to support queries.",
+    headline: "Stop digging. Start answering.",
     description:
       "Trace a customer's data across tables, understand what happened, and get back to building.",
   },
   "skip-the-joins": {
-    eyebrow: "Explore relationships. Skip the joins.",
+    eyebrow: "SQL is great. Writing joins isn't.",
     headline: "Get answers faster with Quory.",
     description:
       "Explore connected records in Postgres, MySQL, and SQLite without writing complex SQL.",
