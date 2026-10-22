@@ -27,9 +27,15 @@ describe("marketing analytics", () => {
       vi.stubGlobal("window", { location: { hostname } });
       const analytics = await import("./analytics");
       analytics.getAnalytics();
-      analytics.trackDownloadModalOpened("macos-arm64-dmg");
-      analytics.trackDownloadModalContinued("macos-arm64-dmg", "skip");
-      analytics.trackWaitlistSubmitted("cloud");
+      analytics.trackDownloadStarted("macos-arm64-dmg", "1.0.8", "automatic");
+      const context = { source: "cloud" as const };
+      analytics.trackCloudSignupViewed(context);
+      analytics.trackCloudSignupDismissed(context, "escape", "not_started");
+      analytics.trackWaitlistStarted(context);
+      analytics.trackWaitlistSubmitAttempted(context);
+      analytics.trackWaitlistFailed(context, "network_error");
+      analytics.trackWaitlistVerificationFailed(context, "load_failed");
+      analytics.trackWaitlistSubmitted(context);
       expect(sdk.init).not.toHaveBeenCalled();
       expect(sdk.capture).not.toHaveBeenCalled();
     },
@@ -70,17 +76,14 @@ describe("marketing analytics", () => {
     ).toBe("https://usequory.com/confirm/");
   });
 
-  it("records modal opens, downloads and accepted waitlist events without collecting emails", async () => {
+  it("records downloads and accepted waitlist events without collecting emails", async () => {
     const analytics = await import("./analytics");
-    analytics.trackDownloadModalOpened("macos-arm64-dmg");
     analytics.trackDownloadStarted("macos-arm64-dmg", "1.0.8", "automatic");
-    analytics.trackWaitlistSubmitted("download");
+    analytics.trackWaitlistSubmitted({
+      source: "download",
+      installerId: "macos-arm64-dmg",
+    });
     expect(sdk.capture.mock.calls).toEqual([
-      [
-        "marketing_download_modal_opened",
-        { installer_id: "macos-arm64-dmg", page_path: "/" },
-        { send_instantly: true },
-      ],
       [
         "marketing_download_started",
         {
@@ -92,31 +95,65 @@ describe("marketing analytics", () => {
       ],
       [
         "marketing_waitlist_submitted",
-        { source: "download" },
+        {
+          source: "download",
+          surface: "download_popup",
+          page_path: "/",
+          installer_id: "macos-arm64-dmg",
+        },
         { send_instantly: true },
       ],
     ]);
   });
-
-  it.each(["email_signup", "empty_email", "skip"] as const)(
-    "records modal continuation via %s without collecting emails",
-    async (method) => {
-      const { trackDownloadModalContinued } = await import("./analytics");
-      trackDownloadModalContinued("macos-arm64-dmg", method);
-      expect(sdk.capture).toHaveBeenCalledTimes(1);
-      expect(sdk.capture).toHaveBeenCalledWith(
-        "marketing_download_modal_continued",
-        { installer_id: "macos-arm64-dmg", page_path: "/", method },
-        { send_instantly: true },
-      );
-    },
-  );
 
   it("does not let an analytics failure interrupt a conversion", async () => {
     sdk.capture.mockImplementationOnce(() => {
       throw new Error("SDK unavailable");
     });
     const { trackWaitlistSubmitted } = await import("./analytics");
-    expect(() => trackWaitlistSubmitted("cloud")).not.toThrow();
+    expect(() => trackWaitlistSubmitted({ source: "cloud" })).not.toThrow();
+  });
+
+  it("only sends allowlisted signup context and categorical outcomes", async () => {
+    const analytics = await import("./analytics");
+    const context = {
+      source: "download" as const,
+      installerId: "macos-arm64-dmg",
+      email: "private@example.com",
+      token: "secret",
+    };
+    analytics.trackCloudSignupViewed(context);
+    analytics.trackWaitlistStarted(context);
+    analytics.trackWaitlistSubmitAttempted(context);
+    analytics.trackWaitlistFailed(context, "rate_limited");
+    analytics.trackWaitlistVerificationFailed(context, "load_failed");
+    analytics.trackCloudSignupDismissed(
+      context,
+      "continue_to_installation",
+      "started",
+    );
+    expect(sdk.capture.mock.calls.map(([event]) => event)).toEqual([
+      "marketing_cloud_signup_viewed",
+      "marketing_waitlist_started",
+      "marketing_waitlist_submit_attempted",
+      "marketing_waitlist_failed",
+      "marketing_waitlist_verification_failed",
+      "marketing_cloud_signup_dismissed",
+    ]);
+    for (const [, properties] of sdk.capture.mock.calls) {
+      expect(properties).toMatchObject({
+        source: "download",
+        surface: "download_popup",
+        installer_id: "macos-arm64-dmg",
+        page_path: "/",
+      });
+      expect(properties).not.toHaveProperty("email");
+      expect(properties).not.toHaveProperty("token");
+    }
+    expect(sdk.capture.mock.calls[3]![1].reason).toBe("rate_limited");
+    expect(sdk.capture.mock.calls[5]![1]).toMatchObject({
+      method: "continue_to_installation",
+      signup_state: "started",
+    });
   });
 });

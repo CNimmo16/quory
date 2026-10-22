@@ -1,4 +1,12 @@
-import { trackWaitlistSubmitted } from "./analytics";
+import {
+  trackWaitlistSubmitted,
+  trackWaitlistSubmitAttempted,
+  trackWaitlistFailed,
+  trackWaitlistVerificationFailed,
+  type SignupContext,
+  type SignupFailure,
+  type VerificationFailure,
+} from "./analytics";
 
 interface Turnstile {
   render(container: HTMLElement, options: Record<string, unknown>): string;
@@ -43,17 +51,24 @@ function loadTurnstile() {
   return scriptPromise;
 }
 
-export function signupForm(form: HTMLFormElement) {
+export function signupForm(form: HTMLFormElement, context: SignupContext) {
   const container = form.querySelector<HTMLElement>("[data-signup-challenge]")!;
   const status = form.querySelector<HTMLElement>("[data-signup-status]")!;
   let widget: string | undefined;
   let preparing: Promise<void> | undefined;
+  const verificationFailures = new Set<VerificationFailure>();
+  function verificationFailed(reason: VerificationFailure) {
+    if (verificationFailures.has(reason)) return;
+    verificationFailures.add(reason);
+    trackWaitlistVerificationFailed(context, reason);
+  }
   function message(text: string, error = false) {
     status.textContent = text;
     status.dataset.error = String(error);
   }
   async function prepare() {
     if (!container.dataset.sitekey) {
+      verificationFailed("unavailable");
       message(
         "Email signup isn’t available yet. Please try again later.",
         true,
@@ -69,38 +84,68 @@ export function signupForm(form: HTMLFormElement) {
           sitekey: container.dataset.sitekey,
           action: "waitlist",
           size: "flexible",
-          "error-callback": () =>
-            message("Verification failed. Please try again.", true),
+          "error-callback": () => {
+            verificationFailed("challenge_failed");
+            message("Verification failed. Please try again.", true);
+          },
           "expired-callback": () => {
             if (widget !== undefined) api.reset(widget);
           },
         });
     })()
-      .catch((error) => message(error.message, true))
+      .catch((error) => {
+        verificationFailed("load_failed");
+        message(error.message, true);
+      })
       .finally(() => {
         preparing = undefined;
       });
     return preparing;
   }
-  async function submit(email: string, source: "download" | "cloud") {
-    if (preparing) await preparing;
-    const token =
-      widget === undefined ? "" : window.turnstile?.getResponse(widget);
-    if (!token)
-      throw new Error("Please complete the verification before continuing.");
-    const response = await fetch("/api/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, source, turnstileToken: token }),
-      signal: AbortSignal.timeout(30000),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok)
-      throw new Error(
-        result.error || "Signup is unavailable. Please try again later.",
-      );
-    trackWaitlistSubmitted(source);
-    return result.message as string;
+  async function submit(email: string) {
+    trackWaitlistSubmitAttempted(context);
+    let failure: SignupFailure = "network_error";
+    try {
+      if (preparing) await preparing;
+      const token =
+        widget === undefined ? "" : window.turnstile?.getResponse(widget);
+      if (!token) {
+        failure = "verification_required";
+        throw new Error("Please complete the verification before continuing.");
+      }
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          source: context.source,
+          turnstileToken: token,
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        failure =
+          response.status === 429
+            ? "rate_limited"
+            : response.status >= 500
+              ? "server_error"
+              : "rejected";
+        throw new Error(
+          result.error || "Signup is unavailable. Please try again later.",
+        );
+      }
+      trackWaitlistSubmitted(context);
+      return result.message as string;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.name === "TimeoutError" || error.name === "AbortError")
+      )
+        failure = "timeout";
+      trackWaitlistFailed(context, failure);
+      throw error;
+    }
   }
   return { prepare, submit, message };
 }

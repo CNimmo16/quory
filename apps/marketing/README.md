@@ -88,10 +88,10 @@ The production deployment uploads hidden sourcemaps under release name
 deployment, and maps are deleted before Cloudflare receives the assets. Configure
 these in GitHub Actions' **production** environment (repository settings also work):
 
-| Name | Type | Value |
-| --- | --- | --- |
-| `POSTHOG_CLI_API_KEY` | Secret | Personal API key with Error tracking: Write and Organization: Read, authorized for this project. |
-| `POSTHOG_CLI_PROJECT_ID` | Variable | `312110` |
+| Name                     | Type     | Value                                                                                            |
+| ------------------------ | -------- | ------------------------------------------------------------------------------------------------ |
+| `POSTHOG_CLI_API_KEY`    | Secret   | Personal API key with Error tracking: Write and Organization: Read, authorized for this project. |
+| `POSTHOG_CLI_PROJECT_ID` | Variable | `312110`                                                                                         |
 
 The [draft experiment](https://eu.posthog.com/project/312110/experiments/102804)
 uses [feature flag `marketing-homepage-copy-v1`](https://eu.posthog.com/project/312110/feature_flags/322578).
@@ -99,11 +99,11 @@ Only the hero eyebrow, headline,
 and description change; CTAs and the rest of the page stay consistent. Copy lives
 in `src/lib/homepage-copy.ts`, with control HTML in `src/pages/index.astro`.
 
-| Variant | Split | Headline |
-| --- | --- | --- |
-| `control` | 34% | Get answers faster with Quory. |
-| `customer-issues` | 33% | Find the answer. Fix it faster. |
-| `skip-the-joins` | 33% | Your next answer is a click away. |
+| Variant           | Split | Headline                          |
+| ----------------- | ----- | --------------------------------- |
+| `control`         | 34%   | Get answers faster with Quory.    |
+| `customer-issues` | 33%   | Find the answer. Fix it faster.   |
+| `skip-the-joins`  | 33%   | Your next answer is a click away. |
 
 Assignment uses PostHog's anonymous visitor ID. The page records standard
 `$feature_flag_called` exposure only after rendering a recognized variant. Missing
@@ -122,19 +122,33 @@ when an available installer is initiated on the install page (automatic start or
 manual retry), not when opening a platform picker or email modal. It measures
 download starts, not successful downloads or installations.
 
-The download email modal records `marketing_download_modal_opened` after opening,
-with `installer_id` and `page_path`. To measure homepage modal drop-off, use a
-funnel from this event filtered to `page_path: /` to `marketing_download_started`.
-Both the primary download button and platform picker options record the event
-when they open the modal; closing the modal without continuing does not record a
-download start.
+The download starts before the optional Cloud signup popup appears (after an
+800 ms pause). The old `marketing_download_modal_opened` and
+`marketing_download_modal_continued` events are retired. They described the
+previous email step before downloading and should not be combined with the new
+popup events.
 
-`marketing_download_modal_continued` records the next step, immediately before
-leaving the modal, with `installer_id`, `page_path`, and `method`:
-`email_signup` after an accepted signup, `empty_email` when submitting without an
-email, or `skip` when clicking “No thanks - just download”. Closing the modal or a
-failed signup does not record continuation. Use opened → continued → download
-started as the funnel, with a breakdown by `method` on the continued step.
+Cloud signup events share `source` (`download` or `cloud`), `surface`
+(`download_popup` or `homepage_dialog`), and `page_path`. Download popup events
+also include `installer_id`.
+
+| Event                                    | When it fires                                                              | Additional properties                                                                                                                                    |
+| ---------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `marketing_cloud_signup_viewed`          | After the popup actually opens; a download retry does not reopen it        | —                                                                                                                                                        |
+| `marketing_waitlist_started`             | First non-empty email input per opening; focusing/autofocus does not count | —                                                                                                                                                        |
+| `marketing_waitlist_submit_attempted`    | Each submit attempt, including native email validation failures            | —                                                                                                                                                        |
+| `marketing_waitlist_failed`              | Failed attempt                                                             | `reason`: `missing_email`, `invalid_email`, `verification_required`, `rate_limited`, `server_error`, `rejected`, `timeout`, `network_error`              |
+| `marketing_waitlist_verification_failed` | Verification setup or challenge fails, once per reason per page            | `reason`: `unavailable`, `load_failed`, `challenge_failed`                                                                                               |
+| `marketing_waitlist_submitted`           | Signup API accepts the request                                             | —                                                                                                                                                        |
+| `marketing_cloud_signup_dismissed`       | Popup closes, including after a successful signup                          | `method`: `close_button`, `continue_to_installation`, `escape`, `backdrop`, `other`; `signup_state`: `not_started`, `started`, `submitting`, `submitted` |
+
+Use `marketing_download_started` → `marketing_cloud_signup_viewed` →
+`marketing_waitlist_started` → `marketing_waitlist_submit_attempted` →
+`marketing_waitlist_submitted` for the post-download funnel, filtering signup
+events to `source: download`. Break down dismissals by `method` and
+`signup_state`; a dismissal after `submitted` is not abandonment. Failure reasons
+are fixed categories; emails, verification tokens and raw error messages are
+never included. Local previews do not send these events.
 
 Secondary metric: **Accepted waitlist signup conversion**, exposure to
 `marketing_waitlist_submitted` within **7 days**. This is a successful signup API

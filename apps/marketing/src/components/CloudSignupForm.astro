@@ -1,0 +1,44 @@
+---
+import SignupVerification from "./SignupVerification.astro";
+
+interface Props {
+  inline?: boolean;
+}
+const { inline = false } = Astro.props;
+---
+
+<form method="dialog" data-signup-source={inline ? "download" : "cloud"}>
+  <label class="mb-2 block text-[13px] font-medium" for="cloud-interest-email">
+    Email address
+  </label>
+  <input
+    class="w-full rounded-lg border border-border bg-background px-3.5 py-3 font-[inherit] text-base/[inherit] text-foreground focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-primary focus-visible:outline-solid"
+    id="cloud-interest-email"
+    name="email"
+    type="email"
+    autocomplete="email"
+    placeholder="you@company.com"
+    required
+    autofocus={!inline}
+  />
+  <SignupVerification />
+  <div class:list={["mt-5 flex gap-3", inline ? "flex-wrap" : "flex-col"]}>
+    <button
+      class="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4.5 py-3 text-[13px] font-medium text-primary-foreground transition-[background] duration-180 enabled:hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-55"
+      type="submit"
+    >
+      {inline ? "Pre-register for Quory Cloud" : "Register your interest"}
+    </button>
+    {
+      inline && (
+        <button
+          class="inline-flex items-center justify-center rounded-lg border border-border bg-transparent px-4.5 py-3 text-[13px] font-medium text-foreground hover:bg-primary-subtle/50 focus-visible:outline-2 focus-visible:outline-primary"
+          type="button"
+          data-cloud-dismiss="continue_to_installation"
+        >
+          Continue to installation
+        </button>
+      )
+    }
+  </div>
+</form>

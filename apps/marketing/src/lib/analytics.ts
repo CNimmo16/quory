@@ -70,24 +70,6 @@ export function getAnalytics() {
   return posthog;
 }
 
-export function trackDownloadModalOpened(installerId: string) {
-  captureConversion("marketing_download_modal_opened", {
-    installer_id: installerId,
-    page_path: window.location.pathname,
-  });
-}
-
-export function trackDownloadModalContinued(
-  installerId: string,
-  method: "email_signup" | "empty_email" | "skip",
-) {
-  captureConversion("marketing_download_modal_continued", {
-    installer_id: installerId,
-    page_path: window.location.pathname,
-    method,
-  });
-}
-
 export function trackDownloadStarted(
   installerId: string,
   version: string,
@@ -100,9 +82,89 @@ export function trackDownloadStarted(
   });
 }
 
-export function trackWaitlistSubmitted(source: "download" | "cloud") {
-  // Never send the email, Turnstile response, or confirmation token to analytics.
-  captureConversion("marketing_waitlist_submitted", { source });
+export interface SignupContext {
+  source: "download" | "cloud";
+  installerId?: string;
+}
+
+export type SignupState =
+  "not_started" | "started" | "submitting" | "submitted";
+export type SignupDismissMethod =
+  "close_button" | "continue_to_installation" | "escape" | "backdrop" | "other";
+export type SignupFailure =
+  | "missing_email"
+  | "invalid_email"
+  | "verification_required"
+  | "rate_limited"
+  | "server_error"
+  | "rejected"
+  | "timeout"
+  | "network_error";
+
+function signupProperties(context: SignupContext): Record<string, string> {
+  // Explicitly allowlist properties: never capture email, tokens or raw errors.
+  const properties: Record<string, string> = {
+    source: context.source,
+    surface:
+      context.source === "download" ? "download_popup" : "homepage_dialog",
+    page_path: window.location.pathname,
+  };
+  if (context.installerId) properties.installer_id = context.installerId;
+  return properties;
+}
+
+export function trackCloudSignupViewed(context: SignupContext) {
+  captureConversion("marketing_cloud_signup_viewed", signupProperties(context));
+}
+
+export function trackCloudSignupDismissed(
+  context: SignupContext,
+  method: SignupDismissMethod,
+  state: SignupState,
+) {
+  captureConversion("marketing_cloud_signup_dismissed", {
+    ...signupProperties(context),
+    method,
+    signup_state: state,
+  });
+}
+
+export function trackWaitlistStarted(context: SignupContext) {
+  captureConversion("marketing_waitlist_started", signupProperties(context));
+}
+
+export function trackWaitlistSubmitAttempted(context: SignupContext) {
+  captureConversion(
+    "marketing_waitlist_submit_attempted",
+    signupProperties(context),
+  );
+}
+
+export function trackWaitlistFailed(
+  context: SignupContext,
+  reason: SignupFailure,
+) {
+  captureConversion("marketing_waitlist_failed", {
+    ...signupProperties(context),
+    reason,
+  });
+}
+
+export type VerificationFailure =
+  "unavailable" | "load_failed" | "challenge_failed";
+
+export function trackWaitlistVerificationFailed(
+  context: SignupContext,
+  reason: VerificationFailure,
+) {
+  captureConversion("marketing_waitlist_verification_failed", {
+    ...signupProperties(context),
+    reason,
+  });
+}
+
+export function trackWaitlistSubmitted(context: SignupContext) {
+  captureConversion("marketing_waitlist_submitted", signupProperties(context));
 }
 
 function captureConversion(event: string, properties: Record<string, string>) {

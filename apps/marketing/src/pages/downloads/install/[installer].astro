@@ -1,6 +1,7 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
 import PlatformIcon from "../../../components/PlatformIcon.astro";
+import QuoryCloud from "../../../components/QuoryCloud.astro";
 import {
   targets,
   fallbackManifest,
@@ -70,7 +71,11 @@ const platform = osNames[target.os as OS];
     <div
       class="rounded-2xl border border-border p-8 max-[520px]:px-5 max-[520px]:py-6 [&_a]:text-[13px] [&_a]:text-primary-emphasis [&_a]:underline [&_a]:underline-offset-4 [&_li]:mb-6 [&_li]:pl-2 [&_li]:text-sm/[inherit] [&_li]:marker:text-primary [&_li_p]:mt-1.5 [&_li_p]:mb-0 [&_li_p]:leading-[1.85] [&_li_p]:text-muted-foreground [&_li_strong]:font-medium [&_ol]:m-0 [&_ol]:pl-5.5"
     >
-      <h2 class="mt-0 mb-6 font-display text-[32px] font-medium">
+      <h2
+        class="mt-0 mb-6 font-display text-[32px] font-medium"
+        id="installation-title"
+        tabindex="-1"
+      >
         Installing on {platform}
       </h2>
       {
@@ -220,51 +225,9 @@ const platform = osNames[target.os as OS];
       </div>
     </div>
   </section>
+  <QuoryCloud placement="installation" />
 </Layout>
 <script>
-  import { trackDownloadStarted } from "../../../lib/analytics";
-  import { fallbackManifest, loadManifest } from "../../../lib/downloads";
-  const page = document.querySelector<HTMLElement>("[data-installer]")!;
-  const link = page.querySelector<HTMLAnchorElement>("[data-installer-link]")!;
-  const status = page.querySelector<HTMLElement>("[data-download-status]")!;
-  const url = new URL(window.location.href);
-  const start = url.searchParams.get("start") === "1";
-  let currentVersion = fallbackManifest.version;
-  link.addEventListener("click", () => {
-    if (link.hasAttribute("href") && !link.hidden) {
-      trackDownloadStarted(page.dataset.installer!, currentVersion, "manual");
-    }
-  });
-  // Consume the request before downloading, so refreshing/back won't download again.
-  if (start) {
-    url.searchParams.delete("start");
-    history.replaceState(history.state, "", url);
-    status.textContent = "Preparing your download…";
-  }
-  function showInstaller(manifest: typeof fallbackManifest) {
-    const asset = manifest.assets.find((a) => a.id === page.dataset.installer);
-    link.hidden = !asset;
-    if (!asset) {
-      link.removeAttribute("href");
-      status.textContent =
-        "This installer is not available yet. Please choose another download.";
-      return;
-    }
-    link.href = asset.url;
-    currentVersion = manifest.version;
-    page.querySelector("[data-installer-version]")!.textContent =
-      `Version ${manifest.version}`;
-    status.textContent = start
-      ? "Your download should start shortly. Follow the steps below to install Quory."
-      : "Your installer is ready to download.";
-    link.textContent = start
-      ? "Download not starting? Try again"
-      : "Download installer";
-    if (start) {
-      trackDownloadStarted(asset.id, manifest.version, "automatic");
-      // GitHub serves an attachment, leaving this instructions page in place.
-      window.location.assign(asset.url);
-    }
-  }
-  void loadManifest().then(showInstaller);
+  import { initializeInstallerDownload } from "../../../lib/installer-download";
+  initializeInstallerDownload();
 </script>

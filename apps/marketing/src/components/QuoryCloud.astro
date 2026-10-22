@@ -1,272 +1,262 @@
 ---
 import DownloadButton from "./DownloadButton.astro";
-import SignupVerification from "./SignupVerification.astro";
+import CloudSignupForm from "./CloudSignupForm.astro";
 import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
+
+interface Props {
+  placement?: "homepage" | "installation";
+}
+const { placement = "homepage" } = Astro.props;
+const afterDownload = placement === "installation";
+const Container = afterDownload ? "dialog" : "section";
 ---
 
-<section
+<Container
   id="cloud"
-  class="relative isolate mx-auto mt-15 mb-25 grid w-[min(1240px,calc(100%-96px))] grid-cols-[1.05fr_1fr] items-center overflow-hidden rounded-3xl border border-primary/16 bg-[linear-gradient(120deg,rgb(var(--primary-subtle)/0.3),rgb(var(--muted)/0.55))] max-[1100px]:w-[calc(100%-64px)] max-[780px]:mt-10 max-[780px]:mb-16 max-[780px]:w-[calc(100%-40px)] max-[780px]:grid-cols-1"
+  data-download-cloud={afterDownload || undefined}
+  class:list={[
+    "@container/cloud relative isolate rounded-3xl border border-primary/16",
+    afterDownload
+      ? "m-auto max-h-[calc(100svh-40px)] w-[min(1100px,calc(100%-40px))] overflow-x-hidden overflow-y-auto bg-background p-0 text-foreground shadow-[0_24px_80px_rgb(var(--foreground)/0.18)] backdrop:bg-foreground/35 backdrop:backdrop-blur-[5px] motion-safe:open:animate-cloud-modal-in motion-safe:open:backdrop:animate-cloud-backdrop-in"
+      : "mx-auto mt-15 mb-25 w-[min(1240px,calc(100%-96px))] overflow-hidden bg-[linear-gradient(120deg,rgb(var(--primary-subtle)/0.3),rgb(var(--muted)/0.55))] max-[1100px]:w-[calc(100%-64px)] max-[780px]:mt-10 max-[780px]:mb-16 max-[780px]:w-[calc(100%-40px)]",
+  ]}
   aria-labelledby="cloud-title"
+  aria-describedby={afterDownload ? "cloud-download-description" : undefined}
 >
   <div
-    class="relative z-1 py-16 pl-16 max-[1100px]:py-11 max-[1100px]:pl-9 max-[780px]:px-7 max-[780px]:pt-9 max-[780px]:pb-0"
+    class="grid grid-cols-1 items-center @[740px]/cloud:grid-cols-[1.05fr_1fr]"
   >
-    <p
-      class="m-0 mb-7 flex flex-wrap items-center gap-4 text-[11px] font-medium tracking-[1.6px] text-primary-emphasis uppercase max-[780px]:mb-5.5"
-    >
-      Quory Cloud
-      <span
-        class="inline-flex items-center gap-1.75 rounded-[100px] border border-primary/20 bg-background/60 px-2.5 py-[5px] text-[10px] tracking-normal normal-case [&>span]:size-1.25 [&>span]:rounded-full [&>span]:bg-primary"
-        ><span aria-hidden="true"></span>Coming soon</span
-      >
-    </p>
-    <h2
-      class="m-0 font-display text-[clamp(42px,4.3vw,60px)] leading-[1.08] font-medium tracking-[-0.5px] max-[1100px]:text-[44px] max-[780px]:text-[clamp(38px,7vw,50px)]"
-      id="cloud-title"
-    >
-      The insights you need,<br /> where you need them.
-    </h2>
-    <p
-      class="mt-3 mb-0 max-w-97.5 text-sm/[1.85] text-muted-foreground max-[1100px]:text-[13px] max-[780px]:max-w-115"
-    >
-      We’re working on a hosted version of Quory, with integrations for your
-      favourite support tools.
-    </p>
-    <p
-      class="mt-3 mb-0 max-w-97.5 text-sm/[1.85] text-muted-foreground max-[1100px]:text-[13px] max-[780px]:max-w-115"
-    >
-      View data relating to a customer's query directly in Slack, Intercom,
-      Zendesk and more.
-    </p>
+    {
+      afterDownload && (
+        <>
+          <div class="col-span-full border-b border-border bg-primary-subtle/40 py-5 pr-16 pl-9 @max-[740px]/cloud:pl-7">
+            <p class="m-0 text-sm font-medium">Your download is on its way.</p>
+            <p
+              class="mt-1 mb-0 text-xs text-muted-foreground"
+              id="cloud-download-description"
+            >
+              While you’re here, meet Quory Cloud. Register for updates.
+            </p>
+          </div>
+          <button
+            class="absolute top-3 right-3 z-10 grid size-10 place-items-center rounded-full border-0 bg-transparent text-[26px] leading-none text-muted-foreground hover:bg-primary-subtle/50 focus-visible:outline-2 focus-visible:outline-primary"
+            type="button"
+            aria-label="Dismiss cloud preview"
+            data-cloud-dismiss="close_button"
+            autofocus
+          >
+            ×
+          </button>
+        </>
+      )
+    }
     <div
-      class="mt-5 [&>p]:mt-0 [&>p]:mb-3.5 [&>p]:text-[11px] [&>p]:leading-[1.7] [&>p]:text-muted-foreground"
+      class:list={[
+        "relative z-1 @max-[740px]/cloud:px-7 @max-[740px]/cloud:pt-9 @max-[740px]/cloud:pb-0",
+        afterDownload
+          ? "py-8 pl-9"
+          : "py-16 pl-16 @max-[1040px]/cloud:py-11 @max-[1040px]/cloud:pl-9",
+      ]}
     >
-      <p>Quory Cloud is coming soon. The desktop app is available today.</p>
-      <div class="flex flex-wrap items-start gap-3">
-        <button
-          class="inline-flex items-center justify-center gap-4.5 rounded-lg border border-transparent bg-primary px-4.5 py-3 text-[13px] font-medium text-primary-foreground transition-[background] duration-180 enabled:hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-55"
-          id="cloud-interest-open"
-          type="button"
-          aria-haspopup="dialog"
-          aria-controls="cloud-interest-dialog"
+      <p
+        class="m-0 mb-7 flex flex-wrap items-center gap-4 text-[11px] font-medium tracking-[1.6px] text-primary-emphasis uppercase @max-[740px]/cloud:mb-5.5"
+      >
+        Quory Cloud
+        <span
+          class="inline-flex items-center gap-1.75 rounded-[100px] border border-primary/20 bg-background/60 px-2.5 py-[5px] text-[10px] tracking-normal normal-case [&>span]:size-1.25 [&>span]:rounded-full [&>span]:bg-primary"
+          ><span aria-hidden="true"></span>Coming soon</span
         >
-          Pre-register for Quory Cloud
-        </button>
-        <DownloadButton compact variant="secondary" />
+      </p>
+      <h2
+        class:list={[
+          "m-0 font-display leading-[1.08] font-medium tracking-[-0.5px]",
+          afterDownload
+            ? "text-[clamp(36px,4.4cqw,48px)]"
+            : "text-[clamp(38px,4.8cqw,60px)] @max-[740px]/cloud:text-[clamp(34px,7cqw,50px)]",
+        ]}
+        id="cloud-title"
+      >
+        The insights you need,<br /> where you need them.
+      </h2>
+      <p
+        class="mt-3 mb-0 max-w-120.5 text-sm/[1.85] text-muted-foreground @max-[1040px]/cloud:text-[13px] @max-[740px]/cloud:max-w-115"
+      >
+        We’re working on a hosted version of Quory, with integrations for your
+        favourite support tools.
+      </p>
+      <p
+        class="mt-3 mb-0 max-w-120.5 text-sm/[1.85] text-muted-foreground @max-[1040px]/cloud:text-[13px] @max-[740px]/cloud:max-w-115"
+      >
+        View data relating to a customer's query directly in Slack, Intercom,
+        Zendesk and more.
+      </p>
+      <div
+        class="mt-5 [&>p]:mt-0 [&>p]:mb-3.5 [&>p]:text-[11px] [&>p]:leading-[1.7] [&>p]:text-muted-foreground"
+      >
+        {
+          !afterDownload && (
+            <p>
+              Quory Cloud is coming soon. The desktop app is available today.
+            </p>
+          )
+        }
+        {
+          afterDownload ? (
+            <CloudSignupForm inline />
+          ) : (
+            <div class="flex flex-wrap items-start gap-3">
+              <button
+                class="inline-flex items-center justify-center gap-4.5 rounded-lg border border-transparent bg-primary px-4.5 py-3 text-[13px] font-medium text-primary-foreground transition-[background] duration-180 enabled:hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-55"
+                id="cloud-interest-open"
+                type="button"
+                aria-haspopup="dialog"
+                aria-controls="cloud-interest-dialog"
+              >
+                Pre-register for Quory Cloud
+              </button>
+              <DownloadButton compact variant="secondary" />
+            </div>
+          )
+        }
+        {
+          afterDownload && (
+            <p class="mt-3! mb-0!">
+              Optional — be first to hear when Quory Cloud is ready for your
+              team.
+            </p>
+          )
+        }
+      </div>
+    </div>
+    <div
+      class="grid min-w-0 place-items-center self-stretch bg-[radial-gradient(ellipse_at_center,rgb(var(--primary)/0.13),transparent_68%)] @max-[740px]/cloud:px-3"
+      aria-hidden="true"
+    >
+      <div
+        class="relative aspect-[480/440] w-full max-w-120 @max-[740px]/cloud:max-w-100"
+      >
+        <div
+          class="absolute top-1/2 left-1/2 aspect-square w-[92%] -translate-1/2 rounded-full border border-primary/13"
+        >
+        </div>
+        <div
+          class="absolute top-1/2 left-1/2 aspect-square w-[65%] -translate-1/2 rounded-full border border-dashed border-primary/13"
+        >
+        </div>
+        <svg
+          class="absolute inset-0 size-full stroke-primary/25 stroke-[1.5]"
+          viewBox="0 0 480 440"
+          fill="none"
+        >
+          <path
+            d="M105 95H160Q180 95 180 115V200Q180 220 200 220H240M385 155H330Q310 155 310 175V200Q310 220 290 220H240M130 355H175Q195 355 195 335V240Q195 220 215 220H240"
+          ></path>
+          <path
+            class="animate-cloud-signal stroke-primary [stroke-dasharray:8_240] motion-reduce:animate-none"
+            d="M105 95H160Q180 95 180 115V200Q180 220 200 220H240M385 155H330Q310 155 310 175V200Q310 220 290 220H240M130 355H175Q195 355 195 335V240Q195 220 215 220H240"
+          ></path>
+        </svg>
+        <div
+          class="absolute top-[34%] left-[12%] w-[30%] -rotate-9 rounded-[10px] border border-primary/18 bg-background/85 p-3.5 shadow-[0_12px_28px_-18px_rgb(var(--primary)/0.4)]"
+        >
+          <div
+            class="mb-[13px] flex items-center gap-2 [&_i]:size-3 [&_i]:rounded-[3px] [&_i]:bg-primary/30 [&>span]:h-1.25 [&>span]:w-[46%] [&>span]:rounded-[2px] [&>span]:bg-muted-foreground/25"
+          >
+            <i></i><span></span>
+          </div>
+          <div
+            class="grid grid-cols-[1.2fr_1fr_0.8fr] gap-x-1.75 gap-y-2.25 border-t border-border pt-2.5 [&>span]:h-1 [&>span]:rounded-[2px] [&>span]:bg-primary/15"
+          >
+            {Array.from({ length: 9 }, () => <span />)}
+          </div>
+        </div>
+        <div
+          class="absolute right-[9%] bottom-[17%] w-[30%] rotate-7 rounded-[10px] border border-primary/18 bg-background/85 p-3.5 shadow-[0_12px_28px_-18px_rgb(var(--primary)/0.4)]"
+        >
+          <div
+            class="mb-[13px] flex items-center gap-2 [&_i]:size-3 [&_i]:rounded-[3px] [&_i]:bg-primary/30 [&>span]:h-1.25 [&>span]:w-[46%] [&>span]:rounded-[2px] [&>span]:bg-muted-foreground/25"
+          >
+            <i></i><span></span>
+          </div>
+          <div
+            class="grid grid-cols-[1.2fr_1fr_0.8fr] gap-x-1.75 gap-y-2.25 border-t border-border pt-2.5 [&>span]:h-1 [&>span]:rounded-[2px] [&>span]:bg-primary/15"
+          >
+            {Array.from({ length: 9 }, () => <span />)}
+          </div>
+        </div>
+        <div
+          class="absolute top-1/2 left-1/2 z-2 flex aspect-square w-[29%] -translate-1/2 flex-col items-center justify-center gap-3 rounded-[24%] border border-primary/22 bg-background shadow-[0_18px_45px_-18px_rgb(var(--primary)/0.4),0_0_0_8px_rgb(var(--background)/0.4)] [&_img]:h-auto [&_img]:w-[42%]"
+        >
+          <img src={iconUrl} width="58" height="58" alt="" />
+        </div>
+        <div
+          class="absolute top-[21.591%] left-[21.875%] z-3 grid aspect-square w-[14%] -translate-1/2 place-items-center rounded-[25%] border border-primary/18 bg-white shadow-[0_8px_20px_-10px_rgb(var(--primary)/0.35)] [&_img]:h-auto [&_img]:w-[52%]"
+          title="Zendesk"
+        >
+          <img src="/logos/zendesk.svg" width="32" height="32" alt="" />
+        </div>
+        <div
+          class="absolute top-[35.227%] left-[80.208%] z-3 grid aspect-square w-[14%] -translate-1/2 place-items-center rounded-[25%] border border-primary/18 bg-white shadow-[0_8px_20px_-10px_rgb(var(--primary)/0.35)] [&_img]:h-auto [&_img]:w-[52%]"
+          title="Intercom"
+        >
+          <img src="/logos/intercom.svg" width="32" height="32" alt="" />
+        </div>
+        <div
+          class="absolute top-[80.682%] left-[27.083%] z-3 grid aspect-square w-[14%] -translate-1/2 place-items-center rounded-[25%] border border-primary/18 bg-white shadow-[0_8px_20px_-10px_rgb(var(--primary)/0.35)] [&_img]:h-auto [&_img]:w-[52%]"
+          title="Slack"
+        >
+          <img src="/logos/slack.svg" width="32" height="32" alt="" />
+        </div>
+        <span class="absolute top-[14%] right-[28%] text-[28px] text-primary/55"
+          >✳</span
+        >
+        <span
+          class="absolute bottom-[31%] left-[9%] size-1.5 rounded-full bg-current text-primary/55"
+        ></span>
       </div>
     </div>
   </div>
-  <div
-    class="grid min-w-0 place-items-center self-stretch bg-[radial-gradient(ellipse_at_center,rgb(var(--primary)/0.13),transparent_68%)] max-[780px]:px-3"
-    aria-hidden="true"
-  >
-    <div
-      class="relative aspect-[480/440] w-full max-w-120 max-[780px]:max-w-100"
-    >
-      <div
-        class="absolute top-1/2 left-1/2 aspect-square w-[92%] -translate-1/2 rounded-full border border-primary/13"
-      >
-      </div>
-      <div
-        class="absolute top-1/2 left-1/2 aspect-square w-[65%] -translate-1/2 rounded-full border border-dashed border-primary/13"
-      >
-      </div>
-      <svg
-        class="absolute inset-0 size-full stroke-primary/25 stroke-[1.5]"
-        viewBox="0 0 480 440"
-        fill="none"
-      >
-        <path
-          d="M105 95H160Q180 95 180 115V200Q180 220 200 220H240M385 155H330Q310 155 310 175V200Q310 220 290 220H240M130 355H175Q195 355 195 335V240Q195 220 215 220H240"
-        ></path>
-        <path
-          class="animate-cloud-signal stroke-primary [stroke-dasharray:8_240] motion-reduce:animate-none"
-          d="M105 95H160Q180 95 180 115V200Q180 220 200 220H240M385 155H330Q310 155 310 175V200Q310 220 290 220H240M130 355H175Q195 355 195 335V240Q195 220 215 220H240"
-        ></path>
-      </svg>
-      <div
-        class="absolute top-[34%] left-[12%] w-[30%] -rotate-9 rounded-[10px] border border-primary/18 bg-background/85 p-3.5 shadow-[0_12px_28px_-18px_rgb(var(--primary)/0.4)]"
-      >
-        <div
-          class="mb-[13px] flex items-center gap-2 [&_i]:size-3 [&_i]:rounded-[3px] [&_i]:bg-primary/30 [&>span]:h-1.25 [&>span]:w-[46%] [&>span]:rounded-[2px] [&>span]:bg-muted-foreground/25"
-        >
-          <i></i><span></span>
-        </div>
-        <div
-          class="grid grid-cols-[1.2fr_1fr_0.8fr] gap-x-1.75 gap-y-2.25 border-t border-border pt-2.5 [&>span]:h-1 [&>span]:rounded-[2px] [&>span]:bg-primary/15"
-        >
-          {Array.from({ length: 9 }, () => <span />)}
-        </div>
-      </div>
-      <div
-        class="absolute right-[9%] bottom-[17%] w-[30%] rotate-7 rounded-[10px] border border-primary/18 bg-background/85 p-3.5 shadow-[0_12px_28px_-18px_rgb(var(--primary)/0.4)]"
-      >
-        <div
-          class="mb-[13px] flex items-center gap-2 [&_i]:size-3 [&_i]:rounded-[3px] [&_i]:bg-primary/30 [&>span]:h-1.25 [&>span]:w-[46%] [&>span]:rounded-[2px] [&>span]:bg-muted-foreground/25"
-        >
-          <i></i><span></span>
-        </div>
-        <div
-          class="grid grid-cols-[1.2fr_1fr_0.8fr] gap-x-1.75 gap-y-2.25 border-t border-border pt-2.5 [&>span]:h-1 [&>span]:rounded-[2px] [&>span]:bg-primary/15"
-        >
-          {Array.from({ length: 9 }, () => <span />)}
-        </div>
-      </div>
-      <div
-        class="absolute top-1/2 left-1/2 z-2 flex aspect-square w-[29%] -translate-1/2 flex-col items-center justify-center gap-3 rounded-[24%] border border-primary/22 bg-background shadow-[0_18px_45px_-18px_rgb(var(--primary)/0.4),0_0_0_8px_rgb(var(--background)/0.4)] [&_img]:h-auto [&_img]:w-[42%]"
-      >
-        <img src={iconUrl} width="58" height="58" alt="" />
-      </div>
-      <div
-        class="absolute top-[21.591%] left-[21.875%] z-3 grid aspect-square w-[14%] -translate-1/2 place-items-center rounded-[25%] border border-primary/18 bg-white shadow-[0_8px_20px_-10px_rgb(var(--primary)/0.35)] [&_img]:h-auto [&_img]:w-[52%]"
-        title="Zendesk"
-      >
-        <img src="/logos/zendesk.svg" width="32" height="32" alt="" />
-      </div>
-      <div
-        class="absolute top-[35.227%] left-[80.208%] z-3 grid aspect-square w-[14%] -translate-1/2 place-items-center rounded-[25%] border border-primary/18 bg-white shadow-[0_8px_20px_-10px_rgb(var(--primary)/0.35)] [&_img]:h-auto [&_img]:w-[52%]"
-        title="Intercom"
-      >
-        <img src="/logos/intercom.svg" width="32" height="32" alt="" />
-      </div>
-      <div
-        class="absolute top-[80.682%] left-[27.083%] z-3 grid aspect-square w-[14%] -translate-1/2 place-items-center rounded-[25%] border border-primary/18 bg-white shadow-[0_8px_20px_-10px_rgb(var(--primary)/0.35)] [&_img]:h-auto [&_img]:w-[52%]"
-        title="Slack"
-      >
-        <img src="/logos/slack.svg" width="32" height="32" alt="" />
-      </div>
-      <span class="absolute top-[14%] right-[28%] text-[28px] text-primary/55"
-        >✳</span
-      >
-      <span
-        class="absolute bottom-[31%] left-[9%] size-1.5 rounded-full bg-current text-primary/55"
-      ></span>
-    </div>
-  </div>
-</section>
+</Container>
 
-<dialog
-  id="cloud-interest-dialog"
-  class="m-auto max-h-[calc(100svh-40px)] w-[min(460px,calc(100%-40px))] rounded-[20px] border border-border bg-background p-9 text-foreground shadow-[0_24px_80px_rgb(var(--foreground)/0.18)] backdrop:bg-foreground/35 backdrop:backdrop-blur-[5px] max-[520px]:px-6 max-[520px]:py-8 [&_form>button]:mt-5 [&_form>button]:w-full"
-  aria-labelledby="interest-title"
-  aria-describedby="interest-description"
->
-  <button
-    class="dialog-close absolute top-3 right-3 grid size-9 place-items-center rounded-full border-0 bg-transparent text-[26px] leading-none text-muted-foreground hover:bg-muted"
-    type="button"
-    aria-label="Close registration dialog">×</button
-  >
-  <p
-    class="m-0 mb-4.5 flex flex-wrap items-center gap-4 text-[11px] font-medium tracking-[1.6px] text-primary-emphasis uppercase"
-  >
-    Quory Cloud
-  </p>
-  <h2
-    class="m-0 font-display text-[38px] leading-[1.08] font-medium tracking-[-0.5px]"
-    id="interest-title"
-  >
-    Register your interest
-  </h2>
-  <p
-    class="mt-3.5 mb-7 text-[13px] text-muted-foreground"
-    id="interest-description"
-  >
-    We’re building Quory Cloud. We’ll let you know when it’s ready for your
-    team.
-  </p>
-  <form method="dialog">
-    <label class="mb-2 block text-[13px] font-medium" for="cloud-interest-email"
-      >Email address</label
+{
+  !afterDownload && (
+    <dialog
+      id="cloud-interest-dialog"
+      class="@container/cloud-registration m-auto max-h-[calc(100svh-40px)] w-[min(460px,calc(100%-40px))] rounded-[20px] border border-border bg-background p-0 text-foreground shadow-[0_24px_80px_rgb(var(--foreground)/0.18)] backdrop:bg-foreground/35 backdrop:backdrop-blur-[5px]"
+      aria-labelledby="interest-title"
+      aria-describedby="interest-description"
     >
-    <input
-      class="w-full rounded-lg border border-border bg-background px-3.5 py-3 font-[inherit] text-base/[inherit] text-foreground focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-primary focus-visible:outline-solid"
-      id="cloud-interest-email"
-      name="email"
-      type="email"
-      autocomplete="email"
-      placeholder="you@company.com"
-      required
-      autofocus
-    />
-    <SignupVerification />
-    <button
-      class="inline-flex items-center justify-center gap-4.5 rounded-lg border border-transparent bg-primary px-4.5 py-3 text-[13px] font-medium text-primary-foreground transition-[background] duration-180 enabled:hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-55"
-      type="submit">Register your interest</button
-    >
-  </form>
-</dialog>
+      <div class="p-9 @max-[420px]/cloud-registration:px-6 @max-[420px]/cloud-registration:py-8">
+        <button
+          class="dialog-close absolute top-3 right-3 grid size-9 place-items-center rounded-full border-0 bg-transparent text-[26px] leading-none text-muted-foreground hover:bg-muted"
+          type="button"
+          aria-label="Close registration dialog"
+        >
+          ×
+        </button>
+        <p class="m-0 mb-4.5 flex flex-wrap items-center gap-4 text-[11px] font-medium tracking-[1.6px] text-primary-emphasis uppercase">
+          Quory Cloud
+        </p>
+        <h2
+          class="m-0 font-display text-[38px] leading-[1.08] font-medium tracking-[-0.5px]"
+          id="interest-title"
+        >
+          Register your interest
+        </h2>
+        <p
+          class="mt-3.5 mb-7 text-[13px] text-muted-foreground"
+          id="interest-description"
+        >
+          We’re building Quory Cloud. We’ll let you know when it’s ready for
+          your team.
+        </p>
+        <CloudSignupForm />
+      </div>
+    </dialog>
+  )
+}
 
 <script>
-  import { signupForm } from "../lib/signup";
-  const dialog = document.querySelector<HTMLDialogElement>(
-    "#cloud-interest-dialog",
-  );
-  const trigger = document.querySelector<HTMLButtonElement>(
-    "#cloud-interest-open",
-  );
-  if (dialog && trigger) {
-    const form = dialog.querySelector<HTMLFormElement>("form")!;
-    const signup = signupForm(form);
-    const submit = form.querySelector<HTMLButtonElement>("[type=submit]")!;
-    let sending = false;
-    let generation = 0;
-    trigger.addEventListener("click", () => {
-      signup.message("");
-      dialog.showModal();
-      void signup.prepare();
-    });
-    dialog.addEventListener("close", () => {
-      generation++;
-      sending = false;
-      submit.disabled = false;
-      form.reset();
-    });
-    dialog
-      .querySelector(".dialog-close")
-      ?.addEventListener("click", () => dialog.close());
-    dialog.addEventListener("click", (event) => {
-      if (event.target !== dialog) return;
-      const bounds = dialog.getBoundingClientRect();
-      if (
-        event.clientX < bounds.left ||
-        event.clientX > bounds.right ||
-        event.clientY < bounds.top ||
-        event.clientY > bounds.bottom
-      )
-        dialog.close();
-    });
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      if (sending) return;
-      const current = generation;
-      sending = true;
-      submit.disabled = true;
-      signup.message("Sending your confirmation email…");
-      try {
-        const message = await signup.submit(
-          form.querySelector<HTMLInputElement>("input[type=email]")!.value,
-          "cloud",
-        );
-        if (current === generation && dialog.open) {
-          signup.message(message);
-          form.reset();
-        }
-      } catch (error) {
-        if (current === generation && dialog.open)
-          signup.message(
-            error instanceof Error
-              ? error.message
-              : "Signup failed. Please try again.",
-            true,
-          );
-      } finally {
-        if (current === generation) {
-          sending = false;
-          submit.disabled = false;
-          void signup.prepare();
-        }
-      }
-    });
-  }
+  import { initializeCloudSignup } from "../lib/cloud-signup";
+  initializeCloudSignup();
 </script>

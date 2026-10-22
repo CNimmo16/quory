@@ -28,7 +28,6 @@ const menuId = `download-platforms-${crypto.randomUUID()}`;
       class="inline-flex min-h-13 items-center justify-center gap-3 rounded-l-lg px-5 py-[13px] text-sm/[inherit] font-medium transition-[background] duration-180 group-data-[compact=true]/download:min-h-[45px] group-data-[compact=true]/download:px-4 group-data-[compact=true]/download:py-3 group-data-[compact=true]/download:text-[13px] hover:bg-primary-hover group-data-[variant=secondary]/download:hover:bg-primary-subtle"
       href="/downloads/"
       data-download-primary
-      data-download-email
     >
       {
         ["macos", "windows", "linux", "generic"].map((os) => (
@@ -84,7 +83,6 @@ const menuId = `download-platforms-${crypto.randomUUID()}`;
                 class="items-center gap-3 rounded-md p-2.5 hover:bg-primary-subtle/60 focus-visible:bg-primary-subtle/60 [&:not([hidden])]:flex"
                 href={installerPageURL(target.id)}
                 hidden={!asset}
-                data-download-email
               >
                 <PlatformIcon os={target.os} />
                 <span>
