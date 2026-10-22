@@ -151,12 +151,14 @@
   width: 84%;
   height: auto;
   border-radius: 8px;
-  filter: drop-shadow(0 16px 24px rgb(var(--foreground) / 0.2));
+  /* Keep screenshots out of a filtered compositing layer in Chrome. */
+  box-shadow: 0 16px 24px rgb(var(--foreground) / 0.2);
 }
 .screenshot[data-frame="window"] {
   /* This capture already includes transparent space around the window. */
   width: 100%;
   border-radius: 0;
+  box-shadow: none;
 }
 .visual[data-tone="teal"] {
   background:

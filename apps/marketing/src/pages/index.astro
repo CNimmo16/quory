@@ -6,6 +6,31 @@ import QueryWalkthrough from "../components/QueryWalkthrough";
 import BuiltFor from "../components/BuiltFor";
 import QuoryCloud from "../components/QuoryCloud.astro";
 import homepageReveal from "../lib/homepage-reveal.js?raw";
+import { getImage } from "astro:assets";
+import queryScreenshot from "../assets/screenshots/query-view-complex.png";
+import promptScreenshot from "../assets/screenshots/prompt-box.png";
+import confirmScreenshot from "../assets/screenshots/confirm-write.png";
+
+// Generate responsive assets at build time; React only receives their URLs.
+const screenshots = await Promise.all(
+  [queryScreenshot, promptScreenshot, confirmScreenshot].map(async (image) => {
+    const optimized = await getImage({
+      src: image,
+      format: "webp",
+      quality: 100,
+      widths: [400, 640, 800, 1200, 1600, image.width].filter(
+        (width, index, widths) =>
+          width <= image.width && widths.indexOf(width) === index,
+      ),
+    });
+    return {
+      src: optimized.src,
+      srcSet: optimized.srcSet.attribute,
+      width: image.width,
+      height: image.height,
+    };
+  }),
+);
 ---
 
 <Layout>
@@ -113,7 +138,7 @@ import homepageReveal from "../lib/homepage-reveal.js?raw";
       More coming soon…
     </p>
   </section>
-  <BuiltFor client:load />
+  <BuiltFor screenshots={screenshots} client:load />
   <QuoryCloud />
   <section
     class="mx-auto mb-[78px] w-[min(1240px,_calc(100%_-_96px))] rounded-[24px] border border-solid border-primary-subtle bg-primary-subtle px-6 py-16 text-center max-[1100px]:w-[calc(100%_-_64px)] max-[780px]:mb-[50px] max-[780px]:w-[calc(100%_-_40px)] max-[520px]:w-[calc(100%_-_36px)] max-[520px]:px-6 max-[520px]:py-10"
