@@ -3,22 +3,36 @@ import SignupVerification from "./SignupVerification.astro";
 ---
 
 <dialog
+  class="m-auto max-h-[calc(100svh-40px)] w-[min(600px,calc(100%-40px))] rounded-[20px] border border-border bg-background p-9 text-foreground shadow-[0_24px_80px_rgb(var(--foreground)/0.18)] backdrop:bg-foreground/35 backdrop:backdrop-blur-[5px] max-[520px]:px-6 max-[520px]:pt-8 max-[520px]:pb-6"
   id="download-email-dialog"
   aria-labelledby="download-email-title"
   aria-describedby="download-email-description"
 >
-  <button class="close" type="button" aria-label="Close download dialog"
-    >×</button
+  <button
+    class="close absolute top-3 right-3 size-9 rounded-full border-0 bg-transparent text-[26px] leading-none text-muted-foreground hover:bg-primary-subtle/50"
+    type="button"
+    aria-label="Close download dialog">×</button
   >
-  <h2 id="download-email-title">Pre-register for Quory cloud?</h2>
-  <p id="download-email-description">
+  <h2
+    class="m-0 font-display text-[38px] leading-[1.1] max-[520px]:text-[34px]"
+    id="download-email-title"
+  >
+    Pre-register for Quory cloud?
+  </h2>
+  <p
+    class="my-4 text-sm/[1.7] text-muted-foreground"
+    id="download-email-description"
+  >
     We’re working hard to build a cloud-hosted version of Quory. Enter your
     email to stay in the loop. No spam, no data sharing, just updates from us
     about Quory.
   </p>
   <form method="dialog">
-    <label for="download-email">Email address</label>
+    <label class="mb-2 block text-[13px] font-medium" for="download-email"
+      >Email address</label
+    >
     <input
+      class="w-full rounded-lg border border-border bg-background px-3.5 py-3 font-[inherit] text-sm/[inherit] text-foreground"
       id="download-email"
       type="email"
       autocomplete="email"
@@ -26,12 +40,22 @@ import SignupVerification from "./SignupVerification.astro";
       autofocus
     />
     <SignupVerification />
-    <div class="actions">
-      <button class="continue" type="submit">
+    <div class="mt-5 flex gap-2.5">
+      <button
+        class="flex flex-1 flex-col gap-0 rounded-lg border border-transparent bg-primary px-4.5 py-1.5 text-[13px] font-medium text-primary-foreground hover:bg-primary-hover"
+        type="submit"
+      >
         <span>Continue to download</span>
-        <p class="platform" data-selected-installer></p>
+        <p
+          class="text-xs/[inherit] font-medium text-primary-subtle"
+          data-selected-installer
+        >
+        </p>
       </button>
-      <button class="skip" type="button">No thanks - just download</button>
+      <button
+        class="skip rounded-lg border border-border bg-transparent px-4.5 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-primary-subtle/50 hover:text-foreground"
+        type="button">No thanks - just download</button
+      >
     </div>
   </form>
 </dialog>
@@ -155,124 +179,3 @@ import SignupVerification from "./SignupVerification.astro";
     returnFocus = undefined;
   });
 </script>
-
-<style>
-  dialog {
-    width: min(600px, calc(100% - 40px));
-    max-height: calc(100svh - 40px);
-    margin: auto;
-    padding: 36px;
-    border: 1px solid rgb(var(--border));
-    border-radius: 20px;
-    background: rgb(var(--background));
-    color: rgb(var(--foreground));
-    box-shadow: 0 24px 80px rgb(var(--foreground) / 0.18);
-  }
-  dialog::backdrop {
-    background: rgb(var(--foreground) / 0.35);
-    backdrop-filter: blur(5px);
-  }
-  .close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 36px;
-    height: 36px;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    color: rgb(var(--muted-foreground));
-    font-size: 26px;
-    line-height: 1;
-  }
-  .close:hover {
-    background: rgb(var(--primary-subtle) / 0.5);
-  }
-  .eyebrow {
-    margin: 0 0 12px;
-    color: rgb(var(--primary-emphasis));
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 1.6px;
-    text-transform: uppercase;
-  }
-  h2 {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: 38px;
-    line-height: 1.1;
-  }
-  #download-email-description {
-    margin: 16px 0;
-    color: rgb(var(--muted-foreground));
-    font-size: 14px;
-    line-height: 1.7;
-  }
-  .platform {
-    color: rgb(var(--primary-subtle));
-    font-size: 12px;
-    font-weight: 500;
-  }
-  label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 13px;
-    font-weight: 500;
-  }
-  input {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1px solid rgb(var(--border));
-    border-radius: 8px;
-    background: rgb(var(--background));
-    color: rgb(var(--foreground));
-    font: inherit;
-    font-size: 14px;
-  }
-  .note {
-    margin: 10px 0 24px;
-    color: rgb(var(--muted-foreground));
-    font-size: 11px;
-    line-height: 1.6;
-  }
-  .actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-  }
-  .actions button {
-    padding: 6px 18px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-  }
-  .continue {
-    flex: 1;
-    border: 1px solid transparent;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    background: rgb(var(--primary));
-    color: rgb(var(--primary-foreground));
-  }
-  .continue:hover {
-    background: rgb(var(--primary-hover));
-  }
-  .skip {
-    border: 1px solid rgb(var(--border));
-    background: transparent;
-    color: rgb(var(--muted-foreground));
-  }
-  .skip:hover {
-    background: rgb(var(--primary-subtle) / 0.5);
-    color: rgb(var(--foreground));
-  }
-  @media (max-width: 520px) {
-    dialog {
-      padding: 32px 24px 24px;
-    }
-    h2 {
-      font-size: 34px;
-    }
-  }
-</style>

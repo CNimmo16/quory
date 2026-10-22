@@ -35,41 +35,23 @@ const screenshots = await Promise.all(
 
 <Layout>
   <script is:inline set:html={homepageReveal} />
-  <style is:global>
-    html[data-homepage-copy="pending"] [data-homepage-copy-content] {
-      visibility: hidden;
-      opacity: 0;
-    }
-    html[data-homepage-copy="ready"] [data-homepage-copy-content] {
-      animation: homepage-copy-reveal 160ms ease-out both;
-    }
-    @keyframes homepage-copy-reveal {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      html[data-homepage-copy="ready"] [data-homepage-copy-content] {
-        animation: none;
-      }
-    }
-  </style>
   <section
     class="mx-auto flex w-[min(1240px,_calc(100%_-_96px))] flex-col items-center gap-10 pt-[65px] pb-[70px] text-center max-[1100px]:w-[calc(100%_-_64px)] max-[1100px]:gap-[25px] max-[780px]:w-[calc(100%_-_40px)] max-[780px]:grid-cols-[1fr] max-[780px]:gap-[30px] max-[780px]:pt-[55px] max-[780px]:pb-[54px] max-[520px]:w-[calc(100%_-_36px)] max-[520px]:gap-[22px] max-[520px]:pt-[43px] min-[1450px]:gap-15"
   >
     <div class="w-full max-w-240">
       <h1
         data-homepage-copy-content
-        class="mx-0 mt-0 mb-7 font-display text-[clamp(38px,5.4vw,76px)] leading-none tracking-[-2px] text-balance"
+        class="mx-0 mt-0 mb-7 font-display text-[clamp(38px,5.4vw,76px)] leading-none tracking-[-2px] text-balance in-[[data-homepage-copy=pending]]:invisible in-[[data-homepage-copy=pending]]:opacity-0 in-[[data-homepage-copy=ready]]:animate-homepage-copy-reveal motion-reduce:animate-none"
       >
         <span
           data-copy-eyebrow
-          class="mb-3 block font-sans text-[0.5em] leading-[1.3em] md:leading-[2.2em] font-light tracking-normal"
+          class="mb-3 block font-sans text-[0.5em] leading-[1.3em] font-light tracking-normal md:leading-[2.2em]"
         >
           SQL is great. Writing joins isn't.
         </span>
         <span
           data-copy-headline
-          class="block leading-[0.9em] md:leading-[0.5em] font-medium tracking-normal text-primary dark:text-[#54a4a9]"
+          class="block leading-[0.9em] font-medium tracking-normal text-primary md:leading-[0.5em] dark:text-[#54a4a9]"
         >
           Get answers faster with Quory.
         </span>
@@ -77,7 +59,7 @@ const screenshots = await Promise.all(
       <p
         data-homepage-copy-content
         data-copy-description
-        class="mx-auto my-11 max-w-140 text-[16px] text-foreground max-[1100px]:text-[14px] max-[780px]:text-[16px] max-[520px]:mb-[26px] max-[520px]:text-[14px] min-[1450px]:text-[17px]"
+        class="mx-auto my-11 max-w-140 text-[16px] text-foreground in-[[data-homepage-copy=pending]]:invisible in-[[data-homepage-copy=pending]]:opacity-0 in-[[data-homepage-copy=ready]]:animate-homepage-copy-reveal motion-reduce:animate-none max-[1100px]:text-[14px] max-[780px]:text-[16px] max-[520px]:mb-[26px] max-[520px]:text-[14px] min-[1450px]:text-[17px]"
       >
         Diagnose customer issues directly in your database - <i>fast</i>.
       </p>
@@ -172,9 +154,9 @@ const screenshots = await Promise.all(
     <p
       class="mx-auto mt-3.5 mb-0 max-w-[640px] text-[15px] leading-[1.85] text-foreground max-[520px]:text-[14px]"
     >
-      We’re on a mission to help engineers in small teams. Those of us who need to solve customer
-      issues fast, without wasting time on complex SQL joins or building internal
-      tooling.
+      We’re on a mission to help engineers in small teams. Those of us who need
+      to solve customer issues fast, without wasting time on complex SQL joins
+      or building internal tooling.
     </p>
     <p
       class="mx-auto mt-7 mb-4 max-w-[520px] text-[13px] leading-[1.85] text-muted-foreground"

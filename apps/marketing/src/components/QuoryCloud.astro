@@ -4,24 +4,48 @@ import SignupVerification from "./SignupVerification.astro";
 import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
 ---
 
-<section id="cloud" class="cloud" aria-labelledby="cloud-title">
-  <div class="cloud-copy">
-    <p class="eyebrow">
+<section
+  id="cloud"
+  class="relative isolate mx-auto mt-15 mb-25 grid w-[min(1240px,calc(100%-96px))] grid-cols-[1.05fr_1fr] items-center overflow-hidden rounded-3xl border border-primary/16 bg-[linear-gradient(120deg,rgb(var(--primary-subtle)/0.3),rgb(var(--muted)/0.55))] max-[1100px]:w-[calc(100%-64px)] max-[780px]:mt-10 max-[780px]:mb-16 max-[780px]:w-[calc(100%-40px)] max-[780px]:grid-cols-1"
+  aria-labelledby="cloud-title"
+>
+  <div
+    class="relative z-1 py-16 pl-16 max-[1100px]:py-11 max-[1100px]:pl-9 max-[780px]:px-7 max-[780px]:pt-9 max-[780px]:pb-0"
+  >
+    <p
+      class="m-0 mb-7 flex flex-wrap items-center gap-4 text-[11px] font-medium tracking-[1.6px] text-primary-emphasis uppercase max-[780px]:mb-5.5"
+    >
       Quory Cloud
-      <span class="badge"><span aria-hidden="true"></span>Coming soon</span>
+      <span
+        class="inline-flex items-center gap-1.75 rounded-[100px] border border-primary/20 bg-background/60 px-2.5 py-[5px] text-[10px] tracking-normal normal-case [&>span]:size-1.25 [&>span]:rounded-full [&>span]:bg-primary"
+        ><span aria-hidden="true"></span>Coming soon</span
+      >
     </p>
-    <h2 id="cloud-title">The insights you need,<br /> where you need them.</h2>
-    <p class="intro mt-3!">
-      We’re working on a hosted version of Quory, with integrations for your favourite support tools.
+    <h2
+      class="m-0 font-display text-[clamp(42px,4.3vw,60px)] leading-[1.08] font-medium tracking-[-0.5px] max-[1100px]:text-[44px] max-[780px]:text-[clamp(38px,7vw,50px)]"
+      id="cloud-title"
+    >
+      The insights you need,<br /> where you need them.
+    </h2>
+    <p
+      class="mt-3 mb-0 max-w-97.5 text-sm/[1.85] text-muted-foreground max-[1100px]:text-[13px] max-[780px]:max-w-115"
+    >
+      We’re working on a hosted version of Quory, with integrations for your
+      favourite support tools.
     </p>
-    <p class="intro mt-3!">
-      View data relating to a customer's query directly in Slack, Intercom, Zendesk and more. 
+    <p
+      class="mt-3 mb-0 max-w-97.5 text-sm/[1.85] text-muted-foreground max-[1100px]:text-[13px] max-[780px]:max-w-115"
+    >
+      View data relating to a customer's query directly in Slack, Intercom,
+      Zendesk and more.
     </p>
-    <div class="download mt-5!">
+    <div
+      class="mt-5 [&>p]:mt-0 [&>p]:mb-3.5 [&>p]:text-[11px] [&>p]:leading-[1.7] [&>p]:text-muted-foreground"
+    >
       <p>Quory Cloud is coming soon. The desktop app is available today.</p>
-      <div class="cloud-actions">
+      <div class="flex flex-wrap items-start gap-3">
         <button
-          class="interest-button"
+          class="inline-flex items-center justify-center gap-4.5 rounded-lg border border-transparent bg-primary px-4.5 py-3 text-[13px] font-medium text-primary-foreground transition-[background] duration-180 enabled:hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-55"
           id="cloud-interest-open"
           type="button"
           aria-haspopup="dialog"
@@ -33,65 +57,130 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
       </div>
     </div>
   </div>
-  <div class="illustration" aria-hidden="true">
-    <div class="constellation">
-      <div class="orbit orbit-outer"></div>
-      <div class="orbit orbit-inner"></div>
-      <svg class="connections" viewBox="0 0 480 440" fill="none">
+  <div
+    class="grid min-w-0 place-items-center self-stretch bg-[radial-gradient(ellipse_at_center,rgb(var(--primary)/0.13),transparent_68%)] max-[780px]:px-3"
+    aria-hidden="true"
+  >
+    <div
+      class="relative aspect-[480/440] w-full max-w-120 max-[780px]:max-w-100"
+    >
+      <div
+        class="absolute top-1/2 left-1/2 aspect-square w-[92%] -translate-1/2 rounded-full border border-primary/13"
+      >
+      </div>
+      <div
+        class="absolute top-1/2 left-1/2 aspect-square w-[65%] -translate-1/2 rounded-full border border-dashed border-primary/13"
+      >
+      </div>
+      <svg
+        class="absolute inset-0 size-full stroke-primary/25 stroke-[1.5]"
+        viewBox="0 0 480 440"
+        fill="none"
+      >
         <path
           d="M105 95H160Q180 95 180 115V200Q180 220 200 220H240M385 155H330Q310 155 310 175V200Q310 220 290 220H240M130 355H175Q195 355 195 335V240Q195 220 215 220H240"
         ></path>
         <path
-          class="signal"
+          class="animate-cloud-signal stroke-primary [stroke-dasharray:8_240] motion-reduce:animate-none"
           d="M105 95H160Q180 95 180 115V200Q180 220 200 220H240M385 155H330Q310 155 310 175V200Q310 220 290 220H240M130 355H175Q195 355 195 335V240Q195 220 215 220H240"
         ></path>
       </svg>
-      <div class="data-card card-back">
-        <div class="card-heading"><i></i><span></span></div>
-        <div class="data-grid">{Array.from({ length: 9 }, () => <span />)}</div>
+      <div
+        class="absolute top-[34%] left-[12%] w-[30%] -rotate-9 rounded-[10px] border border-primary/18 bg-background/85 p-3.5 shadow-[0_12px_28px_-18px_rgb(var(--primary)/0.4)]"
+      >
+        <div
+          class="mb-[13px] flex items-center gap-2 [&_i]:size-3 [&_i]:rounded-[3px] [&_i]:bg-primary/30 [&>span]:h-1.25 [&>span]:w-[46%] [&>span]:rounded-[2px] [&>span]:bg-muted-foreground/25"
+        >
+          <i></i><span></span>
+        </div>
+        <div
+          class="grid grid-cols-[1.2fr_1fr_0.8fr] gap-x-1.75 gap-y-2.25 border-t border-border pt-2.5 [&>span]:h-1 [&>span]:rounded-[2px] [&>span]:bg-primary/15"
+        >
+          {Array.from({ length: 9 }, () => <span />)}
+        </div>
       </div>
-      <div class="data-card card-front">
-        <div class="card-heading"><i></i><span></span></div>
-        <div class="data-grid">{Array.from({ length: 9 }, () => <span />)}</div>
+      <div
+        class="absolute right-[9%] bottom-[17%] w-[30%] rotate-7 rounded-[10px] border border-primary/18 bg-background/85 p-3.5 shadow-[0_12px_28px_-18px_rgb(var(--primary)/0.4)]"
+      >
+        <div
+          class="mb-[13px] flex items-center gap-2 [&_i]:size-3 [&_i]:rounded-[3px] [&_i]:bg-primary/30 [&>span]:h-1.25 [&>span]:w-[46%] [&>span]:rounded-[2px] [&>span]:bg-muted-foreground/25"
+        >
+          <i></i><span></span>
+        </div>
+        <div
+          class="grid grid-cols-[1.2fr_1fr_0.8fr] gap-x-1.75 gap-y-2.25 border-t border-border pt-2.5 [&>span]:h-1 [&>span]:rounded-[2px] [&>span]:bg-primary/15"
+        >
+          {Array.from({ length: 9 }, () => <span />)}
+        </div>
       </div>
-      <div class="hub">
+      <div
+        class="absolute top-1/2 left-1/2 z-2 flex aspect-square w-[29%] -translate-1/2 flex-col items-center justify-center gap-3 rounded-[24%] border border-primary/22 bg-background shadow-[0_18px_45px_-18px_rgb(var(--primary)/0.4),0_0_0_8px_rgb(var(--background)/0.4)] [&_img]:h-auto [&_img]:w-[42%]"
+      >
         <img src={iconUrl} width="58" height="58" alt="" />
       </div>
-      <div class="integration integration-zendesk" title="Zendesk">
+      <div
+        class="absolute top-[21.591%] left-[21.875%] z-3 grid aspect-square w-[14%] -translate-1/2 place-items-center rounded-[25%] border border-primary/18 bg-white shadow-[0_8px_20px_-10px_rgb(var(--primary)/0.35)] [&_img]:h-auto [&_img]:w-[52%]"
+        title="Zendesk"
+      >
         <img src="/logos/zendesk.svg" width="32" height="32" alt="" />
       </div>
-      <div class="integration integration-intercom" title="Intercom">
+      <div
+        class="absolute top-[35.227%] left-[80.208%] z-3 grid aspect-square w-[14%] -translate-1/2 place-items-center rounded-[25%] border border-primary/18 bg-white shadow-[0_8px_20px_-10px_rgb(var(--primary)/0.35)] [&_img]:h-auto [&_img]:w-[52%]"
+        title="Intercom"
+      >
         <img src="/logos/intercom.svg" width="32" height="32" alt="" />
       </div>
-      <div class="integration integration-slack" title="Slack">
+      <div
+        class="absolute top-[80.682%] left-[27.083%] z-3 grid aspect-square w-[14%] -translate-1/2 place-items-center rounded-[25%] border border-primary/18 bg-white shadow-[0_8px_20px_-10px_rgb(var(--primary)/0.35)] [&_img]:h-auto [&_img]:w-[52%]"
+        title="Slack"
+      >
         <img src="/logos/slack.svg" width="32" height="32" alt="" />
       </div>
-      <span class="spark spark-one">✳</span>
-      <span class="spark spark-two"></span>
+      <span class="absolute top-[14%] right-[28%] text-[28px] text-primary/55"
+        >✳</span
+      >
+      <span
+        class="absolute bottom-[31%] left-[9%] size-1.5 rounded-full bg-current text-primary/55"
+      ></span>
     </div>
   </div>
 </section>
 
 <dialog
   id="cloud-interest-dialog"
-  class="interest-dialog"
+  class="m-auto max-h-[calc(100svh-40px)] w-[min(460px,calc(100%-40px))] rounded-[20px] border border-border bg-background p-9 text-foreground shadow-[0_24px_80px_rgb(var(--foreground)/0.18)] backdrop:bg-foreground/35 backdrop:backdrop-blur-[5px] max-[520px]:px-6 max-[520px]:py-8 [&_form>button]:mt-5 [&_form>button]:w-full"
   aria-labelledby="interest-title"
   aria-describedby="interest-description"
 >
   <button
-    class="dialog-close"
+    class="dialog-close absolute top-3 right-3 grid size-9 place-items-center rounded-full border-0 bg-transparent text-[26px] leading-none text-muted-foreground hover:bg-muted"
     type="button"
     aria-label="Close registration dialog">×</button
   >
-  <p class="eyebrow">Quory Cloud</p>
-  <h2 id="interest-title">Register your interest</h2>
-  <p id="interest-description">
+  <p
+    class="m-0 mb-4.5 flex flex-wrap items-center gap-4 text-[11px] font-medium tracking-[1.6px] text-primary-emphasis uppercase"
+  >
+    Quory Cloud
+  </p>
+  <h2
+    class="m-0 font-display text-[38px] leading-[1.08] font-medium tracking-[-0.5px]"
+    id="interest-title"
+  >
+    Register your interest
+  </h2>
+  <p
+    class="mt-3.5 mb-7 text-[13px] text-muted-foreground"
+    id="interest-description"
+  >
     We’re building Quory Cloud. We’ll let you know when it’s ready for your
     team.
   </p>
   <form method="dialog">
-    <label for="cloud-interest-email">Email address</label>
+    <label class="mb-2 block text-[13px] font-medium" for="cloud-interest-email"
+      >Email address</label
+    >
     <input
+      class="w-full rounded-lg border border-border bg-background px-3.5 py-3 font-[inherit] text-base/[inherit] text-foreground focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-primary focus-visible:outline-solid"
       id="cloud-interest-email"
       name="email"
       type="email"
@@ -101,7 +190,9 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
       autofocus
     />
     <SignupVerification />
-    <button class="interest-button" type="submit">Register your interest</button
+    <button
+      class="inline-flex items-center justify-center gap-4.5 rounded-lg border border-transparent bg-primary px-4.5 py-3 text-[13px] font-medium text-primary-foreground transition-[background] duration-180 enabled:hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-55"
+      type="submit">Register your interest</button
     >
   </form>
 </dialog>
@@ -179,435 +270,3 @@ import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
     });
   }
 </script>
-
-<style>
-  .cloud-actions {
-    display: flex;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .interest-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 18px;
-    padding: 12px 18px;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    background: rgb(var(--primary));
-    color: rgb(var(--primary-foreground));
-    font-size: 13px;
-    font-weight: 500;
-    transition: background 180ms;
-  }
-  .interest-button:hover:not(:disabled) {
-    background: rgb(var(--primary-hover));
-  }
-  .interest-button:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-  .interest-dialog {
-    width: min(460px, calc(100% - 40px));
-    max-height: calc(100svh - 40px);
-    margin: auto;
-    padding: 36px;
-    border: 1px solid rgb(var(--border));
-    border-radius: 20px;
-    background: rgb(var(--background));
-    color: rgb(var(--foreground));
-    box-shadow: 0 24px 80px rgb(var(--foreground) / 0.18);
-  }
-  .interest-dialog::backdrop {
-    background: rgb(var(--foreground) / 0.35);
-    backdrop-filter: blur(5px);
-  }
-  .dialog-close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    color: rgb(var(--muted-foreground));
-    font-size: 26px;
-    line-height: 1;
-  }
-  .dialog-close:hover {
-    background: rgb(var(--muted));
-  }
-  .interest-dialog .eyebrow {
-    margin-bottom: 18px;
-  }
-  .interest-dialog h2 {
-    font-size: 38px;
-  }
-  #interest-description {
-    margin: 14px 0 28px;
-    color: rgb(var(--muted-foreground));
-    font-size: 13px;
-  }
-  .interest-dialog label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 13px;
-    font-weight: 500;
-  }
-  .interest-dialog input {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1px solid rgb(var(--border));
-    border-radius: 8px;
-    background: rgb(var(--background));
-    color: rgb(var(--foreground));
-    font: inherit;
-    font-size: 16px;
-  }
-  .interest-dialog input:focus-visible {
-    outline: 2px solid rgb(var(--primary));
-    outline-offset: 3px;
-  }
-  .interest-dialog form > button {
-    width: 100%;
-    margin-top: 20px;
-  }
-  #interest-status {
-    margin: 12px 0 0;
-    text-align: center;
-    color: rgb(var(--muted-foreground));
-    font-size: 11px;
-  }
-  @media (max-width: 520px) {
-    .interest-dialog {
-      padding: 32px 24px;
-    }
-  }
-  .cloud {
-    position: relative;
-    isolation: isolate;
-    display: grid;
-    grid-template-columns: 1.05fr 1fr;
-    align-items: center;
-    width: min(1240px, calc(100% - 96px));
-    margin: 60px auto 100px;
-    overflow: hidden;
-    border: 1px solid rgb(var(--primary) / 0.16);
-    border-radius: 24px;
-    background: linear-gradient(
-      120deg,
-      rgb(var(--primary-subtle) / 0.3),
-      rgb(var(--muted) / 0.55)
-    );
-  }
-  .cloud-copy {
-    position: relative;
-    z-index: 1;
-    padding: 64px 0 64px 64px;
-  }
-  .eyebrow {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin: 0 0 28px;
-    color: rgb(var(--primary-emphasis));
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 1.6px;
-    text-transform: uppercase;
-  }
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 5px 10px;
-    border: 1px solid rgb(var(--primary) / 0.2);
-    border-radius: 100px;
-    background: rgb(var(--background) / 0.6);
-    font-size: 10px;
-    letter-spacing: 0;
-    text-transform: none;
-  }
-  .badge > span {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: rgb(var(--primary));
-  }
-  h2 {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(42px, 4.3vw, 60px);
-    font-weight: 500;
-    line-height: 1.08;
-    letter-spacing: -0.5px;
-  }
-  .intro {
-    max-width: 390px;
-    margin: 24px 0 0;
-    color: rgb(var(--muted-foreground));
-    font-size: 14px;
-    line-height: 1.85;
-  }
-  .download {
-    margin-top: 36px;
-  }
-  .download p {
-    margin: 0 0 14px;
-    color: rgb(var(--muted-foreground));
-    font-size: 11px;
-    line-height: 1.7;
-  }
-  .download a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 28px;
-    padding: 12px 18px;
-    border: 1px solid rgb(var(--primary) / 0.3);
-    border-radius: 8px;
-    background: rgb(var(--background) / 0.7);
-    font-size: 13px;
-    font-weight: 500;
-    transition:
-      background 180ms,
-      transform 180ms;
-  }
-  .download a:hover {
-    background: rgb(var(--primary-subtle));
-    transform: translateY(-2px);
-  }
-  .download a > span {
-    color: rgb(var(--primary-emphasis));
-    font-size: 20px;
-    line-height: 1;
-  }
-  .illustration {
-    display: grid;
-    place-items: center;
-    align-self: stretch;
-    min-width: 0;
-    background: radial-gradient(
-      ellipse at center,
-      rgb(var(--primary) / 0.13),
-      transparent 68%
-    );
-  }
-  .constellation {
-    position: relative;
-    width: 100%;
-    max-width: 480px;
-    aspect-ratio: 480 / 440;
-  }
-  .orbit {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    aspect-ratio: 1;
-    border: 1px solid rgb(var(--primary) / 0.13);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-  }
-  .orbit-outer {
-    width: 92%;
-  }
-  .orbit-inner {
-    width: 65%;
-    border-style: dashed;
-  }
-  .connections {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    stroke: rgb(var(--primary) / 0.25);
-    stroke-width: 1.5;
-  }
-  .connections .signal {
-    stroke: rgb(var(--primary));
-    stroke-dasharray: 8 240;
-    animation: signal 10s linear infinite;
-  }
-  .hub {
-    position: absolute;
-    z-index: 2;
-    left: 50%;
-    top: 50%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    width: 29%;
-    aspect-ratio: 1;
-    border: 1px solid rgb(var(--primary) / 0.22);
-    border-radius: 24%;
-    background: rgb(var(--background));
-    box-shadow:
-      0 18px 45px -18px rgb(var(--primary) / 0.4),
-      0 0 0 8px rgb(var(--background) / 0.4);
-    transform: translate(-50%, -50%);
-  }
-  .hub img {
-    width: 42%;
-    height: auto;
-  }
-  .hub > span {
-    color: rgb(var(--muted-foreground));
-    font-size: 10px;
-    letter-spacing: 0.5px;
-  }
-  .data-card {
-    position: absolute;
-    width: 30%;
-    padding: 14px;
-    border: 1px solid rgb(var(--primary) / 0.18);
-    border-radius: 10px;
-    background: rgb(var(--background) / 0.85);
-    box-shadow: 0 12px 28px -18px rgb(var(--primary) / 0.4);
-  }
-  .card-back {
-    left: 12%;
-    top: 34%;
-    transform: rotate(-9deg);
-  }
-  .card-front {
-    right: 9%;
-    bottom: 17%;
-    transform: rotate(7deg);
-  }
-  .card-heading {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 13px;
-  }
-  .card-heading i {
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
-    background: rgb(var(--primary) / 0.3);
-  }
-  .card-heading > span {
-    width: 46%;
-    height: 5px;
-    border-radius: 2px;
-    background: rgb(var(--muted-foreground) / 0.25);
-  }
-  .data-grid {
-    display: grid;
-    grid-template-columns: 1.2fr 1fr 0.8fr;
-    gap: 9px 7px;
-    padding-top: 10px;
-    border-top: 1px solid rgb(var(--border));
-  }
-  .data-grid > span {
-    height: 4px;
-    border-radius: 2px;
-    background: rgb(var(--primary) / 0.15);
-  }
-  .integration {
-    position: absolute;
-    z-index: 3;
-    display: grid;
-    place-items: center;
-    width: 14%;
-    aspect-ratio: 1;
-    border: 1px solid rgb(var(--primary) / 0.18);
-    border-radius: 25%;
-    background: #fff;
-    box-shadow: 0 8px 20px -10px rgb(var(--primary) / 0.35);
-    transform: translate(-50%, -50%);
-  }
-  .integration img {
-    width: 52%;
-    height: auto;
-  }
-  .integration-zendesk {
-    left: 21.875%;
-    top: 21.591%;
-  }
-  .integration-intercom {
-    left: 80.208%;
-    top: 35.227%;
-  }
-  .integration-slack {
-    left: 27.083%;
-    top: 80.682%;
-  }
-  .spark {
-    position: absolute;
-    color: rgb(var(--primary) / 0.55);
-  }
-  .spark-one {
-    right: 28%;
-    top: 14%;
-    font-size: 28px;
-  }
-  .spark-two {
-    left: 9%;
-    bottom: 31%;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-  @keyframes signal {
-    to {
-      stroke-dashoffset: -496;
-    }
-  }
-  @media (max-width: 1100px) {
-    .cloud {
-      width: calc(100% - 64px);
-    }
-    .cloud-copy {
-      padding: 44px 0 44px 36px;
-    }
-    h2 {
-      font-size: 44px;
-    }
-    .intro {
-      font-size: 13px;
-    }
-  }
-  @media (max-width: 780px) {
-    .cloud {
-      width: calc(100% - 40px);
-      grid-template-columns: 1fr;
-      margin: 40px auto 64px;
-    }
-    .cloud-copy {
-      padding: 36px 28px 0;
-    }
-    .eyebrow {
-      margin-bottom: 22px;
-    }
-    h2 {
-      font-size: clamp(38px, 7vw, 50px);
-    }
-    .intro {
-      max-width: 460px;
-      margin-top: 20px;
-    }
-    .download {
-      margin-top: 28px;
-    }
-    .illustration {
-      padding: 0 12px;
-    }
-    .constellation {
-      max-width: 400px;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .connections .signal {
-      animation: none;
-    }
-  }
-</style>

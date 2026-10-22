@@ -34,18 +34,29 @@ const platforms = [
   title="Download Quory — macOS, Windows & Linux"
   description="Download Quory for macOS, Windows and Linux. Choose your installer and get help installing the early-access desktop app."
 >
-  <div class="downloads-page">
-    <header class="downloads-intro">
-      <h1 class="font-normal!">Download Quory</h1>
-      <p class="lede">
+  <div
+    class="mx-auto w-[min(1240px,calc(100%-96px))] pt-18 pb-24 max-[1100px]:w-[calc(100%-64px)] max-[780px]:w-[calc(100%-40px)] max-[780px]:pt-10"
+  >
+    <header class="mx-auto mb-12 max-w-175 text-center">
+      <h1
+        class="my-5.5 font-display text-[clamp(52px,6vw,80px)] leading-none font-normal"
+      >
+        Download Quory
+      </h1>
+      <p class="mx-auto mb-7 max-w-115 text-[15px] text-muted-foreground">
         The first ever database client built for early-stage engineers.
       </p>
       <DownloadButton />
-      <p class="version" data-release-version>
+      <p
+        class="mt-3.5 mb-0 text-[11px] text-muted-foreground"
+        data-release-version
+      >
         Version {fallbackManifest.version}
       </p>
     </header>
-    <aside class="notice">
+    <aside
+      class="mb-8 flex gap-5 rounded-xl bg-primary-subtle/45 px-7 py-6 max-[780px]:gap-3 max-[780px]:p-5 [&_p]:mt-[5px] [&_p]:mb-0 [&_p]:text-[13px] [&_p]:text-muted-foreground [&_strong]:text-sm/[inherit] [&_strong]:font-medium [&>span]:text-[26px] [&>span]:text-primary"
+    >
       <span aria-hidden="true">↳</span>
       <div>
         <strong>A note before you install</strong><p>
@@ -56,22 +67,32 @@ const platforms = [
         </p>
       </div>
     </aside>
-    <div class="platforms" id="platform-downloads">
+    <div
+      class="grid grid-cols-3 gap-5 max-[780px]:grid-cols-1"
+      id="platform-downloads"
+    >
       {
         platforms.map((platform) => (
           <section
-            class="platform"
+            class="scroll-mt-7 rounded-2xl border border-border p-7 data-[detected]:border-primary max-[1100px]:p-5.5"
             id={platform.os}
             aria-labelledby={`${platform.os}-title`}
           >
-            <div class="platform-title">
+            <div class="flex items-center gap-3.5">
               <>
                 <PlatformIcon os={platform.os} />
-                <h2 id={`${platform.os}-title`}>{platform.name}</h2>
+                <h2
+                  class="m-0 font-display text-[34px] font-medium"
+                  id={`${platform.os}-title`}
+                >
+                  {platform.name}
+                </h2>
               </>
             </div>
-            <p class="platform-detail">{platform.detail}</p>
-            <div class="asset-list">
+            <p class="mt-2 mb-6 text-xs/[inherit] text-muted-foreground">
+              {platform.detail}
+            </p>
+            <div>
               {targets
                 .filter((t) => t.os === platform.os)
                 .map((target) => {
@@ -79,9 +100,12 @@ const platforms = [
                     (a) => a.id === target.id,
                   );
                   return (
-                    <div class="asset" data-asset-id={target.id}>
+                    <div
+                      class="not-first:mt-5 not-first:border-t not-first:border-border not-first:pt-5"
+                      data-asset-id={target.id}
+                    >
                       <a
-                        class="asset-link"
+                        class="asset-link items-center justify-between gap-2 text-[13px] font-medium text-primary-emphasis hover:underline hover:underline-offset-4 [&:not([hidden])]:flex"
                         href={asset ? installerPageURL(target.id) : undefined}
                         data-download-email
                         hidden={!asset}
@@ -89,15 +113,21 @@ const platforms = [
                         <span>{target.label}</span>
                         <span aria-hidden="true">↓</span>
                       </a>
-                      <span class="asset-unavailable" hidden={!!asset}>
+                      <span
+                        class="asset-unavailable text-xs/[inherit] text-muted-foreground"
+                        hidden={!!asset}
+                      >
                         {target.label} · Not available yet
                       </span>
-                      <span class="asset-meta">
+                      <span class="asset-meta mt-[5px] block text-[11px] text-muted-foreground">
                         {asset
                           ? `${target.format === "AppImage" ? "AppImage" : `.${target.format}`} · ${fileSize(asset.size)}`
                           : "This build will appear here when it’s released."}
                       </span>
-                      <details class="checksum" hidden={!asset?.sha256}>
+                      <details
+                        class="checksum mt-2.5 text-[10px] text-muted-foreground [&_code]:mt-2 [&_code]:block [&_code]:wrap-anywhere [&_summary]:cursor-pointer"
+                        hidden={!asset?.sha256}
+                      >
                         <summary>SHA-256 checksum</summary>
                         <code>{asset?.sha256}</code>
                       </details>
@@ -105,20 +135,28 @@ const platforms = [
                   );
                 })}
             </div>
-            <p class="platform-help">{platform.help}</p>
+            <p class="mt-6.5 mb-0 text-xs/[1.8] text-muted-foreground">
+              {platform.help}
+            </p>
           </section>
         ))
       }
     </div>
-    <section class="install" aria-labelledby="install-title">
+    <section
+      class="mt-18 grid grid-cols-[0.8fr_1.2fr] gap-16 max-[780px]:mt-12 max-[780px]:grid-cols-1 max-[780px]:gap-3"
+      aria-labelledby="install-title"
+    >
       <div>
         <h2
+          class="my-5 font-display text-[42px] leading-[1.1] font-medium"
           id="install-title"
         >
           How to install Quory
         </h2>
       </div>
-      <div class="instructions">
+      <div
+        class="[&_a]:underline [&_a]:underline-offset-4 [&_details]:border-b [&_details]:border-border [&_details]:py-5 [&_details>div]:text-[13px] [&_details>div]:leading-[1.9] [&_details>div]:text-muted-foreground [&_li+li]:mt-2 [&_ol]:pl-5 [&_summary]:cursor-pointer [&_summary]:text-[15px]"
+      >
         <details open>
           <summary>Installing on macOS</summary>
           <div>
@@ -223,203 +261,3 @@ const platforms = [
       document.getElementById(device.os)?.setAttribute("data-detected", "true");
   });
 </script>
-<style>
-  .downloads-page {
-    width: min(1240px, calc(100% - 96px));
-    margin: 0 auto;
-    padding: 72px 0 96px;
-  }
-  .downloads-intro {
-    text-align: center;
-    max-width: 700px;
-    margin: 0 auto 48px;
-  }
-  .eyebrow {
-    color: rgb(var(--primary-emphasis));
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 1.4px;
-  }
-  h1 {
-    margin: 22px 0;
-    font-family: var(--font-display);
-    font-weight: 500;
-    font-size: clamp(52px, 6vw, 80px);
-    line-height: 1;
-  }
-  h1 span {
-    color: rgb(var(--primary));
-  }
-  .lede {
-    max-width: 460px;
-    margin: 0 auto 28px;
-    font-size: 15px;
-    color: rgb(var(--muted-foreground));
-  }
-  .version {
-    margin: 14px 0 0;
-    font-size: 11px;
-    color: rgb(var(--muted-foreground));
-  }
-  .notice {
-    display: flex;
-    gap: 20px;
-    padding: 24px 28px;
-    border-radius: 12px;
-    background: rgb(var(--primary-subtle) / 0.45);
-    margin-bottom: 32px;
-  }
-  .notice > span {
-    font-size: 26px;
-    color: rgb(var(--primary));
-  }
-  .notice strong {
-    font-size: 14px;
-    font-weight: 500;
-  }
-  .notice p {
-    margin: 5px 0 0;
-    font-size: 13px;
-    color: rgb(var(--muted-foreground));
-  }
-  .platforms {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px;
-  }
-  .platform {
-    padding: 28px;
-    border: 1px solid rgb(var(--border));
-    border-radius: 16px;
-    scroll-margin-top: 28px;
-  }
-  .platform[data-detected] {
-    border-color: rgb(var(--primary));
-  }
-  .platform-title {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .platform h2 {
-    font-family: var(--font-display);
-    font-size: 34px;
-    font-weight: 500;
-    margin: 0;
-  }
-  .platform-detail {
-    color: rgb(var(--muted-foreground));
-    font-size: 12px;
-    margin: 8px 0 24px;
-  }
-  .asset + .asset {
-    border-top: 1px solid rgb(var(--border));
-    margin-top: 20px;
-    padding-top: 20px;
-  }
-  .asset-link:not([hidden]) {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: rgb(var(--primary-emphasis));
-  }
-  .asset-link:hover {
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
-  .asset-unavailable {
-    color: rgb(var(--muted-foreground));
-    font-size: 12px;
-  }
-  .asset-meta {
-    display: block;
-    margin-top: 5px;
-    font-size: 11px;
-    color: rgb(var(--muted-foreground));
-  }
-  .checksum {
-    margin-top: 10px;
-    font-size: 10px;
-    color: rgb(var(--muted-foreground));
-  }
-  .checksum summary {
-    cursor: pointer;
-  }
-  .checksum code {
-    display: block;
-    overflow-wrap: anywhere;
-    margin-top: 8px;
-  }
-  .platform-help {
-    margin: 26px 0 0;
-    font-size: 12px;
-    line-height: 1.8;
-    color: rgb(var(--muted-foreground));
-  }
-  .install {
-    display: grid;
-    grid-template-columns: 0.8fr 1.2fr;
-    gap: 64px;
-    margin-top: 72px;
-  }
-  .install h2 {
-    font-family: var(--font-display);
-    font-size: 42px;
-    font-weight: 500;
-    line-height: 1.1;
-    margin: 20px 0;
-  }
-  .instructions details {
-    border-bottom: 1px solid rgb(var(--border));
-    padding: 20px 0;
-  }
-  .instructions summary {
-    font-size: 15px;
-    cursor: pointer;
-  }
-  .instructions details > div {
-    color: rgb(var(--muted-foreground));
-    font-size: 13px;
-    line-height: 1.9;
-  }
-  .instructions ol {
-    padding-left: 20px;
-  }
-  .instructions li + li {
-    margin-top: 8px;
-  }
-  .instructions a {
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
-  @media (max-width: 1100px) {
-    .downloads-page {
-      width: calc(100% - 64px);
-    }
-    .platform {
-      padding: 22px;
-    }
-  }
-  @media (max-width: 780px) {
-    .downloads-page {
-      width: calc(100% - 40px);
-      padding-top: 40px;
-    }
-    .platforms,
-    .install {
-      grid-template-columns: 1fr;
-    }
-    .install {
-      gap: 12px;
-      margin-top: 48px;
-    }
-    .notice {
-      padding: 20px;
-      gap: 12px;
-    }
-  }
-</style>

@@ -4,6 +4,80 @@
 /* Reuse the desktop palette, font families, and system/light/dark theme rules. */
 @config "../../tailwind.config.cjs";
 
+/* Component animation sequences; layout and state styling use utilities. */
+@theme inline {
+  --animate-homepage-copy-reveal: homepage-copy-reveal 160ms ease-out both;
+  --animate-cloud-signal: cloud-signal 10s linear infinite;
+  --animate-built-for-in: built-for-in 312ms cubic-bezier(0.22, 1, 0.36, 1)
+    var(--copy-exit-duration) both;
+  --animate-built-for-out: built-for-out var(--copy-exit-duration)
+    cubic-bezier(0.4, 0, 1, 1) both;
+  --animate-query-caret: query-caret 800ms step-end infinite;
+  --animate-query-submit: query-submit 500ms ease-out both;
+  --animate-query-shimmer: query-shimmer 900ms ease-in-out var(--delay, 0ms)
+    infinite alternate;
+  --animate-query-reveal: query-reveal 400ms ease-out var(--delay) both;
+
+  @keyframes homepage-copy-reveal {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes cloud-signal {
+    to {
+      stroke-dashoffset: -496;
+    }
+  }
+  @keyframes built-for-in {
+    from {
+      opacity: 0;
+      transform: translateY(var(--copy-enter));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes built-for-out {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(var(--copy-exit));
+    }
+  }
+  @keyframes query-caret {
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes query-submit {
+    40% {
+      transform: scale(0.9);
+      box-shadow: 0 0 0 7px rgb(var(--primary) / 0.18);
+      filter: brightness(1.25);
+    }
+  }
+  @keyframes query-shimmer {
+    to {
+      opacity: 0.35;
+    }
+  }
+  @keyframes query-reveal {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
 @layer base {
   * {
     box-sizing: border-box;

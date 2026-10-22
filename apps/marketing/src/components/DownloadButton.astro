@@ -16,19 +16,27 @@ const menuId = `download-platforms-${crypto.randomUUID()}`;
 ---
 
 <div
-  class:list={["download-widget", variant, { compact }]}
+  class="group/download relative inline-flex"
+  data-variant={variant}
+  data-compact={compact}
   data-download-widget
 >
-  <div class="split-button">
+  <div
+    class="inline-flex rounded-lg bg-primary text-primary-foreground group-data-[variant=secondary]/download:border group-data-[variant=secondary]/download:border-primary/30 group-data-[variant=secondary]/download:bg-background/70 group-data-[variant=secondary]/download:text-foreground"
+  >
     <a
-      class="download-button"
+      class="inline-flex min-h-13 items-center justify-center gap-3 rounded-l-lg px-5 py-[13px] text-sm/[inherit] font-medium transition-[background] duration-180 group-data-[compact=true]/download:min-h-[45px] group-data-[compact=true]/download:px-4 group-data-[compact=true]/download:py-3 group-data-[compact=true]/download:text-[13px] hover:bg-primary-hover group-data-[variant=secondary]/download:hover:bg-primary-subtle"
       href="/downloads/"
       data-download-primary
       data-download-email
     >
       {
         ["macos", "windows", "linux", "generic"].map((os) => (
-          <span data-os-icon={os} hidden={os !== "generic"}>
+          <span
+            class="[&:not([hidden])]:flex"
+            data-os-icon={os}
+            hidden={os !== "generic"}
+          >
             <PlatformIcon os={os} />
           </span>
         ))
@@ -36,7 +44,7 @@ const menuId = `download-platforms-${crypto.randomUUID()}`;
       <span data-download-label>Download Quory</span>
     </a>
     <button
-      class="platform-toggle"
+      class="grid w-10.5 place-items-center rounded-r-lg border-0 border-l border-primary-foreground/25 bg-transparent p-0 text-inherit transition-[background] duration-180 group-data-[compact=true]/download:w-9 group-data-[variant=secondary]/download:border-primary/20 group-data-[variant=secondary]/download:text-primary-emphasis hover:bg-primary-hover group-data-[variant=secondary]/download:hover:bg-primary-subtle aria-expanded:bg-primary-hover group-data-[variant=secondary]/download:aria-expanded:bg-primary-subtle"
       type="button"
       popovertarget={menuId}
       aria-controls={menuId}
@@ -55,15 +63,25 @@ const menuId = `download-platforms-${crypto.randomUUID()}`;
       >
     </button>
   </div>
-  <div id={menuId} class="platform-picker" popover="auto" data-download-picker>
-    <p class="picker-heading">Download Quory for…</p>
-    <ul>
+  <div
+    id={menuId}
+    class="fixed inset-auto m-0 max-h-[calc(100svh-32px)] w-[min(300px,calc(100vw-32px))] overflow-y-auto rounded-xl border border-border bg-background p-2 text-left text-foreground shadow-[0_16px_48px_rgb(var(--foreground)/0.16)]"
+    popover="auto"
+    data-download-picker
+  >
+    <p class="mx-2.5 mt-2 mb-2.5 text-[11px] font-medium text-muted-foreground">
+      Download Quory for…
+    </p>
+    <ul
+      class="m-0 list-none p-0 [&_small]:block [&_small]:text-[11px] [&_small]:text-muted-foreground [&_strong]:block [&_strong]:text-[13px] [&_strong]:font-medium"
+    >
       {
         targets.map((target) => {
           const asset = fallbackManifest.assets.find((a) => a.id === target.id);
           return (
             <li data-download-option={target.id}>
               <a
+                class="items-center gap-3 rounded-md p-2.5 hover:bg-primary-subtle/60 focus-visible:bg-primary-subtle/60 [&:not([hidden])]:flex"
                 href={installerPageURL(target.id)}
                 hidden={!asset}
                 data-download-email
@@ -75,11 +93,14 @@ const menuId = `download-platforms-${crypto.randomUUID()}`;
                     <small>{target.label}</small>
                   </>
                 </span>
-                <span class="option-arrow" aria-hidden="true">
+                <span class="ml-auto text-primary-emphasis" aria-hidden="true">
                   ↓
                 </span>
               </a>
-              <span class="unavailable" hidden={!!asset}>
+              <span
+                class="unavailable items-center gap-3 rounded-md p-2.5 text-muted-foreground opacity-65 [&:not([hidden])]:flex"
+                hidden={!!asset}
+              >
                 <>
                   <PlatformIcon os={target.os} />
                   <span>
@@ -209,125 +230,3 @@ const menuId = `download-platforms-${crypto.randomUUID()}`;
     render(manifest, device),
   );
 </script>
-<style>
-  .download-widget {
-    display: inline-flex;
-    position: relative;
-  }
-  .split-button {
-    display: inline-flex;
-    border-radius: 8px;
-    background: rgb(var(--primary));
-    color: rgb(var(--primary-foreground));
-  }
-  .download-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    min-height: 52px;
-    padding: 13px 20px;
-    border-radius: 8px 0 0 8px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: background 180ms;
-  }
-  .platform-toggle {
-    display: grid;
-    place-items: center;
-    width: 42px;
-    padding: 0;
-    border: 0;
-    border-left: 1px solid rgb(var(--primary-foreground) / 0.25);
-    border-radius: 0 8px 8px 0;
-    background: transparent;
-    color: inherit;
-    transition: background 180ms;
-  }
-  .download-button:hover,
-  .platform-toggle:hover,
-  .platform-toggle[aria-expanded="true"] {
-    background: rgb(var(--primary-hover));
-  }
-  [data-os-icon]:not([hidden]) {
-    display: flex;
-  }
-  .platform-picker {
-    position: fixed;
-    inset: auto;
-    margin: 0;
-    width: min(300px, calc(100vw - 32px));
-    max-height: calc(100svh - 32px);
-    overflow-y: auto;
-    padding: 8px;
-    border: 1px solid rgb(var(--border));
-    border-radius: 12px;
-    background: rgb(var(--background));
-    color: rgb(var(--foreground));
-    box-shadow: 0 16px 48px rgb(var(--foreground) / 0.16);
-    text-align: left;
-  }
-  .picker-heading {
-    margin: 8px 10px 10px;
-    font-size: 11px;
-    font-weight: 500;
-    color: rgb(var(--muted-foreground));
-  }
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  li a:not([hidden]),
-  .unavailable:not([hidden]) {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px;
-    border-radius: 6px;
-  }
-  li a:hover,
-  li a:focus-visible {
-    background: rgb(var(--primary-subtle) / 0.6);
-  }
-  li strong {
-    display: block;
-    font-size: 13px;
-    font-weight: 500;
-  }
-  li small {
-    display: block;
-    font-size: 11px;
-    color: rgb(var(--muted-foreground));
-  }
-  .option-arrow {
-    margin-left: auto;
-    color: rgb(var(--primary-emphasis));
-  }
-  .unavailable {
-    color: rgb(var(--muted-foreground));
-    opacity: 0.65;
-  }
-  .compact .download-button {
-    min-height: 45px;
-    font-size: 13px;
-    padding: 12px 16px;
-  }
-  .compact .platform-toggle {
-    width: 36px;
-  }
-  .secondary .split-button {
-    border: 1px solid rgb(var(--primary) / 0.3);
-    background: rgb(var(--background) / 0.7);
-    color: rgb(var(--foreground));
-  }
-  .secondary .platform-toggle {
-    border-left-color: rgb(var(--primary) / 0.2);
-    color: rgb(var(--primary-emphasis));
-  }
-  .secondary .download-button:hover,
-  .secondary .platform-toggle:hover,
-  .secondary .platform-toggle[aria-expanded="true"] {
-    background: rgb(var(--primary-subtle));
-  }
-</style>

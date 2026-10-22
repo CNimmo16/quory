@@ -22,13 +22,32 @@ const platform = osNames[target.os as OS];
   title={`Install Quory for ${platform}`}
   description={`Installation instructions for Quory on ${platform}.`}
 >
-  <section class="install-page" data-installer={target.id}>
-    <a class="back-link" href="/downloads/">← Choose another download</a>
-    <header>
-      <div class="platform-mark"><PlatformIcon os={target.os} /></div>
-      <p class="eyebrow">{platform} · {target.label}</p>
-      <h1>Let’s get Quory<br /><span>up and running.</span></h1>
-      <p class="download-status" role="status" data-download-status>
+  <section
+    class="mx-auto w-[min(760px,calc(100%-40px))] pt-10 pb-22"
+    data-installer={target.id}
+  >
+    <a class="text-xs/[inherit] text-muted-foreground" href="/downloads/"
+      >← Choose another download</a
+    >
+    <header class="pt-11 pb-9 text-center">
+      <div
+        class="mx-auto mb-5 grid size-13 place-items-center rounded-[14px] bg-primary-subtle text-primary-emphasis"
+      >
+        <PlatformIcon os={target.os} />
+      </div>
+      <p class="text-[11px] tracking-[1px] text-primary-emphasis uppercase">
+        {platform} · {target.label}
+      </p>
+      <h1
+        class="mt-5 mb-6 font-display text-[clamp(44px,6vw,64px)] leading-[1.05] font-medium [&_span]:text-primary"
+      >
+        Let’s get Quory<br /><span>up and running.</span>
+      </h1>
+      <p
+        class="mx-auto mb-3 max-w-110 text-sm/[inherit] text-muted-foreground"
+        role="status"
+        data-download-status
+      >
         {
           asset
             ? "Your installer is ready to download."
@@ -36,20 +55,24 @@ const platform = osNames[target.os as OS];
         }
       </p>
       <a
-        class="retry-link"
+        class="text-[13px] text-primary-emphasis underline underline-offset-4"
         href={asset?.url}
         hidden={!asset}
         data-installer-link>Download installer</a
       >
-      <p class="version" data-installer-version>
+      <p class="text-[11px] text-muted-foreground" data-installer-version>
         {asset ? `Version ${fallbackManifest.version}` : ""}
       </p>
       <noscript
         ><p>Use the download link above to start your download.</p></noscript
       >
     </header>
-    <div class="steps">
-      <h2>Installing on {platform}</h2>
+    <div
+      class="rounded-2xl border border-border p-8 max-[520px]:px-5 max-[520px]:py-6 [&_a]:text-[13px] [&_a]:text-primary-emphasis [&_a]:underline [&_a]:underline-offset-4 [&_li]:mb-6 [&_li]:pl-2 [&_li]:text-sm/[inherit] [&_li]:marker:text-primary [&_li_p]:mt-1.5 [&_li_p]:mb-0 [&_li_p]:leading-[1.85] [&_li_p]:text-muted-foreground [&_li_strong]:font-medium [&_ol]:m-0 [&_ol]:pl-5.5"
+    >
+      <h2 class="mt-0 mb-6 font-display text-[32px] font-medium">
+        Installing on {platform}
+      </h2>
       {
         target.os === "macos" && (
           <>
@@ -84,7 +107,7 @@ const platform = osNames[target.os as OS];
                 </li>
               </>
             </ol>
-            <p class="note">
+            <p class="rounded-lg bg-primary-subtle/40 p-4 text-xs/[1.8] text-muted-foreground">
               On a managed Mac, your organization may prevent installation. If
               macOS reports the app as damaged or malicious, stop and report the
               issue instead of disabling protections.
@@ -130,7 +153,7 @@ const platform = osNames[target.os as OS];
                 </li>
               </>
             </ol>
-            <p class="note">
+            <p class="rounded-lg bg-primary-subtle/40 p-4 text-xs/[1.8] text-muted-foreground">
               Smart App Control or your organization’s policies may block
               unsigned apps. Ask your IT team for help rather than disabling
               those protections.
@@ -179,14 +202,16 @@ const platform = osNames[target.os as OS];
                 </li>
               </>
             </ol>
-            <p class="note">
+            <p class="rounded-lg bg-primary-subtle/40 p-4 text-xs/[1.8] text-muted-foreground">
               Library and sandbox requirements vary between distributions.
               Report launch errors rather than disabling the sandbox.
             </p>
           </>
         )
       }
-      <div class="next">
+      <div
+        class="mt-7 border-t border-border pt-5 text-[13px] [&_a]:mt-2 [&_a]:mr-5 [&_a]:inline-block"
+      >
         <p>Once Quory is open, connect your database to start exploring.</p><a
           href="/docs/">Explore the docs →</a
         ><a href="https://github.com/CNimmo16/quory/issues"
@@ -243,116 +268,3 @@ const platform = osNames[target.os as OS];
   }
   void loadManifest().then(showInstaller);
 </script>
-<style>
-  .install-page {
-    width: min(760px, calc(100% - 40px));
-    margin: 0 auto;
-    padding: 40px 0 88px;
-  }
-  .back-link {
-    font-size: 12px;
-    color: rgb(var(--muted-foreground));
-  }
-  header {
-    text-align: center;
-    padding: 44px 0 36px;
-  }
-  .platform-mark {
-    display: grid;
-    place-items: center;
-    width: 52px;
-    height: 52px;
-    margin: 0 auto 20px;
-    border-radius: 14px;
-    background: rgb(var(--primary-subtle));
-    color: rgb(var(--primary-emphasis));
-  }
-  .eyebrow {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: rgb(var(--primary-emphasis));
-  }
-  h1 {
-    margin: 20px 0 24px;
-    font-family: var(--font-display);
-    font-size: clamp(44px, 6vw, 64px);
-    font-weight: 500;
-    line-height: 1.05;
-  }
-  h1 span {
-    color: rgb(var(--primary));
-  }
-  .download-status {
-    max-width: 440px;
-    margin: 0 auto 12px;
-    font-size: 14px;
-    color: rgb(var(--muted-foreground));
-  }
-  .retry-link,
-  .steps a {
-    color: rgb(var(--primary-emphasis));
-    font-size: 13px;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
-  .version {
-    font-size: 11px;
-    color: rgb(var(--muted-foreground));
-  }
-  .steps {
-    padding: 32px;
-    border: 1px solid rgb(var(--border));
-    border-radius: 16px;
-  }
-  h2 {
-    margin: 0 0 24px;
-    font-family: var(--font-display);
-    font-size: 32px;
-    font-weight: 500;
-  }
-  ol {
-    padding-left: 22px;
-    margin: 0;
-  }
-  li {
-    padding-left: 8px;
-    margin-bottom: 24px;
-    font-size: 14px;
-  }
-  li::marker {
-    color: rgb(var(--primary));
-  }
-  li strong {
-    font-weight: 500;
-  }
-  li p {
-    margin: 6px 0 0;
-    color: rgb(var(--muted-foreground));
-    line-height: 1.85;
-  }
-  .note {
-    padding: 16px;
-    border-radius: 8px;
-    background: rgb(var(--primary-subtle) / 0.4);
-    color: rgb(var(--muted-foreground));
-    font-size: 12px;
-    line-height: 1.8;
-  }
-  .next {
-    margin-top: 28px;
-    padding-top: 20px;
-    border-top: 1px solid rgb(var(--border));
-    font-size: 13px;
-  }
-  .next a {
-    display: inline-block;
-    margin-right: 20px;
-    margin-top: 8px;
-  }
-  @media (max-width: 520px) {
-    .steps {
-      padding: 24px 20px;
-    }
-  }
-</style>

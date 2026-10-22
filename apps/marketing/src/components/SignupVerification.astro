@@ -1,24 +1,13 @@
 <div
+  class="mt-3.5"
   data-signup-challenge
   data-sitekey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? ""}
 >
 </div>
-<p class="signup-status" data-signup-status role="status" aria-live="polite">
+<p
+  class="my-3 text-xs/[1.6] text-muted-foreground empty:hidden data-[error=true]:text-foreground"
+  data-signup-status
+  role="status"
+  aria-live="polite"
+>
 </p>
-<style>
-  [data-signup-challenge] {
-    margin-top: 14px;
-  }
-  .signup-status {
-    margin: 12px 0;
-    color: rgb(var(--muted-foreground));
-    font-size: 12px;
-    line-height: 1.6;
-  }
-  .signup-status:empty {
-    display: none;
-  }
-  .signup-status[data-error="true"] {
-    color: rgb(var(--foreground));
-  }
-</style>

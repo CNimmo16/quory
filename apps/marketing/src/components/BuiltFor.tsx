@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import styles from "./BuiltFor.module.css";
 
 const stories = [
   {
@@ -126,21 +125,28 @@ export default function BuiltFor({
     <section
       ref={sectionRef}
       id="why-quory"
-      className={styles.section}
+      className="group/built mx-auto w-[min(1240px,calc(100%-96px))] py-20 text-foreground data-[enhanced=true]:grid data-[enhanced=true]:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] data-[enhanced=true]:items-start data-[enhanced=true]:gap-[clamp(40px,7vw,100px)] max-[1100px]:w-[calc(100%-64px)] max-[1100px]:data-[enhanced=true]:gap-10 max-[700px]:w-[calc(100%-40px)] max-[700px]:py-12 max-[700px]:data-[enhanced=true]:grid-cols-[minmax(0,1fr)] max-[700px]:data-[enhanced=true]:gap-0 min-[1440px]:data-[enhanced=true]:w-[min(1560px,calc(100%-96px))] min-[1440px]:data-[enhanced=true]:grid-cols-[minmax(0,1fr)_min(940px,65vw)] min-[1440px]:data-[enhanced=true]:gap-20"
       data-enhanced={enhanced}
       aria-label="Why Quory"
     >
-      <div className={styles.copy} data-sticky-copy aria-hidden="true">
-        <div className={styles.copyInner} data-direction={direction}>
+      <div
+        className="hidden group-data-[enhanced=true]/built:sticky group-data-[enhanced=true]/built:top-[calc((100svh-var(--panel-height,80svh))/2)] group-data-[enhanced=true]/built:flex group-data-[enhanced=true]/built:h-(--panel-height,80svh) group-data-[enhanced=true]/built:items-center max-[700px]:group-data-[enhanced=true]/built:top-0 max-[700px]:group-data-[enhanced=true]/built:z-2 max-[700px]:group-data-[enhanced=true]/built:-mx-5 max-[700px]:group-data-[enhanced=true]/built:h-auto max-[700px]:group-data-[enhanced=true]/built:bg-[linear-gradient(rgb(var(--background))_90%,rgb(var(--background)/0))] max-[700px]:group-data-[enhanced=true]/built:px-5 max-[700px]:group-data-[enhanced=true]/built:pt-6 max-[700px]:group-data-[enhanced=true]/built:pb-8"
+        data-sticky-copy
+        aria-hidden="true"
+      >
+        <div
+          className="w-full [--copy-enter:var(--copy-travel)] [--copy-exit-duration:240ms] [--copy-exit:calc(-1*var(--copy-travel))] [--copy-travel:clamp(120px,18svh,200px)] data-[direction=up]:[--copy-enter:calc(-1*var(--copy-travel))] data-[direction=up]:[--copy-exit:var(--copy-travel)]"
+          data-direction={direction}
+        >
           <div
             key={active}
-            className={styles.copySlides}
+            className="group/copy grid items-center"
             data-animate={previous !== null}
           >
             {stories.map((story, index) => (
               <div
                 key={story.tone}
-                className={styles.copySlide}
+                className="pointer-events-none opacity-0 [grid-area:1/1] data-[position=active]:opacity-100 group-data-[animate=true]/copy:data-[position=active]:animate-built-for-in group-data-[animate=true]/copy:data-[position=exiting]:animate-built-for-out motion-reduce:transform-none motion-reduce:animate-none! motion-reduce:transition-none"
                 data-position={
                   index === active
                     ? "active"
@@ -149,11 +155,17 @@ export default function BuiltFor({
                       : "hidden"
                 }
               >
-                <div className={styles.headline}>{story.title}</div>
-                <div className={styles.description}>
-                  <p>{story.description}</p>
+                <div className="max-w-110 font-display text-[clamp(42px,4.6vw,66px)] leading-[1.05] font-medium tracking-[-0.6px] text-balance whitespace-pre-line max-[700px]:max-w-100 max-[700px]:text-[38px]">
+                  {story.title}
+                </div>
+                <div className="mt-6.5 max-[700px]:mt-3.5">
+                  <p className="m-0 max-w-90 text-sm leading-[1.85] text-pretty text-foreground max-[1100px]:text-[13px] max-[700px]:max-w-full max-[700px]:text-xs max-[700px]:leading-[1.65]">
+                    {story.description}
+                  </p>
                   {story.note && (
-                    <span className={styles.note}>{story.note}</span>
+                    <span className="mt-4 inline-block text-[11px] font-medium text-primary-emphasis max-[700px]:mt-2 max-[700px]:text-[9px]">
+                      {story.note}
+                    </span>
                   )}
                 </div>
               </div>
@@ -162,23 +174,33 @@ export default function BuiltFor({
         </div>
       </div>
 
-      <div className={styles.panels}>
+      <div className="min-w-0">
         {stories.map((story, index) => (
           <article
             key={story.tone}
-            className={styles.slide}
+            className="relative flex flex-col justify-center py-[calc(40px/3)] max-[700px]:py-[calc(32px/3)]"
             ref={(element) => {
               panelRefs.current[index] = element;
             }}
             aria-labelledby={`built-for-${story.tone}`}
           >
-            <div className={styles.slideCopy}>
-              <h2 id={`built-for-${story.tone}`}>{story.title}</h2>
-              <p>{story.description}</p>
+            <div className="group-data-[enhanced=true]/built:absolute group-data-[enhanced=true]/built:size-px group-data-[enhanced=true]/built:overflow-hidden group-data-[enhanced=true]/built:whitespace-nowrap group-data-[enhanced=true]/built:[clip-path:inset(50%)]">
+              <h2
+                className="font-display text-4xl/[inherit] font-medium whitespace-pre-line"
+                id={`built-for-${story.tone}`}
+              >
+                {story.title}
+              </h2>
+              <p className="mb-6 max-w-120 text-muted-foreground">
+                {story.description}
+              </p>
             </div>
-            <div className={styles.visual} data-tone={story.tone}>
+            <div
+              className="relative isolate mx-auto grid aspect-[1.1] w-[85%] place-items-center overflow-hidden rounded-[20px] data-[tone=amber]:bg-[radial-gradient(ellipse_at_20%_15%,rgb(var(--warning-subtle)),transparent_60%),radial-gradient(ellipse_at_90%_85%,rgb(var(--connection-7)/0.7),transparent_65%),linear-gradient(135deg,rgb(var(--warning-subtle)),rgb(var(--secondary)))] data-[tone=plum]:bg-[radial-gradient(ellipse_at_85%_20%,rgb(var(--secondary-subtle)),transparent_60%),radial-gradient(ellipse_at_10%_80%,rgb(var(--connection-4)/0.8),transparent_65%),linear-gradient(145deg,rgb(var(--secondary)),rgb(var(--secondary-subtle)))] data-[tone=teal]:bg-[radial-gradient(ellipse_at_15%_15%,rgb(var(--primary-subtle)),transparent_60%),radial-gradient(ellipse_at_85%_85%,rgb(var(--connection-2)/0.75),transparent_65%),linear-gradient(135deg,rgb(var(--primary-subtle)),rgb(var(--primary)))] max-[700px]:aspect-[1.15] max-[700px]:rounded-[14px]"
+              data-tone={story.tone}
+            >
               <img
-                className={styles.screenshot}
+                className="block h-auto w-[84%] rounded-lg shadow-[0_16px_24px_rgb(var(--foreground)/0.2)] data-[frame=window]:w-full data-[frame=window]:rounded-none data-[frame=window]:shadow-none"
                 data-frame={story.imageFrame}
                 {...screenshots[index]}
                 sizes={
