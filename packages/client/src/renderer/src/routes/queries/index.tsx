@@ -12,6 +12,7 @@ import {
   ChevronDown,
   CircleAlert,
   Check,
+  Workflow,
 } from "lucide-react";
 import type { Project } from "../../../../shared/project";
 import { Button } from "../../components/ui/button";
@@ -29,6 +30,7 @@ import { useQueryChat } from "../../hooks/useQueryChat";
 import { useNewQueryDraft } from "../../hooks/useNewQueryDraft";
 import trpc from "../../util/tprc";
 import { trpcClient } from "../../GlobalProviders";
+import { NewManualQuery } from "../../components/NewManualQuery";
 
 export const Route = createFileRoute("/queries/")({
   component: RouteComponent,
@@ -47,6 +49,7 @@ export const Route = createFileRoute("/queries/")({
 
 function RouteComponent() {
   const data = Route.useLoaderData();
+  const [manual, setManual] = useState(false);
   const utils = trpc.useUtils();
   const router = useRouter();
   const opening = trpc.projects.open.useMutation();
@@ -68,6 +71,8 @@ function RouteComponent() {
     <QueryLaunch
       key={`${data.projectId ?? ""}:${data.connectionId}`}
       {...data}
+      manual={manual}
+      onManualChange={setManual}
       onSelectProject={selectProject}
       selectingProject={opening.isPending}
       projectError={opening.error?.message}
@@ -82,7 +87,11 @@ function QueryLaunch({
   onSelectProject,
   selectingProject,
   projectError,
+  manual,
+  onManualChange,
 }: {
+  manual: boolean;
+  onManualChange: (manual: boolean) => void;
   connectionId: string;
   projects: { id: string; project: Project }[];
   projectId: string | undefined;
@@ -110,6 +119,127 @@ function QueryLaunch({
       : !connectionId
         ? "Select a connection to create a query."
         : undefined;
+  const connectionControls = (
+    <fieldset
+      disabled={selectingProject || chat.isPending}
+      className="flex min-w-0 flex-wrap items-start gap-x-3 gap-y-1 border-0 p-0"
+    >
+      <div className="min-w-0">
+        <DropdownMenu>
+          <Hint
+            content={
+              projectError ??
+              (!projectId
+                ? "Select a project to choose its connections."
+                : "Change project")
+            }
+          >
+            <span className="inline-flex">
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={selectingProject || chat.isPending}
+                  aria-label={`Project: ${
+                    projects.find(({ id }) => id === projectId)?.project.name ??
+                    "Choose project"
+                  }`}
+                  aria-invalid={!projectId || !!projectError}
+                  aria-describedby={
+                    !projectId || projectError
+                      ? "new-query-project-error"
+                      : undefined
+                  }
+                  className={`h-8 max-w-full gap-2 rounded-full border border-border bg-muted px-3 hover:bg-border ${
+                    !projectId ? "text-muted-foreground" : ""
+                  }`}
+                >
+                  {selectingProject ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    <Folder aria-hidden="true" className="size-4 shrink-0" />
+                  )}
+                  <span className="max-w-48 truncate">
+                    {projects.find(({ id }) => id === projectId)?.project
+                      .name ?? "Choose project"}
+                  </span>
+                  {(!projectId || projectError) && (
+                    <CircleAlert
+                      aria-hidden="true"
+                      className="size-3.5 text-warning"
+                    />
+                  )}
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="size-3 text-muted-foreground"
+                  />
+                </Button>
+              </DropdownMenuTrigger>
+            </span>
+          </Hint>
+          <DropdownMenuContent
+            align="start"
+            aria-label="Projects"
+            className="min-w-56"
+          >
+            {projects.map(({ id, project }) => (
+              <DropdownMenuItem
+                key={id}
+                aria-label={project.name}
+                aria-current={id === projectId ? "true" : undefined}
+                onSelect={() => void onSelectProject(id)}
+              >
+                <Folder aria-hidden="true" className="mr-2 size-4" />
+                <span className="min-w-0 flex-1 truncate">{project.name}</span>
+                {id === projectId && (
+                  <Check
+                    aria-hidden="true"
+                    className="ml-3 size-3.5 text-primary-emphasis"
+                  />
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {(!projectId || projectError) && (
+          <p
+            id="new-query-project-error"
+            className={projectError ? "px-2 text-xs text-warning" : "sr-only"}
+          >
+            {projectError ?? "Select a project."}
+          </p>
+        )}
+      </div>
+      <div className="min-w-0">
+        <Hint
+          content={
+            !projectId
+              ? "Select a project first."
+              : !connectionId
+                ? "Select the database to run this query against"
+                : "Change connection"
+          }
+        >
+          <span className="inline-flex">
+            <fieldset disabled={!projectId} className="min-w-0 border-0 p-0">
+              <ConnectionBadge
+                appearance="prompt"
+                invalid={!connectionId}
+                errorId={
+                  !connectionId ? "new-query-connection-error" : undefined
+                }
+              />
+            </fieldset>
+          </span>
+        </Hint>
+        {!connectionId && (
+          <p id="new-query-connection-error" className="sr-only">
+            {projectId ? "Select a connection." : "Select a project first."}
+          </p>
+        )}
+      </div>
+    </fieldset>
+  );
   return (
     <div className="flex h-full min-h-0">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto px-6 py-8">
@@ -119,18 +249,57 @@ function QueryLaunch({
         >
           {!chat.isPending && (
             <div className="space-y-3">
-              <Sparkles aria-hidden="true" className="size-7 text-primary" />
+              {manual ? (
+                <Workflow aria-hidden="true" className="size-7 text-primary" />
+              ) : (
+                <Sparkles aria-hidden="true" className="size-7 text-primary" />
+              )}
               <h1 className="text-2xl font-semibold tracking-tight">
-                What would you like to explore?
+                {manual
+                  ? "Build a query manually"
+                  : "What would you like to explore?"}
               </h1>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Describe the records you want, related tables to include,
-                columns to show, filters, and sorting. Quory uses your database
-                schema and asks when something needs clarification.
+                {manual
+                  ? "Choose a starting table to open the query editor. Add related tables, choose columns, and set filters from there."
+                  : "Describe the records you want, related tables to include, columns to show, filters, and sorting. Quory uses your database schema and asks when something needs clarification."}
               </p>
             </div>
           )}
-          {started ? (
+          {!started && (
+            <div
+              role="group"
+              aria-label="Query creation mode"
+              className="flex gap-2"
+            >
+              <Button
+                variant={manual ? "outline" : "secondary"}
+                aria-pressed={!manual}
+                onClick={() => onManualChange(false)}
+              >
+                <Sparkles aria-hidden="true" /> AI
+              </Button>
+              <Button
+                variant={manual ? "secondary" : "outline"}
+                aria-pressed={manual}
+                onClick={() => onManualChange(true)}
+              >
+                <Workflow aria-hidden="true" /> Manual
+              </Button>
+            </div>
+          )}
+          {manual ? (
+            <div className="space-y-5 rounded-lg border bg-card p-4">
+              {connectionControls}
+              {disabledReason ? (
+                <p className="text-sm text-muted-foreground">
+                  {disabledReason}
+                </p>
+              ) : (
+                <NewManualQuery connectionId={connectionId} />
+              )}
+            </div>
+          ) : started ? (
             <div
               role={chat.isPending ? "status" : undefined}
               aria-busy={chat.isPending}
@@ -180,147 +349,10 @@ function QueryLaunch({
                 setAssistantOpen(true);
                 return chat.send(message);
               }}
-              controls={
-                <fieldset
-                  disabled={selectingProject || chat.isPending}
-                  className="flex min-w-0 flex-wrap items-start gap-x-3 gap-y-1 border-0 p-0"
-                >
-                  <div className="min-w-0">
-                    <DropdownMenu>
-                      <Hint
-                        content={
-                          projectError ??
-                          (!projectId
-                            ? "Select a project to choose its connections."
-                            : "Change project")
-                        }
-                      >
-                        <span className="inline-flex">
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={selectingProject || chat.isPending}
-                              aria-label={`Project: ${
-                                projects.find(({ id }) => id === projectId)
-                                  ?.project.name ?? "Choose project"
-                              }`}
-                              aria-invalid={!projectId || !!projectError}
-                              aria-describedby={
-                                !projectId || projectError
-                                  ? "new-query-project-error"
-                                  : undefined
-                              }
-                              className={`h-8 max-w-full gap-2 rounded-full border border-border bg-muted px-3 hover:bg-border ${
-                                !projectId ? "text-muted-foreground" : ""
-                              }`}
-                            >
-                              {selectingProject ? (
-                                <Spinner className="size-4" />
-                              ) : (
-                                <Folder
-                                  aria-hidden="true"
-                                  className="size-4 shrink-0"
-                                />
-                              )}
-                              <span className="max-w-48 truncate">
-                                {projects.find(({ id }) => id === projectId)
-                                  ?.project.name ?? "Choose project"}
-                              </span>
-                              {(!projectId || projectError) && (
-                                <CircleAlert
-                                  aria-hidden="true"
-                                  className="size-3.5 text-warning"
-                                />
-                              )}
-                              <ChevronDown
-                                aria-hidden="true"
-                                className="size-3 text-muted-foreground"
-                              />
-                            </Button>
-                          </DropdownMenuTrigger>
-                        </span>
-                      </Hint>
-                      <DropdownMenuContent
-                        align="start"
-                        aria-label="Projects"
-                        className="min-w-56"
-                      >
-                        {projects.map(({ id, project }) => (
-                          <DropdownMenuItem
-                            key={id}
-                            aria-label={project.name}
-                            aria-current={id === projectId ? "true" : undefined}
-                            onSelect={() => void onSelectProject(id)}
-                          >
-                            <Folder
-                              aria-hidden="true"
-                              className="mr-2 size-4"
-                            />
-                            <span className="min-w-0 flex-1 truncate">
-                              {project.name}
-                            </span>
-                            {id === projectId && (
-                              <Check
-                                aria-hidden="true"
-                                className="ml-3 size-3.5 text-primary-emphasis"
-                              />
-                            )}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    {(!projectId || projectError) && (
-                      <p
-                        id="new-query-project-error"
-                        className={
-                          projectError ? "px-2 text-xs text-warning" : "sr-only"
-                        }
-                      >
-                        {projectError ?? "Select a project."}
-                      </p>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <Hint
-                      content={
-                        !projectId
-                          ? "Select a project first."
-                          : !connectionId
-                            ? "Select the database to run this query against"
-                            : "Change connection"
-                      }
-                    >
-                      <span className="inline-flex">
-                        <fieldset
-                          disabled={!projectId}
-                          className="min-w-0 border-0 p-0"
-                        >
-                          <ConnectionBadge
-                            appearance="prompt"
-                            invalid={!connectionId}
-                            errorId={
-                              !connectionId
-                                ? "new-query-connection-error"
-                                : undefined
-                            }
-                          />
-                        </fieldset>
-                      </span>
-                    </Hint>
-                    {!connectionId && (
-                      <p id="new-query-connection-error" className="sr-only">
-                        {projectId
-                          ? "Select a connection."
-                          : "Select a project first."}
-                      </p>
-                    )}
-                  </div>
-                </fieldset>
-              }
+              controls={connectionControls}
             />
           )}
-          {!chat.isPending && (
+          {!manual && !chat.isPending && (
             <p className="text-xs leading-relaxed text-muted-foreground">
               Your request and database schema are shared with your configured
               AI provider. Row data stays in Quory.
@@ -328,19 +360,21 @@ function QueryLaunch({
           )}
         </section>
       </div>
-      <QueryChatPane
-        collapsed={!assistantOpen}
-        onToggle={() => setAssistantOpen((open) => !open)}
-        messages={chat.messages}
-        pendingMessage={chat.pendingMessage}
-        error={chat.error}
-        onSend={(message) =>
-          disabledReason ? Promise.resolve(false) : chat.send(message)
-        }
-        draft={chat.draft}
-        onDraftChange={chat.setDraft}
-        disabled={!!disabledReason}
-      />
+      {!manual && (
+        <QueryChatPane
+          collapsed={!assistantOpen}
+          onToggle={() => setAssistantOpen((open) => !open)}
+          messages={chat.messages}
+          pendingMessage={chat.pendingMessage}
+          error={chat.error}
+          onSend={(message) =>
+            disabledReason ? Promise.resolve(false) : chat.send(message)
+          }
+          draft={chat.draft}
+          onDraftChange={chat.setDraft}
+          disabled={!!disabledReason}
+        />
+      )}
     </div>
   );
 }

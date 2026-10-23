@@ -230,7 +230,7 @@ export const queryChatProcedure = publicProcedure
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message:
-              "The AI provider rejected the API key or model access. Check your provider settings in .env.local.",
+              "The AI provider rejected the API key or model access. Check Settings → AI.",
           });
         if (providerError.statusCode === 429)
           throw new TRPCError({

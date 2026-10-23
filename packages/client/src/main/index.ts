@@ -1,4 +1,8 @@
-import { shutdownTelemetry } from "./telemetry";
+import { configureTelemetry, shutdownTelemetry } from "./telemetry";
+import { settingsStore } from "./settings";
+import { configureQueryModelEnvironment } from "./ai/model";
+import { applyNativeAppearance, titleBarColors } from "./settings/appearance";
+import { defaultPreferences } from "../shared/settings";
 import { app, shell, BrowserWindow } from "electron";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
@@ -37,11 +41,7 @@ export async function recreateMainWindow(): Promise<void> {
     ...(process.platform === "darwin"
       ? { trafficLightPosition: { x: 16, y: 15 } }
       : {
-          titleBarOverlay: {
-            color: "#f8fafc",
-            symbolColor: "#334155",
-            height: 44,
-          },
+          titleBarOverlay: titleBarColors(),
         }),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
@@ -73,6 +73,17 @@ export async function recreateMainWindow(): Promise<void> {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+  app.setAppLogsPath();
+  configureQueryModelEnvironment(() => settingsStore().environment());
+  try {
+    const preferences = settingsStore().preferences();
+    applyNativeAppearance(preferences.appearance);
+    configureTelemetry(preferences.privacy);
+  } catch {
+    // Keep the app usable if preferences are unreadable. Settings displays the
+    // load error, and telemetry stays off until the saved choices can be read.
+    applyNativeAppearance(defaultPreferences.appearance);
+  }
   if (process.platform === "darwin" && !app.isPackaged) {
     app.dock?.setIcon(icon);
   }

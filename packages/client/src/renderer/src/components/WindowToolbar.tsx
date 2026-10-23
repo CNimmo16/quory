@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { SettingsMenu } from "./SettingsMenu";
 
 const ToolbarTargetContext = createContext<HTMLDivElement | null>(null);
 const ToolbarSidebarContext = createContext<((width: number) => void) | null>(
@@ -62,6 +63,7 @@ export function WindowToolbarFrame({
                   </span>
                 )}
               </div>
+              <SettingsMenu />
             </div>
           </header>
           <div className="min-h-0 flex-1">{children}</div>

@@ -68,7 +68,7 @@ export function SqlEditor({
       ),
       EditorView.theme({
         "&": {
-          fontSize: "13px",
+          fontSize: "var(--editor-font-size, 13px)",
           color: "rgb(var(--foreground))",
           backgroundColor: "rgb(var(--card))",
         },

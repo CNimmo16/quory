@@ -405,7 +405,7 @@ describe("provider configuration", () => {
     expect(() => getQueryModel({})).toThrow("OPENAI_API_KEY");
     expect(() =>
       getQueryModel({ AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "test" }),
-    ).toThrow("AI_MODEL");
+    ).toThrow("Settings → AI");
     expect(() => getQueryModel({ AI_PROVIDER: "toString" })).toThrow(
       "AI_PROVIDER",
     );

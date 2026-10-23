@@ -20,7 +20,7 @@ import { Hint } from "./Hint";
 import { cn } from "../lib/utils";
 import JoinAnotherTableButton from "./JoinAnotherTableButton";
 import { countFilters, QueryFilterPopover } from "./QueryFilters";
-import { layoutTableDiagram } from "./tableNavigatorLayout";
+import { layoutTableDiagram, type DiagramPoint } from "./tableNavigatorLayout";
 import useElementSize from "../hooks/useElementSize";
 import { useRelationshipCanvas } from "../hooks/useRelationshipCanvas";
 
@@ -29,6 +29,36 @@ import { TableColumnsMenu } from "./TableColumnsMenu";
 type UseQueryRet = ReturnType<typeof useQuery>;
 
 export default memo(TableNavigator);
+
+function connectorPath(points: DiagramPoint[]) {
+  const distinct = points.filter(
+    (point, index) =>
+      index === 0 ||
+      point.x !== points[index - 1]!.x ||
+      point.y !== points[index - 1]!.y,
+  );
+  const first = distinct[0]!;
+  let path = `M ${first.x} ${first.y}`;
+  for (let index = 1; index < distinct.length - 1; index++) {
+    const previous = distinct[index - 1]!;
+    const corner = distinct[index]!;
+    const next = distinct[index + 1]!;
+    const before = Math.hypot(corner.x - previous.x, corner.y - previous.y);
+    const after = Math.hypot(next.x - corner.x, next.y - corner.y);
+    const radius = Math.min(8, before / 2, after / 2);
+    const entry = {
+      x: corner.x + ((previous.x - corner.x) * radius) / before,
+      y: corner.y + ((previous.y - corner.y) * radius) / before,
+    };
+    const exit = {
+      x: corner.x + ((next.x - corner.x) * radius) / after,
+      y: corner.y + ((next.y - corner.y) * radius) / after,
+    };
+    path += ` L ${entry.x} ${entry.y} Q ${corner.x} ${corner.y} ${exit.x} ${exit.y}`;
+  }
+  const last = distinct[distinct.length - 1]!;
+  return `${path} L ${last.x} ${last.y}`;
+}
 
 function TableNavigator({
   width,
@@ -158,9 +188,10 @@ function TableNavigator({
                 key={`add-${join.joinAlias}`}
                 points={points.map(({ x, y }) => `${x},${y}`).join(" ")}
                 fill="none"
-                className="stroke-muted-foreground"
-                strokeWidth={1.5}
+                className="stroke-muted-foreground/40"
+                strokeWidth={1}
                 strokeDasharray="3 3"
+                strokeLinecap="round"
               />
             ))}
             {[...layout.edges]
@@ -180,40 +211,37 @@ function TableNavigator({
                   edge.source === highlightedJoinAlias ||
                   edge.target === highlightedJoinAlias;
                 const end = edge.points[edge.points.length - 1]!;
+                const path = connectorPath(edge.points);
                 return (
                   <g key={edge.target}>
-                    <polyline
-                      points={edge.points
-                        .map(({ x, y }) => `${x},${y}`)
-                        .join(" ")}
+                    <path
+                      d={path}
                       fill="none"
                       strokeLinejoin="round"
                       strokeLinecap="round"
-                      className="stroke-primary-foreground"
-                      strokeWidth={6}
+                      className="stroke-card"
+                      strokeWidth={5}
                     />
-                    <polyline
-                      points={edge.points
-                        .map(({ x, y }) => `${x},${y}`)
-                        .join(" ")}
+                    <path
+                      d={path}
                       fill="none"
                       strokeLinejoin="round"
                       strokeLinecap="round"
                       className={
                         active
                           ? "stroke-primary-emphasis"
-                          : "stroke-muted-foreground"
+                          : "stroke-muted-foreground/55"
                       }
                       strokeWidth={active ? 2 : 1.5}
                     />
                     <circle
                       cx={end.x}
                       cy={end.y}
-                      r={2.5}
+                      r={2}
                       className={
                         active
                           ? "fill-primary-emphasis"
-                          : "fill-muted-foreground"
+                          : "fill-muted-foreground/65"
                       }
                     />
                   </g>

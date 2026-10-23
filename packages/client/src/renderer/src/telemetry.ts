@@ -5,8 +5,31 @@ import posthog from "posthog-js/dist/module.no-external";
 import { version } from "../../../package.json";
 import { POSTHOG_HOST, POSTHOG_TOKEN } from "../../shared/telemetry";
 
-export function initializeTelemetry() {
+let initialized = false;
+let privacy = { analytics: true, errors: true };
+export function initializeTelemetry(
+  preferences = { analytics: true, errors: true },
+) {
   if (!import.meta.env.PROD) return;
+  privacy = preferences;
+  if (!initialized && !privacy.analytics && !privacy.errors) return;
+  if (initialized) {
+    posthog.set_config({
+      capture_exceptions: {
+        capture_unhandled_errors: privacy.errors,
+        capture_unhandled_rejections: privacy.errors,
+        capture_console_errors: false,
+      },
+      disable_session_recording: !privacy.analytics,
+    });
+    if (privacy.analytics || privacy.errors)
+      posthog.opt_in_capturing({ captureEventName: false });
+    else posthog.opt_out_capturing();
+    if (privacy.analytics) posthog.startSessionRecording();
+    else posthog.stopSessionRecording();
+    return;
+  }
+  initialized = true;
 
   posthog.init(POSTHOG_TOKEN, {
     api_host: POSTHOG_HOST,
@@ -20,11 +43,18 @@ export function initializeTelemetry() {
     capture_performance: false,
     disable_surveys: true,
     capture_exceptions: {
-      capture_unhandled_errors: true,
-      capture_unhandled_rejections: true,
+      capture_unhandled_errors: privacy.errors,
+      capture_unhandled_rejections: privacy.errors,
       capture_console_errors: false,
     },
-    disable_session_recording: false,
+    disable_session_recording: !privacy.analytics,
+    opt_out_capturing_by_default: !privacy.analytics && !privacy.errors,
+    before_send: (event) => {
+      if (!event) return null;
+      return (event.event === "$exception" ? privacy.errors : privacy.analytics)
+        ? event
+        : null;
+    },
     enable_recording_console_log: false,
     session_recording: {
       maskAllInputs: true,
@@ -56,5 +86,6 @@ export function initializeTelemetry() {
 }
 
 export function captureRendererException(error: unknown) {
-  if (import.meta.env.PROD) posthog.captureException(error);
+  if (import.meta.env.PROD && initialized && privacy.errors)
+    posthog.captureException(error);
 }

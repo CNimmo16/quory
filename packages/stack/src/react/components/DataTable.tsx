@@ -32,7 +32,6 @@ import { TableColumnsMenu } from "./TableColumnsMenu";
 type UseQueryRet = ReturnType<typeof useQuery>;
 type QueryData = NonNullable<UseQueryRet["data"]>;
 
-const ROW_HEIGHT = 36;
 const EMPTY_JOINS: QueryData["visibleJoins"] = [];
 const EMPTY_ROWS: QueryData["rows"] = [];
 
@@ -40,6 +39,7 @@ export default memo(DataTable);
 
 type PlainValue = string | number | boolean | null;
 type DataTableProps = {
+  rowHeight?: 28 | 36;
   width?: number;
   height?: number;
   isLoading?: boolean;
@@ -73,6 +73,7 @@ type Column = {
 
 function DataTable(props: DataTableProps) {
   const {
+    rowHeight: ROW_HEIGHT = 36,
     width,
     height = 480,
     isLoading = false,
@@ -236,9 +237,10 @@ function DataTable(props: DataTableProps) {
                       <th
                         key={join.joinAlias}
                         scope="colgroup"
+                        style={{ height: ROW_HEIGHT }}
                         colSpan={joinColumns.length}
                         className={classNames(
-                          "h-9 border-b px-3 font-semibold transition-colors",
+                          "border-b px-3 font-semibold transition-colors",
                           index > 0 && "border-l-border border-l-2",
                           highlightedJoinAlias === join.joinAlias
                             ? "border-b-primary bg-primary-subtle text-primary-emphasis"
@@ -364,6 +366,7 @@ function DataTable(props: DataTableProps) {
                     <th
                       key={key}
                       scope="col"
+                      style={{ height: ROW_HEIGHT }}
                       aria-sort={
                         !join || !joinActions
                           ? undefined
@@ -374,7 +377,7 @@ function DataTable(props: DataTableProps) {
                             : "none"
                       }
                       className={classNames(
-                        "border-border bg-card text-muted-foreground h-9 border-b px-2 font-medium",
+                        "border-border bg-card text-muted-foreground border-b px-2 font-medium",
                         columnIndex === 0 && joinIndex > 0 && "border-l-2",
                       )}
                       onMouseEnter={() =>

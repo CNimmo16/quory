@@ -28,6 +28,7 @@ import { Input } from "./ui/input";
 import { LoadingState } from "./LoadingState";
 import { Alert, AlertDescription } from "./ui/alert";
 import { QueryConnectionMenu } from "./QueryConnectionMenu";
+import { QueryConnectionSubmenu } from "./QueryConnectionSubmenu";
 
 export function ProjectQueries({
   projectId,
@@ -53,6 +54,7 @@ export function ProjectQueries({
   ) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const actions = useSidebarActions(projectId, project, revision, active);
   const disabled = busy || actions.pending;
   const listId = useId();
@@ -129,6 +131,11 @@ export function ProjectQueries({
           <AlertDescription>{actions.error}</AlertDescription>
         </Alert>
       )}
+      {connectionError && (
+        <Alert variant="destructive" className="mx-2 my-1">
+          <AlertDescription>{connectionError}</AlertDescription>
+        </Alert>
+      )}
       {expanded && (
         <ul
           id={listId}
@@ -163,6 +170,21 @@ export function ProjectQueries({
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
+                    <QueryConnectionSubmenu
+                      projectId={projectId}
+                      disabled={disabled}
+                      onOpen={(connectionId) => {
+                        setConnectionError(null);
+                        void onOpenQuery(projectId, id, connectionId).catch(
+                          (cause) =>
+                            setConnectionError(
+                              cause instanceof Error
+                                ? cause.message
+                                : "Could not connect to the database.",
+                            ),
+                        );
+                      }}
+                    />
                     <ContextMenuItem
                       onSelect={() =>
                         actions.beginRename({

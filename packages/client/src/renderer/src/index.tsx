@@ -1,4 +1,4 @@
-import { initializeTelemetry, captureRendererException } from "./telemetry";
+import { captureRendererException } from "./telemetry";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import {
@@ -13,7 +13,6 @@ import { routeTree } from "./routeTree.gen";
 import GlobalProviders from "./GlobalProviders";
 
 // Create a new router instance
-initializeTelemetry();
 const router = createRouter({
   routeTree,
   history: createHashHistory(),

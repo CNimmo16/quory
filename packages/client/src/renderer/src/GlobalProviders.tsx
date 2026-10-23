@@ -5,6 +5,7 @@ import { ipcLink } from "trpc-electron/renderer";
 import { SidebarLayoutProvider } from "./hooks/useSidebarLayout";
 import trpc from "./util/tprc";
 import { NewQueryDraftProvider } from "./hooks/useNewQueryDraft";
+import { SettingsProvider } from "./components/SettingsProvider";
 
 export const trpcClient = trpc.createClient({
   links: [ipcLink()],
@@ -20,11 +21,13 @@ export default function GlobalProviders({
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <NewQueryDraftProvider>
-          <SidebarLayoutProvider>
-            <ConnectedQuoryProvider>{children}</ConnectedQuoryProvider>
-          </SidebarLayoutProvider>
-        </NewQueryDraftProvider>
+        <SettingsProvider>
+          <NewQueryDraftProvider>
+            <SidebarLayoutProvider>
+              <ConnectedQuoryProvider>{children}</ConnectedQuoryProvider>
+            </SidebarLayoutProvider>
+          </NewQueryDraftProvider>
+        </SettingsProvider>
       </QueryClientProvider>
     </trpc.Provider>
   );

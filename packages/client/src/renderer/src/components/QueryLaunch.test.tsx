@@ -111,6 +111,7 @@ beforeEach(() => {
   mocks.connectionId = "connection-1";
   mocks.projectId = "app";
   mocks.open.mockResolvedValue(undefined);
+  mocks.create.mockResolvedValue({ queryId: "manual-query" });
   mocks.listProjects.mockResolvedValue({
     projects: mocks.projects,
     activeProject: null,
@@ -195,7 +196,7 @@ it("keeps creation disabled when a project is selected without a connection", ()
   expect(screen.getByText("Select a connection.")).toBeVisible();
 });
 
-it("offers only AI creation with selectors inside the prompt form", async () => {
+it("defaults to AI creation with selectors inside the prompt form", async () => {
   mount();
   expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Go" })).not.toBeInTheDocument();
@@ -217,6 +218,108 @@ it("offers only AI creation with selectors inside the prompt form", async () => 
       "Latest orders",
     );
   expect(screen.getByRole("button", { name: "Build query" })).toBeEnabled();
+});
+
+it("creates a manual query from a starting table and opens the query editor", async () => {
+  mount();
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Manual" }));
+  expect(screen.getByRole("button", { name: "Manual" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(screen.getByText(/Add related tables, choose columns/)).toBeVisible();
+  expect(screen.getByRole("button", { name: /^Project:/ })).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Connection badge" }),
+  ).toBeVisible();
+  await user.click(screen.getByRole("option", { name: "orders" }));
+  expect(mocks.create).toHaveBeenCalledWith({
+    connectionId: "connection-1",
+    query: { base: { tableRef: "public.orders", select: "*" } },
+  });
+  await waitFor(() =>
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/queries/$queryId",
+      params: { queryId: "manual-query" },
+    }),
+  );
+  expect(mocks.invalidate).toHaveBeenCalled();
+  expect(mocks.chat).not.toHaveBeenCalled();
+});
+
+it("retains manual mode while selecting a connection and requires it before listing tables", async () => {
+  mocks.connectionId = "";
+  const view = mount();
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Manual" }));
+  expect(screen.queryByRole("option")).not.toBeInTheDocument();
+  expect(
+    screen.getByText("Select a connection to create a query."),
+  ).toBeVisible();
+  expect(mocks.create).not.toHaveBeenCalled();
+  mocks.connectionId = "connection-2";
+  view.rerender(queryPage());
+  await user.click(screen.getByRole("option", { name: "orders" }));
+  expect(mocks.create).toHaveBeenCalledWith(
+    expect.objectContaining({ connectionId: "connection-2" }),
+  );
+});
+
+it("retains the AI draft when switching to manual mode and back", async () => {
+  mount();
+  const user = userEvent.setup();
+  await user.type(
+    screen.getByRole("textbox", { name: "Describe your query" }),
+    "Latest orders",
+  );
+  await user.click(screen.getByRole("button", { name: "Manual" }));
+  await user.keyboard("{Escape}");
+  await user.click(screen.getByRole("button", { name: "AI" }));
+  expect(
+    screen.getByRole("textbox", { name: "Describe your query" }),
+  ).toHaveValue("Latest orders");
+});
+
+it("shows manual creation failures and retries the chosen table", async () => {
+  mocks.create.mockRejectedValueOnce(new Error("Could not save query"));
+  mount();
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Manual" }));
+  await user.click(screen.getByRole("option", { name: "orders" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Could not save query",
+  );
+  expect(mocks.navigate).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "Try again" }));
+  await waitFor(() =>
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/queries/$queryId",
+      params: { queryId: "manual-query" },
+    }),
+  );
+  expect(mocks.create).toHaveBeenCalledTimes(2);
+});
+
+it("does not open an old manual query after switching connections", async () => {
+  let finish!: (result: { queryId: string }) => void;
+  mocks.create.mockReturnValue(
+    new Promise<{ queryId: string }>((resolve) => {
+      finish = resolve;
+    }),
+  );
+  const view = mount();
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Manual" }));
+  await user.click(screen.getByRole("option", { name: "orders" }));
+  expect(screen.getByText("Opening query…")).toBeVisible();
+  mocks.connectionId = "connection-2";
+  view.rerender(queryPage());
+  finish({ queryId: "old-query" });
+  await waitFor(() =>
+    expect(screen.getByRole("option", { name: "orders" })).toBeVisible(),
+  );
+  expect(mocks.navigate).not.toHaveBeenCalled();
 });
 
 it("explains missing selectors on the disabled submit button and blocks Enter submission", async () => {

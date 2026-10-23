@@ -343,6 +343,69 @@ it("renames a query from an inactive project without selecting a connection", as
   expect(mocks.connect).not.toHaveBeenCalled();
 });
 
+it.each([true, false])(
+  "opens a sidebar query with a different connection (active project: %s)",
+  async (active) => {
+    mocks.connected = true;
+    render(<Layout />);
+    const user = userEvent.setup();
+    if (!active) await user.click(screen.getByRole("button", { name: "Team" }));
+    const list = screen.getByRole("list", {
+      name: active ? "Application queries" : "Team queries",
+    });
+    fireEvent.contextMenu(within(list).getByText("Custom query"), {
+      clientX: 40,
+      clientY: 100,
+    });
+    expect(
+      screen.getByRole("menuitem", { name: "Rename query" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("menuitem", { name: "Delete query" }),
+    ).toBeVisible();
+    await user.click(
+      screen.getByRole("menuitem", { name: "Change connection" }),
+    );
+    expect(mocks.openProject).not.toHaveBeenCalled();
+    expect(screen.getByRole("menuitem", { name: "Staging" })).toBeVisible();
+    if (active)
+      expect(screen.getByRole("menuitem", { name: "Local" })).toHaveAttribute(
+        "aria-current",
+        "true",
+      );
+    if (active) {
+      await user.keyboard("{ArrowRight}{End}{Enter}");
+    } else {
+      // jsdom has no submenu geometry for pointer movement between menus.
+      fireEvent.click(screen.getByRole("menuitem", { name: "Staging" }));
+    }
+    expect(mocks.openProject).toHaveBeenCalledWith(
+      active ? "app" : "team",
+      "custom",
+      "staging",
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument(),
+    );
+  },
+);
+
+it("reports a failed connection choice from the query context menu", async () => {
+  mocks.connected = true;
+  mocks.openProject.mockRejectedValue(new Error("Connection unavailable"));
+  render(<Layout />);
+  const user = userEvent.setup();
+  fireEvent.contextMenu(screen.getByRole("link", { name: "Orders" }), {
+    clientX: 40,
+    clientY: 100,
+  });
+  await user.click(screen.getByRole("menuitem", { name: "Change connection" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Staging" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Connection unavailable",
+  );
+});
+
 it("does not delete the open query when leaving unsaved changes is blocked", async () => {
   mocks.connected = true;
   mocks.pathname = "/queries/orders";

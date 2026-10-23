@@ -17,14 +17,18 @@ beforeEach(() => {
 describe("main process telemetry", () => {
   it("does not initialize in development", async () => {
     mocks.app.isPackaged = false;
-    const { shutdownTelemetry } = await import("./telemetry");
+    const { configureTelemetry, shutdownTelemetry } =
+      await import("./telemetry");
+    configureTelemetry({ errors: true });
     await shutdownTelemetry();
     expect(mocks.PostHog).not.toHaveBeenCalled();
   });
 
   it("captures packaged exceptions and flushes with a bounded shutdown", async () => {
     mocks.app.isPackaged = true;
-    const { shutdownTelemetry } = await import("./telemetry");
+    const { configureTelemetry, shutdownTelemetry } =
+      await import("./telemetry");
+    configureTelemetry({ errors: true });
     const config = mocks.PostHog.mock.calls[0]![1];
     expect(config).toMatchObject({
       host: "https://eu.i.posthog.com",
@@ -46,6 +50,16 @@ describe("main process telemetry", () => {
       },
     });
     await shutdownTelemetry();
+    expect(mocks.shutdown).toHaveBeenCalledWith(2000);
+  });
+  it("does not capture before preferences load and stops forwarding errors when disabled", async () => {
+    mocks.app.isPackaged = true;
+    const { configureTelemetry } = await import("./telemetry");
+    expect(mocks.PostHog).not.toHaveBeenCalled();
+    configureTelemetry({ errors: true });
+    const config = mocks.PostHog.mock.calls[0]![1];
+    configureTelemetry({ errors: false });
+    expect(config.before_send({ event: "$exception" })).toBeNull();
     expect(mocks.shutdown).toHaveBeenCalledWith(2000);
   });
 });

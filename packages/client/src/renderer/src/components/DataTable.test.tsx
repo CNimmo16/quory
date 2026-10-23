@@ -11,8 +11,27 @@ import { expect, it, vi } from "vitest";
 import { ConditionOperator } from "@quory/core";
 import DataTable from "./DataTable";
 import { TooltipProvider } from "./ui/tooltip";
+import { DataTable as SharedTable } from "@quory/stack/react";
 
 type Props = ComponentProps<typeof DataTable>;
+it("keeps compact table headers and merged cells aligned", () => {
+  const data = fixture();
+  render(
+    <TooltipProvider>
+      <SharedTable
+        rows={data.rows}
+        visibleJoins={data.visibleJoins}
+        joinActions={data.joinActions}
+        rowHeight={28}
+      />
+    </TooltipProvider>,
+  );
+  const table = screen.getByRole("table", { name: "Query results table" });
+  expect(table.querySelector("th")).toHaveStyle({ height: "28px" });
+  expect(table.querySelector('td[rowspan="2"] button')).toHaveStyle({
+    height: "55px",
+  });
+});
 function fixture() {
   const visibleJoins: Props["visibleJoins"] = ["customers", "orders"].map(
     (tableName) => ({

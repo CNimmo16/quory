@@ -1,17 +1,61 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PostHogConfig } from "posthog-js";
 
-const sdk = vi.hoisted(() => ({ init: vi.fn(), captureException: vi.fn() }));
+const sdk = vi.hoisted(() => ({
+  init: vi.fn(),
+  captureException: vi.fn(),
+  set_config: vi.fn(),
+  opt_in_capturing: vi.fn(),
+  opt_out_capturing: vi.fn(),
+  startSessionRecording: vi.fn(),
+  stopSessionRecording: vi.fn(),
+}));
 vi.mock("posthog-js/dist/posthog-recorder", () => ({}));
 vi.mock("posthog-js/dist/exception-autocapture", () => ({}));
 vi.mock("posthog-js/dist/module.no-external", () => ({ default: sdk }));
 
-import { initializeTelemetry, captureRendererException } from "./telemetry";
+let telemetry: typeof import("./telemetry");
+const initializeTelemetry = (
+  ...args: Parameters<typeof telemetry.initializeTelemetry>
+) => telemetry.initializeTelemetry(...args);
+const captureRendererException = (error: unknown) =>
+  telemetry.captureRendererException(error);
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(async () => {
+  vi.clearAllMocks();
+  vi.resetModules();
+  telemetry = await import("./telemetry");
+});
 afterEach(() => vi.unstubAllEnvs());
 
 describe("renderer telemetry", () => {
+  it("respects independent privacy choices immediately and sends nothing when both are off", () => {
+    vi.stubEnv("PROD", true);
+    initializeTelemetry({ analytics: false, errors: false });
+    expect(sdk.init).not.toHaveBeenCalled();
+    initializeTelemetry({ analytics: false, errors: true });
+    const config = sdk.init.mock.calls[0]![1] as PostHogConfig;
+    expect(config.opt_out_capturing_by_default).toBe(false);
+    if (typeof config.before_send !== "function")
+      throw new Error("Expected a send filter");
+    const event = { uuid: "test-event", event: "$exception", properties: {} };
+    expect(config.before_send?.(event)).toEqual(event);
+    expect(config.before_send?.({ ...event, event: "$snapshot" })).toBeNull();
+    expect(config.disable_session_recording).toBe(true);
+    captureRendererException(new Error("failure"));
+    expect(sdk.captureException).toHaveBeenCalledTimes(1);
+    initializeTelemetry({ analytics: true, errors: false });
+    expect(config.before_send?.(event)).toBeNull();
+    expect(
+      config.before_send?.({ ...event, event: "$snapshot" }),
+    ).not.toBeNull();
+    expect(sdk.startSessionRecording).toHaveBeenCalled();
+    initializeTelemetry({ analytics: false, errors: false });
+    expect(sdk.opt_out_capturing).toHaveBeenCalled();
+    expect(sdk.stopSessionRecording).toHaveBeenCalled();
+    captureRendererException(new Error("disabled"));
+    expect(sdk.captureException).toHaveBeenCalledTimes(1);
+  });
   it("does not initialize or send exceptions during development", () => {
     vi.stubEnv("PROD", false);
     initializeTelemetry();
