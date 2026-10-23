@@ -95,18 +95,32 @@ const platform = osNames[target.os as OS];
                   <>
                     <strong>Launch Quory.</strong>
                     <p>
-                      Open it from Applications. This early-access build is not
-                      notarized, so macOS may block the first launch.
+                      Open Quory from Applications. If macOS says “Apple could
+                      not verify ‘Quory’ is free of malware,” dismiss the alert
+                      and follow the steps below. Quory has not been notarized
+                      by Apple yet, so this warning may appear on the first launch.
                     </p>
                   </>
                 </li>
                 <li>
                   <>
-                    <strong>Review the security prompt.</strong>
+                    <strong>Choose Open Anyway.</strong>
                     <p>
-                      If you trust the download, go to System Settings → Privacy
-                      &amp; Security and choose Open Anyway for Quory, when
-                      available.
+                      If you trust this download, open System Settings → Privacy
+                      &amp; Security. Scroll down to the Security section, find
+                      the message that Quory was blocked, and click Open Anyway.
+                      This option appears after you have tried to open the app.
+                    </p>
+                  </>
+                </li>
+                <li>
+                  <>
+                    <strong>Confirm and open Quory.</strong>
+                    <p>
+                      Confirm Open Anyway or Open when prompted. If asked,
+                      authenticate with Touch ID or your Mac login password.
+                      macOS saves this exception, so you can open Quory normally
+                      from Applications next time.
                     </p>
                   </>
                 </li>
