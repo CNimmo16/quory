@@ -26,6 +26,12 @@ import Workspace from "./Workspace";
 
 const primary =
   "inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40";
+const generationSteps = [
+  "Designing the tables and relationships",
+  "Creating your browser database",
+  "Filling it with fictional customers and activity",
+  "Finding questions worth asking",
+];
 export default function Demo() {
   return (
     <div data-demo-app>
@@ -54,6 +60,20 @@ function DemoContent() {
     },
     [],
   );
+  useEffect(() => {
+    if (phase !== "loading") return;
+    let step = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    function scheduleNextStep() {
+      timer = setTimeout(() => {
+        step += 1;
+        setProgress(step);
+        if (step < generationSteps.length - 1) scheduleNextStep();
+      }, 2_000 + Math.random() * 1_000);
+    }
+    scheduleNextStep();
+    return () => clearTimeout(timer);
+  }, [phase]);
   function reset() {
     abort.current?.abort();
     current.current?.dispose();
@@ -79,22 +99,6 @@ function DemoContent() {
       controller.signal,
       AbortSignal.timeout(9_500),
     ]);
-    let stepStartedAt = performance.now();
-    const transitionDeadline = stepStartedAt + 9_000;
-    async function advanceProgress(step: number) {
-      // Give each step a short visible turn, without stretching a slow request
-      // beyond the generation budget. Cancellation also prevents stale updates.
-      const now = performance.now();
-      const delay = Math.max(
-        0,
-        Math.min(300 - (now - stepStartedAt), transitionDeadline - now),
-      );
-      if (delay > 0)
-        await new Promise<void>((resolve) => setTimeout(resolve, delay));
-      generationSignal.throwIfAborted();
-      if (step < 4) setProgress(step);
-      stepStartedAt = performance.now();
-    }
     abort.current = controller;
     setError("");
     setPhase("loading");
@@ -114,16 +118,12 @@ function DemoContent() {
         next.call("prepare", {}, generationSignal),
       ]);
       generationSignal.throwIfAborted();
-      await advanceProgress(1);
       const data = await next.call<DemoDatabase>(
         "generate",
         { description: productDescription, ...generation },
         generationSignal,
       );
       generationSignal.throwIfAborted();
-      await advanceProgress(2);
-      await advanceProgress(3);
-      await advanceProgress(4);
       setDatabase(data);
       setSession(next);
       setPhase("ready");
@@ -186,12 +186,7 @@ function DemoContent() {
           aria-live="polite"
           aria-atomic="true"
         >
-          {[
-            "Designing the tables and relationships",
-            "Creating your browser database",
-            "Filling it with fictional customers and activity",
-            "Finding questions worth asking",
-          ].map((label, i) => (
+          {generationSteps.map((label, i) => (
             <li
               key={label}
               className={`flex items-center gap-3 ${i > progress ? "text-muted-foreground/50" : "text-foreground"}`}
