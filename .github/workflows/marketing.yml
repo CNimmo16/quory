@@ -6,7 +6,7 @@ on:
     paths:
       [
         "apps/marketing/**",
-        "packages/config/**",
+        "packages/**",
         "pnpm-lock.yaml",
         "pnpm-workspace.yaml",
         "package.json",
@@ -16,7 +16,7 @@ on:
     paths:
       [
         "apps/marketing/**",
-        "packages/config/**",
+        "packages/**",
         "pnpm-lock.yaml",
         "pnpm-workspace.yaml",
         "package.json",
@@ -38,6 +38,7 @@ jobs:
           node-version: "22"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @quory/stack... build
       - run: pnpm --filter @quory/marketing check:worker
       - run: pnpm --filter @quory/marketing test:worker
       - run: pnpm --filter @quory/marketing build
@@ -83,6 +84,7 @@ jobs:
         env:
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           node --input-type=module <<'JS'
           import { writeFileSync } from 'node:fs';
@@ -91,7 +93,7 @@ jobs:
           if (!key || /^[123]x000/.test(key)) throw new Error('A production TURNSTILE_SECRET_KEY is required.');
           const resendKey = process.env.RESEND_API_KEY;
           if (!resendKey) throw new Error('A production RESEND_API_KEY is required.');
-          writeFileSync(join(process.env.RUNNER_TEMP, 'marketing-secrets.json'), JSON.stringify({ TURNSTILE_SECRET_KEY: key, RESEND_API_KEY: resendKey }), { mode: 0o600 });
+          writeFileSync(join(process.env.RUNNER_TEMP, 'marketing-secrets.json'), JSON.stringify({ TURNSTILE_SECRET_KEY: key, RESEND_API_KEY: resendKey, ...(process.env.OPENAI_API_KEY ? { OPENAI_API_KEY: process.env.OPENAI_API_KEY } : {}) }), { mode: 0o600 });
           JS
       - name: Apply production database migrations
         run: pnpm --filter @quory/marketing exec wrangler d1 migrations apply DB --remote --env production --config wrangler.deploy.json

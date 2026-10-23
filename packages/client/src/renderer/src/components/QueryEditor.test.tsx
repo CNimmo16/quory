@@ -51,7 +51,8 @@ vi.mock("@tanstack/react-router", async () => {
   };
 });
 vi.mock("../GlobalProviders", () => ({ trpcClient: {} }));
-vi.mock("@quory/stack/react", () => ({
+vi.mock("@quory/stack/react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@quory/stack/react")>()),
   useFetchSchema: () => ({ data: { schemas } }),
 }));
 vi.mock("../util/tprc", () => ({

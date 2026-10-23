@@ -6,7 +6,7 @@ import {
   splitTableRef,
   type ExecutionOptions,
 } from "@quory/core";
-import * as DatabaseService from "./DatabaseService";
+import type * as DatabaseService from "./DatabaseService";
 import renderDataValue from "../../util/renderDataValue";
 import findJoinRecursively from "../../util/findJoinRecursively";
 

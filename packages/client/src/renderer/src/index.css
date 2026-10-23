@@ -1,6 +1,7 @@
 @import "../../../../config/theme/fonts.css";
 
 @import "tailwindcss" source("./");
+@source "../../../../stack/src/react";
 @config "../../../tailwind.config.ts";
 
 @layer base {

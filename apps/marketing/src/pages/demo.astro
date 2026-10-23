@@ -1,0 +1,32 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Demo from "../components/demo/Demo";
+---
+
+<Layout
+  title="Try Quory — Your product. Your data. Your answers."
+  description="Describe your product, create a sample database, and explore it with Quory. Real queries, real results, right in your browser. No signup needed."
+>
+  <div class="group/demo grid min-h-140">
+    <div
+      class="pointer-events-none col-start-1 row-start-1 mx-auto flex min-h-140 max-w-3xl flex-col items-center justify-center px-6 text-center opacity-100 transition-[opacity,visibility] duration-300 ease-in-out group-has-[[data-demo-app]]/demo:invisible group-has-[[data-demo-app]]/demo:opacity-0 motion-reduce:transition-none"
+      role="status"
+    >
+      <span
+        class="size-6 animate-spin rounded-full border-2 border-primary/20 border-t-primary motion-reduce:animate-none"
+        aria-hidden="true"></span>
+      <span class="sr-only">Loading the Quory demo…</span>
+    </div>
+    <div
+      class="invisible col-start-1 row-start-1 min-w-0 opacity-0 transition-[opacity,visibility] duration-300 ease-in-out group-has-[[data-demo-app]]/demo:visible group-has-[[data-demo-app]]/demo:opacity-100 motion-reduce:transition-none"
+    >
+      <Demo client:only="react" />
+    </div>
+  </div>
+  <noscript
+    ><p class="mx-auto max-w-xl px-6 py-12">
+      Enable JavaScript to create and query a database in your browser. You can
+      also <a class="underline" href="/downloads/">download Quory</a>.
+    </p></noscript
+  >
+</Layout>

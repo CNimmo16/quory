@@ -255,3 +255,51 @@ node scripts/verify-package.cjs mac arm64
 
 Use `--x64` and `mac x64` on an Intel Mac. A local DMG is not a release; the
 publish job requires the complete multi-platform installer set.
+
+## Interactive playground
+
+`/demo/` creates a fictional database from a short product description, then
+runs real Quory queries against SQLite WASM in a browser Web Worker. Suggestions
+are built from introspected schema and SQLite values and checked for matching
+rows. The results table is shared with the desktop client through
+`@quory/stack/react`. Table browsing, cell filters, relationships, sorting,
+column selection, history, pagination and SQL inspection all use
+the live browser database. The database is discarded on refresh.
+
+Astro development reads the server-only `OPENAI_API_KEY` from the repository's
+`.env.local` or the marketing app's `.env.local`. Custom product descriptions and
+free-text questions use this key through `/api/demo/*`; examples and suggested
+queries work without it. `DEMO_AI_MODEL` defaults to `gpt-6-luna`, with reasoning
+disabled (`reasoning_effort: "none"`). Do not use a
+`PUBLIC_` prefix for the provider key. Production uses Worker secrets; see
+[CLOUDFLARE.md](./CLOUDFLARE.md#interactive-demo).
+
+Generation requests ask for a compact recipe describing eight connected
+tables, including junctions, branches and deeper relationship chains. The demo generator
+expands hundreds of records inside the browser's Web Worker, with fresh,
+randomized fictional names and matching emails for every new database;
+the AI never writes or transmits every row. All three example products also use
+eight-table recipes. Every suggestion includes at least one verified join,
+including support issues and fallbacks for schemas without email columns.
+Suggestions also demonstrate relationships across four or five tables. The
+shared desktop TableNavigator sits above the results table, with interactive
+join, filter and column controls. SQLite/WASM starts
+alongside the AI request.
+The provider has an 8-second deadline, and the browser caps the entire generation
+flow at 9.5 seconds with a retry/example option on timeout. `Server-Timing` on the
+generation response separates AI time from plan validation time.
+
+`pnpm marketing:dev` and `pnpm marketing:build` build Stack and its library
+dependencies before starting Astro. For checks in a fresh checkout:
+
+```sh
+pnpm --filter @quory/stack... build
+pnpm --filter @quory/marketing check
+pnpm --filter @quory/marketing check:worker
+pnpm --filter @quory/marketing test:worker
+```
+
+The generator lives in [`src/lib/demo/database.ts`](./src/lib/demo/database.ts).
+It contains recipe validation, local record generation and atomic SQLite
+insertion, and is shared between server validation and the browser worker.
+Development and production use the same source within this repository.

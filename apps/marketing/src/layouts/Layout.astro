@@ -61,7 +61,7 @@ const {
         />
       </a>
       <nav
-        class="flex items-center gap-[34px] text-[14px] font-medium max-[780px]:gap-[18px] max-[780px]:text-[12px] max-[520px]:gap-3"
+        class="flex items-center gap-[34px] text-[14px] font-medium max-[780px]:gap-[18px] max-[780px]:text-[12px] max-[520px]:gap-2.5"
         aria-label="Main navigation"
       >
         <a
@@ -70,6 +70,13 @@ const {
         >
           Why Quory
         </a>
+        <a
+          class="underline-offset-[5px] hover:text-primary-emphasis hover:underline aria-[current=page]:text-primary-emphasis aria-[current=page]:underline"
+          href="/demo/"
+          aria-current={Astro.url.pathname.startsWith("/demo")
+            ? "page"
+            : undefined}>Demo</a
+        >
         <a
           class="hover:text-primary-emphasis hover:underline hover:underline-offset-[5px]"
           href="/docs/"
@@ -86,7 +93,10 @@ const {
             ? "page"
             : undefined}>Downloads</a
         >
-        <a href="/#cloud" class="group relative hover:text-primary-emphasis">
+        <a
+          href="/#cloud"
+          class="group relative hover:text-primary-emphasis max-[520px]:hidden"
+        >
           <span class="underline-offset-[5px] group-hover:underline">Cloud</span
           >
           <span

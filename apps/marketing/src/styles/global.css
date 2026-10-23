@@ -1,5 +1,6 @@
 @import "../../../../packages/config/theme/fonts.css";
 @import "tailwindcss";
+@source "../../../../packages/stack/src/react";
 
 /* Reuse the desktop palette, font families, and system/light/dark theme rules. */
 @config "../../tailwind.config.cjs";

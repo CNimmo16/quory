@@ -2,6 +2,7 @@ import { defineConfig } from "astro/config";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
+import { demoDevApi } from "./scripts/demo-dev.mjs";
 import { siteSettings } from "./scripts/site-config.mjs";
 
 export default defineConfig({
@@ -61,7 +62,10 @@ export default defineConfig({
       process.env.NODE_ENV === "production"
         ? "./node_modules/.vite/production"
         : "./node_modules/.vite/development",
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss(), demoDevApi()],
+    worker: { format: "es" },
+    optimizeDeps: { include: ["sql.js", "zod", "date-fns"] },
+    resolve: { dedupe: ["react", "react-dom"] },
     server: { strictPort: true },
   },
   devToolbar: { enabled: false },

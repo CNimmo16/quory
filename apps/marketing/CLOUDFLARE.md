@@ -84,7 +84,8 @@ pnpm --filter @quory/marketing dev:worker
 ```
 
 Visit `http://localhost:8787` for the static site plus API. The regular Astro
-server on port 4321 remains useful for UI work but does not serve the Worker API.
+server on port 4321 serves the demo AI API through a development middleware;
+signup and confirmation endpoints still require Wrangler.
 Local Wrangler uses its own D1 database under `.wrangler/`; it does not modify
 production. Without `RESEND_API_KEY`, signup returns an unavailable response
 before storing an address or sending mail.
@@ -149,3 +150,19 @@ widget, Resend key, and site domain. Add an explicit `env.staging` block, extend
 generator, and add a separate deployment job/concurrency group. Do not reuse the
 production database or secrets in preview builds. Environment bindings are
 intentionally explicit; the current workflow only targets production.
+
+## Interactive demo
+
+`/demo/` uses the same Worker for `/api/demo/generate` and `/api/demo/query`. Add
+`OPENAI_API_KEY` to the GitHub production environment secrets to enable custom
+product generation and free-text questions. The deployment includes it only in
+the Worker secrets file; it is never embedded in browser assets. The three
+example databases and their verified query suggestions also work without it.
+
+The demo has a separate `DEMO_LIMITER` binding (10 requests per IP per minute),
+same-origin checks, bounded request sizes, provider timeouts, schema validation,
+and read-only database queries. Generation sends only the short product
+description to the model. Free-text questions send the question and fictional
+database schema. SQLite creation, schema introspection, suggestions, query
+execution, and exports happen in a browser Web Worker. No visitor databases are
+stored in D1 or on the server. No production secrets are required for tests.

@@ -55,7 +55,8 @@ vi.mock("../GlobalProviders", () => ({
     connections: { fetchActiveConnection: { query: mocks.activeConnection } },
   },
 }));
-vi.mock("@quory/stack/react", () => ({
+vi.mock("@quory/stack/react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@quory/stack/react")>()),
   useFetchSchema: () => ({
     data: { schemas: [{ name: "public", tables: [{ name: "orders" }] }] },
   }),

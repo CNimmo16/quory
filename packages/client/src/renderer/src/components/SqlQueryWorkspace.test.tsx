@@ -4,7 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 import { SqlQueryWorkspace } from "./SqlQueryWorkspace";
 import type { CustomSqlQuery } from "../../../shared/sqlQuery";
-vi.mock("@quory/stack/react", () => ({
+vi.mock("@quory/stack/react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@quory/stack/react")>()),
   useFetchSchema: () => ({ data: { schemas: [] } }),
 }));
 const mocks = vi.hoisted(() => ({ execute: vi.fn(), cancel: vi.fn() }));

@@ -1,4 +1,6 @@
-export interface Env {
+import { handleDemoRequest, type DemoEnv } from "./demo";
+
+export interface Env extends DemoEnv {
   DB: D1Database;
   ASSETS: Fetcher;
   SIGNUP_LIMITER: RateLimit;
@@ -234,6 +236,7 @@ async function confirm(body: Record<string, unknown>, env: Env) {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const path = new URL(request.url).pathname;
+    if (path.startsWith("/api/demo/")) return handleDemoRequest(request, env);
     if (!path.startsWith("/api/")) return env.ASSETS.fetch(request);
     if (path !== "/api/signup" && path !== "/api/confirm")
       return json({ error: "Not found." }, 404);

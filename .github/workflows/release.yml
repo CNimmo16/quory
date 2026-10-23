@@ -45,6 +45,7 @@ jobs:
         run: |
           node --test scripts/releases/check-npm-trust.test.cjs
           node --test packages/client/scripts/rebuild-native.test.mjs
+          pnpm --filter @quory/stack... build
           pnpm --filter @quory/marketing test:worker
           node --test scripts/downloads/release.test.mjs
           node --test scripts/downloads/select-release.test.cjs

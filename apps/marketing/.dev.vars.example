@@ -5,3 +5,7 @@ TURNSTILE_SECRET_KEY=replace-with-development-widget-secret
 # will send real emails with a valid Resend key and verified SITE_DOMAIN.
 # RESEND_API_KEY=replace-with-development-resend-key
 # SITE_DOMAIN=your-verified-domain.com
+
+# Server-only AI key for the interactive demo. Examples work without this key.
+# OPENAI_API_KEY=replace-with-development-openai-key
+# DEMO_AI_MODEL=gpt-6-luna

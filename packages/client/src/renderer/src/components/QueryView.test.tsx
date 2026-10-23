@@ -27,7 +27,8 @@ vi.mock("./SqlEditor", () => ({
     </button>
   ),
 }));
-vi.mock("@quory/stack/react", () => ({
+vi.mock("@quory/stack/react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@quory/stack/react")>()),
   useFetchSchema: () => ({ data: { schemas } }),
   useQuery: (...args: unknown[]) => mocks.useQuery(...args),
   useQueryCount: (query: Query | null) => ({
