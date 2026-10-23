@@ -1,5 +1,5 @@
 appId: com.electron.client
-productName: quory
+productName: Quory
 directories:
   buildResources: build
 files:
@@ -25,7 +25,7 @@ win:
       arch: [x64]
   executableName: quory
 nsis:
-  artifactName: ${productName}-${version}-win-${arch}-setup.${ext}
+  artifactName: quory-${version}-win-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -47,7 +47,7 @@ mac:
   notarize: false
 dmg:
   icon: build/icon.icns
-  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+  artifactName: quory-${version}-mac-${arch}.${ext}
 
 # linux targets:
 linux:
@@ -58,7 +58,7 @@ linux:
   maintainer: CNimmo16
   category: Utility
   executableName: quory
-  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+  artifactName: quory-${version}-linux-${arch}.${ext}
 # prepare-electron.mjs rebuilds and probes native modules before packaging.
 npmRebuild: false
 publish: null

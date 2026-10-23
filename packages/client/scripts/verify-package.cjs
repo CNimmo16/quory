@@ -14,11 +14,11 @@ const folder =
 const root = resolve("dist", folder);
 const resources =
   platform === "mac"
-    ? join(root, "quory.app/Contents/Resources")
+    ? join(root, "Quory.app/Contents/Resources")
     : join(root, "resources");
 const executable =
   platform === "mac"
-    ? join(root, "quory.app/Contents/MacOS/quory")
+    ? join(root, "Quory.app/Contents/MacOS/Quory")
     : join(root, platform === "win" ? "quory.exe" : "quory");
 const manifest = join(resources, "app.asar/package.json");
 if (!existsSync(executable))
@@ -56,7 +56,7 @@ if (platform === "mac") {
     [
       "-c",
       "Print :CFBundleIconName",
-      join(root, "quory.app/Contents/Info.plist"),
+      join(root, "Quory.app/Contents/Info.plist"),
     ],
     { encoding: "utf8" },
   ).trim();
@@ -65,9 +65,20 @@ if (platform === "mac") {
     "Icon",
     "Application must reference the compiled native icon",
   );
+  for (const key of ["CFBundleName", "CFBundleDisplayName"]) {
+    assert.equal(
+      execFileSync(
+        "/usr/libexec/PlistBuddy",
+        ["-c", `Print :${key}`, join(root, "Quory.app/Contents/Info.plist")],
+        { encoding: "utf8" },
+      ).trim(),
+      "Quory",
+      `${key} must use the capitalized application name`,
+    );
+  }
   execFileSync(
     "codesign",
-    ["--verify", "--deep", "--strict", join(root, "quory.app")],
+    ["--verify", "--deep", "--strict", join(root, "Quory.app")],
     { stdio: "inherit" },
   );
 }
