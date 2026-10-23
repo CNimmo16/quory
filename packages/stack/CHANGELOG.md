@@ -1,5 +1,18 @@
 # @quory/stack
 
+## 1.1.0
+
+### Minor Changes
+
+- 9053499: Add a browser-safe Stack transport for WASM database drivers and share the
+  interactive query results table and relationship navigator between the desktop
+  client and marketing demo, including shared join pickers and filter controls.
+
+### Patch Changes
+
+- d07eb5e: Add global desktop settings with separate encrypted provider profiles, live model discovery and manual model entry, custom OpenAI-compatible endpoints, appearance preferences, privacy controls, diagnostics, and app information. Support compact result rows in the shared table.
+- d07eb5e: Soften relationship diagram connectors with theme-aware outlines and rounded corners, improving their appearance in dark mode.
+
 ## 1.0.1
 
 ### Patch Changes
