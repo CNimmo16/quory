@@ -1,42 +1,42 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.10",
-  "publishedAt": "2026-10-22T14:19:17.497Z",
+  "version": "1.0.11",
+  "publishedAt": "2026-10-23T18:29:07.400Z",
   "assets": [
     {
       "id": "macos-arm64-dmg",
-      "filename": "quory-1.0.10-mac-arm64.dmg",
-      "size": 144572619,
-      "sha256": "f49ee8d0d68512c1d4d03d58c8db66a33089768a0e09dae4848622472ccaf0ac",
-      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory%2Fclient%401.0.10/quory-1.0.10-mac-arm64.dmg"
+      "filename": "quory-1.0.11-mac-arm64.dmg",
+      "size": 144608487,
+      "sha256": "8ad4b81dfecec06f2184a3139bd0441160d1e6eb46185671499beb859fea8a07",
+      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory%2Fclient%401.0.11/quory-1.0.11-mac-arm64.dmg"
     },
     {
       "id": "macos-x64-dmg",
-      "filename": "quory-1.0.10-mac-x64.dmg",
-      "size": 153158893,
-      "sha256": "5b2a888eee7617560062f7d627df300c6a9038fc9afed9d725d4e889213e2073",
-      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory%2Fclient%401.0.10/quory-1.0.10-mac-x64.dmg"
+      "filename": "quory-1.0.11-mac-x64.dmg",
+      "size": 153206779,
+      "sha256": "f84dbe5738a1544eee5a2126f52cceb8d71f688794fd52246bfecbca125a41b8",
+      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory%2Fclient%401.0.11/quory-1.0.11-mac-x64.dmg"
     },
     {
       "id": "windows-x64-exe",
-      "filename": "quory-1.0.10-win-x64-setup.exe",
-      "size": 130573572,
-      "sha256": "b139650f36a91f13da9223e18f0ae06bf2f7a0c62d7e71691428e76e7635559a",
-      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory%2Fclient%401.0.10/quory-1.0.10-win-x64-setup.exe"
+      "filename": "quory-1.0.11-win-x64-setup.exe",
+      "size": 130599094,
+      "sha256": "c500b7174ac2e72529691b51126c5209914880136887853d977710ef19dd88c9",
+      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory%2Fclient%401.0.11/quory-1.0.11-win-x64-setup.exe"
     },
     {
       "id": "linux-x64-appimage",
-      "filename": "quory-1.0.10-linux-x86_64.AppImage",
-      "size": 155045974,
-      "sha256": "01059ea6c8ef3e392aab3cceb814ddf3b2104864e17d04f6d7967de4a84c2498",
-      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory%2Fclient%401.0.10/quory-1.0.10-linux-x86_64.AppImage"
+      "filename": "quory-1.0.11-linux-x86_64.AppImage",
+      "size": 155079728,
+      "sha256": "ef220c573f879850bf8d276d1960ad9d516b36c450214d2ceb74f6faa10e6e5c",
+      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory%2Fclient%401.0.11/quory-1.0.11-linux-x86_64.AppImage"
     },
     {
       "id": "linux-x64-deb",
-      "filename": "quory-1.0.10-linux-amd64.deb",
-      "size": 117486192,
-      "sha256": "143fefc3ca80508f034235a06547d3b0a70bde9b99668a189bda5b06d3593d0b",
-      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory%2Fclient%401.0.10/quory-1.0.10-linux-amd64.deb"
+      "filename": "quory-1.0.11-linux-amd64.deb",
+      "size": 117483176,
+      "sha256": "940b46b3e7d3bc3bc02080af54933b0d5e48666c6a5b4d4dd2e79cd2634370e4",
+      "url": "https://github.com/CNimmo16/quory/releases/download/%40quory%2Fclient%401.0.11/quory-1.0.11-linux-amd64.deb"
     }
   ]
 }
