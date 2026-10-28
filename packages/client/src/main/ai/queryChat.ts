@@ -13,7 +13,14 @@ import { savedQueryService } from "../repositories/savedQueryService";
 import { getQuorySession } from "../state/quorySession";
 import { publicProcedure } from "../util/trpc";
 import { getQueryModel } from "./model";
-import { runQueryAssistant } from "./queryAssistant";
+import { runQueryAssistant, relationshipCandidate } from "./queryAssistant";
+import {
+  inferRelationships,
+  type TableColumn,
+  getTableRelationships,
+} from "@quory/core";
+import { projectRepo } from "../repositories/projectRepo";
+import { saveProjectConfiguration } from "../repositories/projectConfigurationService";
 import {
   appendQueryVersion,
   createQueryHistory,
@@ -117,6 +124,37 @@ export const queryChatProcedure = publicProcedure
           }
         | undefined;
       await savedQueryService.assertConnection(context);
+      const project = await projectRepo.get(context.projectId);
+      const relationshipSchemas = await session.request.inspectRelationships();
+      const columns: TableColumn[] = relationshipSchemas.flatMap((schema) =>
+        schema.tables.flatMap((table) =>
+          table.columns.map((column) => ({
+            ...column,
+            schemaName: schema.name,
+            tableName: table.name,
+          })),
+        ),
+      );
+      const existingRelationships = relationshipSchemas.flatMap((schema) =>
+        schema.tables.flatMap((table) =>
+          getTableRelationships(table, schema.name).flatMap((key) =>
+            key.columnPairs.map((pair) => ({ ...key, ...pair })),
+          ),
+        ),
+      );
+      const inference = project.configuration?.inferRelationships;
+      const potentialRelationships = inferRelationships(
+        columns,
+        existingRelationships,
+        typeof inference === "object" ? inference : {},
+      )
+        .filter(
+          (key) =>
+            !project.configuration?.excludedRelationships?.includes(
+              key.constraintId!,
+            ),
+        )
+        .map(relationshipCandidate);
       const result = await runQueryAssistant({
         model,
         schemas: session.schemas,
@@ -131,6 +169,30 @@ export const queryChatProcedure = publicProcedure
             : undefined),
         nickname: existing?.nickname,
         messages,
+        potentialRelationships,
+        addRelationship: async (relationship) => {
+          await savedQueryService.assertConnection(context);
+          const current = await projectRepo.get(context.projectId);
+          if (current._rev !== project._rev)
+            throw new TRPCError({
+              code: "CONFLICT",
+              message:
+                "Project configuration changed while you were chatting. Confirm the relationship again using the current configuration.",
+            });
+          if (
+            !current.configuration?.relationships?.some(
+              (key) => key.constraintId === relationship.constraintId,
+            )
+          )
+            await saveProjectConfiguration(current._id, current._rev, {
+              ...current.configuration,
+              relationships: [
+                ...(current.configuration?.relationships ?? []),
+                relationship,
+              ],
+            });
+          return (await getQuorySession()).schemas;
+        },
         upsert: async (query, nickname, summary) => {
           const messageId = randomUUID();
           const chatMessages: ChatMessage[] = [
@@ -207,15 +269,26 @@ export const queryChatProcedure = publicProcedure
           revision: saved.revision,
           queryUpdated: true,
           queryHistory: saved.queryHistory,
+          ...(result.relationshipsUpdated
+            ? { relationshipsUpdated: true }
+            : {}),
         };
       return {
         messages: [
           ...messages,
-          { id: randomUUID(), role: "assistant", content: result.text },
+          {
+            id: randomUUID(),
+            role: "assistant",
+            content: result.text,
+            ...(result.relationshipProposal
+              ? { relationshipProposal: result.relationshipProposal }
+              : {}),
+          },
         ],
         queryId: input.queryId ?? null,
         revision: existing?._rev ?? null,
         queryUpdated: false,
+        ...(result.relationshipsUpdated ? { relationshipsUpdated: true } : {}),
       };
     } catch (error) {
       if (error instanceof TRPCError) throw error;

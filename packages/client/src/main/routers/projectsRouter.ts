@@ -12,6 +12,9 @@ import {
 } from "../repositories/folderQueryRepo";
 import { publicProcedure, router } from "../util/trpc";
 import { TRPCError } from "@trpc/server";
+import { projectConfigurationSchema } from "../../shared/projectConfiguration";
+import { saveProjectConfiguration } from "../repositories/projectConfigurationService";
+import { quorySessions } from "../state/quorySession";
 
 // Idempotent migration: tag legacy docs without deleting or renaming them. A
 // fixed project ID lets interrupted migrations resume on the next launch.
@@ -83,6 +86,45 @@ async function readProjectQuery(input: z.infer<typeof queryReference>) {
 }
 
 export default router({
+  configure: publicProcedure
+    .input(
+      projectReference.extend({ configuration: projectConfigurationSchema }),
+    )
+    .mutation(async ({ input }) => {
+      await ensureMigration();
+      return saveProjectConfiguration(
+        input.projectId,
+        input.revision,
+        input.configuration,
+      );
+    }),
+  configuration: publicProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ input }) => {
+      await ensureMigration();
+      const project = await projectRepo.get(input.projectId);
+      const connected =
+        activeProjectState.getActiveProject()?._id === project._id &&
+        !!quorySessions.connectionId;
+      try {
+        return {
+          project,
+          schemas: connected
+            ? await (await quorySessions.get()).request.inspectRelationships()
+            : [],
+          schemaError: null,
+        };
+      } catch (error) {
+        return {
+          project,
+          schemas: [],
+          schemaError:
+            error instanceof Error
+              ? error.message
+              : "Could not inspect relationships.",
+        };
+      }
+    }),
   rename: publicProcedure
     .input(projectReference.extend({ name: nameSchema }))
     .mutation(async ({ input }) => {
@@ -160,11 +202,13 @@ export default router({
         z.object({
           name: z.string().trim().min(1).max(100),
           storage: z.literal("database"),
+          configuration: projectConfigurationSchema.optional(),
         }),
         z.object({
           name: z.string().trim().min(1).max(100),
           storage: z.literal("folder"),
           folderPath: z.string().trim().min(1),
+          configuration: projectConfigurationSchema.optional(),
         }),
       ]),
     )
@@ -204,6 +248,7 @@ export default router({
       const definition = {
         name: input.name,
         storage: input.storage,
+        ...(input.configuration ? { configuration: input.configuration } : {}),
         ...(directory ? { directory } : {}),
       };
       try {

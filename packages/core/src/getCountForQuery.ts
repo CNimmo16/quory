@@ -15,7 +15,10 @@ export default async function getCountForQuery(
     databaseSchemas,
     query,
     databaseDriver.dialect,
-    { includeOrderBy: false },
+    {
+      includeOrderBy: false,
+      minimumRelationshipConfidence: options?.minimumRelationshipConfidence,
+    },
   );
 
   const rows = await executeQuery(

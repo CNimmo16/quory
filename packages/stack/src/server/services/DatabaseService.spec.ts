@@ -4,7 +4,10 @@ import { MySQLDriver } from "@quory/mysql";
 import { makeClientDatabase } from "./DatabaseService";
 import type { QuoryRequestHandlerConfig } from "../types";
 
-jest.mock("@quory/core", () => ({ getSchemas: jest.fn() }));
+jest.mock("@quory/core", () => ({
+  ...jest.requireActual("@quory/core"),
+  getSchemas: jest.fn(),
+}));
 jest.mock("@quory/postgres", () => ({ PostgresDriver: jest.fn() }));
 jest.mock("@quory/mysql", () => ({ MySQLDriver: jest.fn() }));
 jest.mock("@quory/sqlite", () => ({ WorkerSqliteDriver: jest.fn() }));

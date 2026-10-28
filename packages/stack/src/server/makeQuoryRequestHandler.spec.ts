@@ -3,11 +3,15 @@ import { makeClientDatabase } from "./services/DatabaseService";
 import { getSchemas } from "@quory/core";
 import routes from "./routes";
 import { withQueryExecution } from "./services/QueryExecution";
+import type { DatabaseSchema } from "@quory/core";
 
 jest.mock("./services/DatabaseService", () => ({
   makeClientDatabase: jest.fn(),
 }));
-jest.mock("@quory/core", () => ({ getSchemas: jest.fn() }));
+jest.mock("@quory/core", () => ({
+  ...jest.requireActual("@quory/core"),
+  getSchemas: jest.fn(),
+}));
 jest.mock("./routes", () => ({
   __esModule: true,
   default: { schema: { handle: jest.fn() } },
@@ -70,6 +74,67 @@ it("refreshes schema without replacing the driver and retries failed invalidatio
   });
   expect(getSchemas).toHaveBeenCalledTimes(2);
   expect(teardown).not.toHaveBeenCalled();
+  await handler.dispose();
+});
+
+it("reloads project options on refresh and applies the threshold while keeping inspection unfiltered", async () => {
+  let minimum = 0.9;
+  const schemaOptions = jest.fn(async () => ({
+    inferRelationships: true,
+    minimumRelationshipConfidence: minimum,
+    excludedRelationships: ["inferred:excluded"],
+  }));
+  const schemas: DatabaseSchema[] = [
+    {
+      name: "public",
+      tables: [
+        {
+          name: "orders",
+          columns: [
+            {
+              name: "user_id",
+              dataType: "integer",
+              genericDataType: "number",
+              isNullable: false,
+              includedInPrimaryKey: false,
+              foreignKeyReferences: [],
+              foreignKeys: [
+                {
+                  constraintId: "inferred:users",
+                  columnPosition: 1,
+                  foreignSchemaName: "public",
+                  foreignTableName: "users",
+                  foreignColumnName: "id",
+                  hasForeignKeyConstraint: false,
+                  source: "inferred",
+                  confidence: 0.9,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ];
+  jest.mocked(getSchemas).mockResolvedValue(schemas);
+  const handler = await makeQuoryRequestHandler({ ...config, schemaOptions });
+  expect(
+    (await handler.refreshSchema())[0]!.tables[0]!.columns[0]!.foreignKeys,
+  ).toHaveLength(1);
+  minimum = 0.91;
+  handler.invalidateSchema();
+  const response = await handler({ path: "schema", data: {} });
+  if (!("schemas" in response)) throw new Error("Expected schema response");
+  expect(response.schemas[0]!.tables[0]!.columns[0]!.foreignKeys).toEqual([]);
+  expect(await handler.inspectRelationships()).toEqual(schemas);
+  expect(getSchemas).toHaveBeenLastCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      minimumRelationshipConfidence: 0.91,
+      excludedRelationships: [],
+    }),
+  );
+  expect(makeClientDatabase).toHaveBeenCalledTimes(1);
   await handler.dispose();
 });
 

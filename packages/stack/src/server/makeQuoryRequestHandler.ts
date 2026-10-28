@@ -4,7 +4,11 @@ import { QuoryRequestHandlerConfig } from "./types";
 import * as ClientDatabaseService from "./services/DatabaseService";
 import { prepareQuery, type Query, type SqlParameter } from "@quory/core";
 import { withQueryExecution } from "./services/QueryExecution";
-import { getSchemas } from "@quory/core";
+import {
+  getSchemas,
+  filterRelationshipsByConfidence,
+  type SchemaOptions,
+} from "@quory/core";
 import { z } from "zod";
 
 /** The caller owns this handler and must dispose it when its session ends. */
@@ -34,7 +38,16 @@ export default async function makeQuoryRequestHandler(
   function refresh() {
     if (!refreshing) {
       const generation = schemaGeneration;
-      const pending = getSchemas(database.driver).then((schemas) => {
+      const pending = (async () => {
+        const options =
+          typeof config.schemaOptions === "function"
+            ? await config.schemaOptions()
+            : config.schemaOptions;
+        return filterRelationshipsByConfidence(
+          await getSchemas(database.driver, options),
+          options?.minimumRelationshipConfidence,
+        );
+      })().then((schemas) => {
         database.schemas = schemas;
         invalidSchema = generation !== schemaGeneration;
         return schemas;
@@ -68,6 +81,30 @@ export default async function makeQuoryRequestHandler(
     });
 
   return Object.assign(request, {
+    inspectRelationships: async (options?: SchemaOptions) => {
+      const configured =
+        options ??
+        (typeof config.schemaOptions === "function"
+          ? await config.schemaOptions()
+          : config.schemaOptions);
+      return track(() =>
+        getSchemas(database.driver, {
+          ...configured,
+          excludedRelationships: [],
+        }),
+      );
+    },
+    validateSchemaOptions: (
+      options: SchemaOptions & {
+        minimumRelationshipConfidence?: number | undefined;
+      },
+    ) =>
+      track(async () =>
+        filterRelationshipsByConfidence(
+          await getSchemas(database.driver, options),
+          options.minimumRelationshipConfidence,
+        ),
+      ),
     compileQuery: (query: Query) =>
       track(async () => {
         if (invalidSchema || refreshing) await (refreshing ?? refresh());

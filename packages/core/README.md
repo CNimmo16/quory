@@ -72,9 +72,9 @@ The returned schema could look like this for a database of books:
               // the books table is referenced by the book_categories table
               "localTableName": "book_categories",
               "localColumnName": "book_id",
-              // only foreign key relationships are detected currently
+              // true for declared database constraints
               "hasForeignKeyConstraint": true,
-              // so this is always 1
+              // declared constraints have confidence 1
               "confidence": 1.0,
             },
           ],
@@ -101,6 +101,46 @@ The returned schema could look like this for a database of books:
   ],
 }
 ```
+
+#### Inferred and manual relationships
+
+Inference is disabled by default. Enable it with `getSchemas(driver, { inferRelationships: true })`, or pass an options object:
+
+```ts
+const schemas = await getSchemas(driver, {
+  inferRelationships: {
+    crossSchema: false,
+    pluralConversion: true,
+    multipleCandidateBehaviour: "skip", // or "error"
+    identicalDataTypesOnly: false,
+  },
+  excludedRelationships: [], // stable inferred constraint IDs to ignore
+  relationships: [
+    {
+      constraintId: "manual:version-cover",
+      localSchema: "public",
+      localTable: "versions",
+      foreignSchema: "public",
+      foreignTable: "version_images",
+      columnPairs: [{ localColumn: "cover", foreignColumn: "pkey" }],
+    },
+  ],
+});
+```
+
+Inference matches complete `<table>_<primary-key-column>` names, including the singular form of plural table names when enabled. For example, `version_image_pkey` can reference `version_images.pkey`. It requires compatible database types, a single-column destination primary key, and exactly one candidate. Columns already covered by declared or manual relationships are skipped. `identicalDataTypesOnly` requires exact type strings. Opaque type labels such as `USER-DEFINED`, `ARRAY`, or `enum` are skipped because they do not establish compatible types. Composite relationships can be supplied manually, with every destination primary key column included.
+
+Inferred references have `source: "inferred"`, `hasForeignKeyConstraint: false`, and confidence 0.95 for a literal table-name match or 0.90 for a singular match, reduced by 0.05 for compatible but differing types. These are rule scores, not measured probabilities. Manual relationships have `source: "manual"` and confidence 1. Inferred and declared relationships participate equally in shortest-path selection; ambiguous relationships still require a `via` selector. Exclusions apply to inferred relationship IDs and leave database constraints unchanged.
+
+Filter relationships before planning using the fourth `prepareQuery` argument:
+
+```ts
+const prepared = await prepareQuery(schemas, query, "postgres", {
+  minimumRelationshipConfidence: 0.9,
+});
+```
+
+`runQuery` and `getCountForQuery` accept `minimumRelationshipConfidence` in their execution options too. The threshold is inclusive, ranges from 0 to 1, and applies in both traversal directions, including explicit `via` selections. All joins remain inner joins, so missing or null referenced values do not appear in joined results.
 
 #### `getRelationsForTable`
 

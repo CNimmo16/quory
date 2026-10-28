@@ -38,6 +38,7 @@ export default async function runQuery(
     recordKeyAliases,
   } = await prepareQuery(databaseSchemas, query, databaseDriver.dialect, {
     includeRecordKeys: true,
+    minimumRelationshipConfidence: options?.minimumRelationshipConfidence,
   });
 
   let sql = preparedSql;

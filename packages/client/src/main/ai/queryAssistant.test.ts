@@ -3,6 +3,7 @@ import { MockLanguageModelV3 } from "ai/test";
 import { ConditionOperator, prepareQuery } from "@quory/core";
 import { schemas, orderQuery } from "../../../test/queryFixtures";
 import { runQueryAssistant } from "./queryAssistant";
+import type { ManualRelationship } from "@quory/core";
 import {
   queryFromTool,
   validateAssistantQuery,
@@ -47,6 +48,157 @@ const messages = [
     content: "Latest orders with listings for user cameron@gmail.com",
   },
 ];
+
+const candidate: ManualRelationship = {
+  constraintId: "manual:orders-user",
+  localSchema: "public",
+  localTable: "orders",
+  foreignSchema: "public",
+  foreignTable: "users",
+  columnPairs: [{ localColumn: "user_id", foreignColumn: "id" }],
+};
+const relationshipCall = (
+  toolName: "propose_relationship" | "add_relationship",
+  candidateId = candidate.constraintId,
+) =>
+  response([
+    {
+      type: "tool-call",
+      toolCallId: `call-${toolName}`,
+      toolName,
+      input: JSON.stringify({ candidateId }),
+    },
+  ]);
+
+describe("assistant relationship tools", () => {
+  it("asks for confirmation of a potential relationship without changing the project or query", async () => {
+    const addRelationship = vi.fn();
+    const upsert = vi.fn();
+    const result = await runQueryAssistant({
+      model: new MockLanguageModelV3({
+        doGenerate: relationshipCall("propose_relationship"),
+      }),
+      schemas,
+      messages,
+      potentialRelationships: [candidate],
+      addRelationship,
+      upsert,
+    });
+    expect(result).toMatchObject({
+      queryUpdated: false,
+      relationshipProposal: candidate,
+      text: expect.stringContaining("Would you like me to add it"),
+    });
+    expect(addRelationship).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+  it.each(["Join orders to users", "no", "yes, but use another column"])(
+    "refuses an unconfirmed addition: %s",
+    async (content) => {
+      const addRelationship = vi.fn();
+      const model = new MockLanguageModelV3({
+        doGenerate: [
+          relationshipCall("add_relationship"),
+          response([
+            { type: "text", text: "Please confirm the proposed relationship." },
+          ]),
+        ],
+      });
+      await runQueryAssistant({
+        model,
+        schemas,
+        messages: [
+          {
+            id: "proposal",
+            role: "assistant",
+            content: "Add this relationship?",
+            relationshipProposal: candidate,
+          },
+          { id: "answer", role: "user", content },
+        ],
+        potentialRelationships: [candidate],
+        addRelationship,
+        upsert: vi.fn(),
+      });
+      expect(addRelationship).not.toHaveBeenCalled();
+    },
+  );
+  it.each(["yes", `Add proposed relationship ${candidate.constraintId}`])(
+    "adds a confirmed relationship and continues the query using the refreshed schema: %s",
+    async (content) => {
+      const unlinked = structuredClone(schemas);
+      for (const schema of unlinked)
+        for (const table of schema.tables)
+          for (const column of table.columns) {
+            column.foreignKeys = column.foreignKeys.filter(
+              (key) =>
+                table.name !== "orders" || key.foreignTableName !== "users",
+            );
+            column.foreignKeyReferences = column.foreignKeyReferences.filter(
+              (key) =>
+                table.name !== "users" || key.localTableName !== "orders",
+            );
+          }
+      const addRelationship = vi.fn().mockResolvedValue(schemas);
+      const upsert = vi.fn().mockResolvedValue(undefined);
+      const model = new MockLanguageModelV3({
+        doGenerate: [relationshipCall("add_relationship"), call()],
+      });
+      const result = await runQueryAssistant({
+        model,
+        schemas: unlinked,
+        messages: [
+          { id: "request", role: "user", content: messages[0]!.content },
+          {
+            id: "proposal",
+            role: "assistant",
+            content: "Add this relationship?",
+            relationshipProposal: candidate,
+          },
+          { id: "answer", role: "user", content },
+        ],
+        potentialRelationships: [candidate],
+        addRelationship,
+        upsert,
+      });
+      expect(addRelationship).toHaveBeenCalledWith(candidate);
+      expect(addRelationship).toHaveBeenCalledOnce();
+      expect(upsert).toHaveBeenCalledOnce();
+      expect(result).toEqual({
+        text: orderQuery.summary,
+        queryUpdated: true,
+        relationshipsUpdated: true,
+      });
+    },
+  );
+  it("rejects unavailable candidates even when the user confirmed an old proposal", async () => {
+    const addRelationship = vi.fn();
+    await runQueryAssistant({
+      model: new MockLanguageModelV3({
+        doGenerate: [
+          relationshipCall("add_relationship"),
+          response([
+            { type: "text", text: "That relationship is no longer available." },
+          ]),
+        ],
+      }),
+      schemas,
+      messages: [
+        {
+          id: "proposal",
+          role: "assistant",
+          content: "Add this?",
+          relationshipProposal: candidate,
+        },
+        { id: "answer", role: "user", content: "yes" },
+      ],
+      potentialRelationships: [],
+      addRelationship,
+      upsert: vi.fn(),
+    });
+    expect(addRelationship).not.toHaveBeenCalled();
+  });
+});
 
 describe("query assistant", () => {
   it("uses the latest query as authoritative and excludes legacy undo notices", async () => {

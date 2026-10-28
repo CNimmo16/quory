@@ -236,6 +236,21 @@ export function QueryChatPane({
                   Query saved
                 </p>
               )}
+              {message.role === "assistant" &&
+                "relationshipProposal" in message &&
+                message.relationshipProposal &&
+                message.id === conversation[conversation.length - 1]?.id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pendingMessage !== null || disabled}
+                    onClick={() =>
+                      void onSend("Yes, add this relationship and continue.")
+                    }
+                  >
+                    Add relationship and continue
+                  </Button>
+                )}
             </div>
           ))}
           {pendingMessage && (

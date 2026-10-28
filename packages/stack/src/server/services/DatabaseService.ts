@@ -1,4 +1,9 @@
-import { DatabaseDriver, DatabaseSchema, getSchemas } from "@quory/core";
+import {
+  DatabaseDriver,
+  DatabaseSchema,
+  getSchemas,
+  filterRelationshipsByConfidence,
+} from "@quory/core";
 import { WorkerSqliteDriver } from "@quory/sqlite";
 import { PostgresDriver } from "@quory/postgres";
 import { MySQLDriver } from "@quory/mysql";
@@ -94,7 +99,14 @@ export async function makeClientDatabase(
     } catch (e) {
       throw new DatabaseConnectionFailedError((e as Error).message);
     }
-    const schemas = await getSchemas(driver);
+    const options =
+      typeof config.schemaOptions === "function"
+        ? await config.schemaOptions()
+        : config.schemaOptions;
+    const schemas = filterRelationshipsByConfidence(
+      await getSchemas(driver, options),
+      options?.minimumRelationshipConfidence,
+    );
     return { driver, schemas };
   } catch (error) {
     // Preserve the initialization error even if cleanup also fails.

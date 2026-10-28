@@ -2,6 +2,9 @@ import { memo, useCallback, useMemo } from "react";
 import {
   findTableFromSchemas,
   splitTableRef,
+  resolveRelationship,
+  normalizeVia,
+  type RelationshipConstraint,
   type PreparedQuery,
 } from "@quory/core";
 import type useQuery from "../hooks/useQuery";
@@ -68,6 +71,7 @@ function TableNavigator({
   schemas,
   highlightedJoinAlias,
   onChangeHighlightedJoinAlias,
+  onRelationshipClick,
 }: {
   width: number;
   maxHeight?: number;
@@ -76,6 +80,8 @@ function TableNavigator({
   schemas: NonNullable<ReturnType<typeof useFetchSchema>["data"]>["schemas"];
   highlightedJoinAlias: string | null;
   onChangeHighlightedJoinAlias: (joinAlias: string | null) => void;
+  onRelationshipClick?:
+    ((relationship: RelationshipConstraint) => void) | undefined;
 }) {
   const { ref: measureRef, width: canvasWidth } = useElementSize();
   const { ref: panRef, ...canvas } = useRelationshipCanvas();
@@ -178,7 +184,9 @@ function TableNavigator({
           }}
         >
           <svg
-            aria-hidden="true"
+            aria-label={
+              onRelationshipClick ? "Relationship connections" : undefined
+            }
             className="pointer-events-none absolute inset-0"
             width={layout.width}
             height={layout.height}
@@ -207,13 +215,80 @@ function TableNavigator({
                   ),
               )
               .map((edge) => {
+                const source = layout.nodes.find(
+                  (node) => node.join.joinAlias === edge.source,
+                )?.join;
+                const target = layout.nodes.find(
+                  (node) => node.join.joinAlias === edge.target,
+                )?.join;
+                let relationship: RelationshipConstraint | undefined;
+                try {
+                  if (source && target) {
+                    const steps = normalizeVia(target.via);
+                    relationship = resolveRelationship(
+                      schemas,
+                      source.tableRef,
+                      steps[steps.length - 1] ?? { tableRef: target.tableRef },
+                    ).relationship;
+                  }
+                } catch {
+                  /* Legacy prepared queries may omit a relationship selector. */
+                }
+                const clickable =
+                  relationship?.source === "inferred" && !!onRelationshipClick;
                 const active =
                   edge.source === highlightedJoinAlias ||
                   edge.target === highlightedJoinAlias;
                 const end = edge.points[edge.points.length - 1]!;
                 const path = connectorPath(edge.points);
                 return (
-                  <g key={edge.target}>
+                  <g
+                    key={edge.target}
+                    role={clickable ? "button" : undefined}
+                    tabIndex={clickable ? 0 : undefined}
+                    aria-label={
+                      clickable
+                        ? `Configure inferred relationship from ${source?.tableRef} to ${target?.tableRef}`
+                        : undefined
+                    }
+                    className={
+                      clickable
+                        ? "pointer-events-auto cursor-pointer"
+                        : undefined
+                    }
+                    onClick={
+                      clickable
+                        ? () => onRelationshipClick!(relationship!)
+                        : undefined
+                    }
+                    onKeyDown={
+                      clickable
+                        ? (event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onRelationshipClick!(relationship!);
+                            }
+                          }
+                        : undefined
+                    }
+                  >
+                    {relationship?.source === "inferred" && (
+                      <title>
+                        Inferred relationship · confidence{" "}
+                        {relationship.confidence?.toFixed(2)}
+                        {clickable ? " · Click to configure" : ""}
+                      </title>
+                    )}
+                    {clickable && (
+                      <path
+                        d={path}
+                        fill="none"
+                        stroke="transparent"
+                        strokeWidth={16}
+                        pointerEvents="stroke"
+                      />
+                    )}
                     <path
                       d={path}
                       fill="none"
@@ -233,6 +308,9 @@ function TableNavigator({
                           : "stroke-muted-foreground/55"
                       }
                       strokeWidth={active ? 2 : 1.5}
+                      strokeDasharray={
+                        relationship?.source === "inferred" ? "5 3" : undefined
+                      }
                     />
                     <circle
                       cx={end.x}

@@ -15,6 +15,7 @@ import normalizeVia, {
   type ViaStep,
   type ViaTableStep,
 } from "./util/normalizeVia";
+import { filterRelationshipsByConfidence } from "./relationshipConfig";
 import resolveRelationship, {
   type ResolvedRelationship,
 } from "./util/resolveRelationship";
@@ -158,7 +159,11 @@ export default async function prepareQuery(
   databaseSchemas: DatabaseSchema[],
   query: Query,
   dialect: SqlDialect = "sqlite",
-  options: { includeOrderBy?: boolean; includeRecordKeys?: boolean } = {},
+  options: {
+    includeOrderBy?: boolean;
+    includeRecordKeys?: boolean;
+    minimumRelationshipConfidence?: number | undefined;
+  } = {},
 ): Promise<{
   sql: string;
   parameters: SqlParameter[];
@@ -166,6 +171,10 @@ export default async function prepareQuery(
   joinsList: FlattenedPreparedJoinDef[];
   recordKeyAliases: Record<string, string[]>;
 }> {
+  databaseSchemas = filterRelationshipsByConfidence(
+    databaseSchemas,
+    options.minimumRelationshipConfidence,
+  );
   validateQuery(databaseSchemas, query);
   const parameters: SqlParameter[] = [];
   const q = (name: string) => quoteIdentifier(name, dialect);

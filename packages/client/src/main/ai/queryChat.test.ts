@@ -20,6 +20,18 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../repositories/queryRepo", () => ({
   queryRepo: { get: mocks.get, put: mocks.put },
 }));
+vi.mock("../repositories/projectRepo", () => ({
+  projectRepo: {
+    get: async () => ({
+      _id: mocks.project,
+      _rev: "1-project",
+      configuration: {},
+    }),
+  },
+}));
+vi.mock("../repositories/projectConfigurationService", () => ({
+  saveProjectConfiguration: vi.fn(),
+}));
 vi.mock("../state/quorySession", () => ({ getQuorySession: mocks.session }));
 vi.mock("../state/activeConnectionState", () => ({
   default: {
@@ -27,7 +39,10 @@ vi.mock("../state/activeConnectionState", () => ({
     getConnectionGeneration: () => mocks.generation,
   },
 }));
-vi.mock("./queryAssistant", () => ({ runQueryAssistant: mocks.assistant }));
+vi.mock("./queryAssistant", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./queryAssistant")>()),
+  runQueryAssistant: mocks.assistant,
+}));
 vi.mock("./model", () => ({ getQueryModel: mocks.model }));
 vi.mock("../state/activeProjectState", async () => {
   const { TRPCError } = await import("@trpc/server");
@@ -70,7 +85,11 @@ beforeEach(() => {
   mocks.project = "project-1";
   mocks.projectGeneration = 0;
   docs = new Map();
-  mocks.session.mockResolvedValue({ connectionId: "connection-1", schemas });
+  mocks.session.mockResolvedValue({
+    connectionId: "connection-1",
+    schemas,
+    request: { inspectRelationships: async () => schemas },
+  });
   mocks.connection.mockResolvedValue("connection-1");
   mocks.get.mockImplementation(async (id: string) => {
     const doc = docs.get(id);

@@ -7,6 +7,15 @@ export interface DatabaseSslConfig {
 }
 
 export interface QuoryRequestHandlerConfig {
+  schemaOptions?:
+    | (import("@quory/core").SchemaOptions & {
+        minimumRelationshipConfidence?: number | undefined;
+      })
+    | (() => Promise<
+        import("@quory/core").SchemaOptions & {
+          minimumRelationshipConfidence?: number | undefined;
+        }
+      >);
   database: {
     type: "postgres" | "mysql" | "sqlite";
     hostOrFilePath: string;

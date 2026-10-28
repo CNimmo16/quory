@@ -23,6 +23,14 @@ development server launched before this watch option was enabled to pick it up.
 The interaction tests cover connection forms, searchable table selection, filter
 editing, and applying or dismissing column selections.
 
+## Project relationships
+
+Open **Project configuration** while creating a project, or from a project's right-click menu in the sidebar. Inference is off by default. Each project can configure cross-schema matching, plural conversion, ambiguity handling, exact type matching and a minimum relationship confidence. These settings apply to every connection in that project, including schema refresh, query results, counts and the assistant.
+
+Exclude incorrect inferred relationships in configuration or by clicking a dashed relationship edge in the table navigator. Restore exclusions in configuration. Add manual relationships there using compatible column pairs that reference the destination's complete primary key. These changes update project metadata without changing database constraints. Project configuration is saved in Quory's local project record, including for folder-backed projects.
+
+When a requested join has no relationship but its columns suggest a valid primary-key reference, the assistant proposes adding it to the project. Confirm the proposal with **Add relationship and continue**, or reply “yes”; the assistant then adds the relationship and continues the original query. Existing exclusions and confidence limits are respected.
+
 ## PostHog
 
 Packaged builds send uncaught main-process and renderer JavaScript exceptions,
@@ -41,10 +49,10 @@ analytics are disabled. Error messages and stack traces are still captured.
 
 Add these repository settings under **Settings → Secrets and variables → Actions**:
 
-| Name | Type | Value |
-| --- | --- | --- |
-| `POSTHOG_CLI_API_KEY` | Secret | A PostHog **personal API key** with **Error tracking: Write** and **Organization: Read**, authorized for this project. |
-| `POSTHOG_CLI_PROJECT_ID` | Variable | The numeric project ID from PostHog project settings (or `/project/<id>` in its URL). |
+| Name                     | Type     | Value                                                                                                                  |
+| ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `POSTHOG_CLI_API_KEY`    | Secret   | A PostHog **personal API key** with **Error tracking: Write** and **Organization: Read**, authorized for this project. |
+| `POSTHOG_CLI_PROJECT_ID` | Variable | The numeric project ID from PostHog project settings (or `/project/<id>` in its URL).                                  |
 
 The public `phc_` token is already configured; it is not the personal upload key.
 CI uses `https://eu.posthog.com` for uploads. Each platform builds hidden sourcemaps,

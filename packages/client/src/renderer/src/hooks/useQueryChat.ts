@@ -4,6 +4,7 @@ import type { inferRouterInputs } from "@trpc/server";
 import type { AppRouter } from "../../../main/ipc";
 import type { ChatMessage, QueryChatResult } from "../../../shared/queryChat";
 import trpc from "../util/tprc";
+import { useInvalidateQuory } from "@quory/stack/react";
 
 type ChatRequest = inferRouterInputs<AppRouter>["queries"]["chat"];
 
@@ -29,6 +30,8 @@ export function useQueryChat({
   const request = useRef<ChatRequest | null>(null);
   const sending = useRef(false);
   const mutation = trpc.queries.chat.useMutation();
+  const invalidate = useInvalidateQuory();
+  const utils = trpc.useUtils();
   const currentContext = useRef(connectionId);
   currentContext.current = connectionId;
   const mounted = useRef(true);
@@ -70,6 +73,12 @@ export function useQueryChat({
       const result = await mutation.mutateAsync(request.current);
       if (!isCurrent()) return false;
       setMessages(result.messages);
+      if (result.relationshipsUpdated)
+        await Promise.all([
+          invalidate(),
+          utils.projects.list.invalidate(),
+          utils.projects.configuration.invalidate(),
+        ]);
       if (result.queryUpdated) await onUpsert(result);
       request.current = null;
       setDraft("");

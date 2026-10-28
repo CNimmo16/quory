@@ -24,6 +24,8 @@ export type TableColumn = {
 };
 
 export type RelationshipConstraint = {
+  source?: import("./inferRelationships").RelationshipSource;
+  confidence?: number;
   constraintId: string;
   localSchema: string;
   localTable: string;
@@ -35,6 +37,8 @@ export type RelationshipConstraint = {
 // Drivers return ordered pairs; rows sharing a constraintId form one constraint.
 // Metadata is optional for compatibility with legacy single-column drivers.
 export type Relationship = {
+  source?: import("./inferRelationships").RelationshipSource;
+  confidence?: number;
   constraintId?: string;
   columnPosition?: number;
   localSchema: string;
@@ -46,6 +50,7 @@ export type Relationship = {
 };
 
 export type ExecutionOptions = {
+  minimumRelationshipConfidence?: number | undefined;
   signal?: AbortSignal | undefined;
   timeoutMs?: number | undefined;
 };

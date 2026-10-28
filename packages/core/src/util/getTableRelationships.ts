@@ -33,6 +33,10 @@ export default function getTableRelationships(
         group = {
           relationship: {
             constraintId: id,
+            source:
+              key.source ??
+              (key.hasForeignKeyConstraint ? "foreign-key" : "inferred"),
+            confidence: key.confidence,
             localSchema: schemaName,
             localTable: table.name,
             foreignSchema: key.foreignSchemaName,
@@ -62,6 +66,10 @@ export default function getTableRelationships(
         foreignColumn: key.foreignColumnName,
         position: key.columnPosition ?? 1,
       });
+      group.relationship.confidence = Math.min(
+        group.relationship.confidence ?? 1,
+        key.confidence,
+      );
     }
   }
   return [...groups.values()].map(({ relationship, pairs }) => {

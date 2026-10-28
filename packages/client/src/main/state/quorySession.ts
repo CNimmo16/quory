@@ -1,10 +1,17 @@
 import { makeQuoryRequestHandler } from "@quory/stack/server";
 import { connectionRepo } from "./connectionRepo";
 import { SessionOwner } from "./SessionOwner";
+import { projectRepo } from "../repositories/projectRepo";
 
 async function createSession(connectionId: string) {
   const connection = await connectionRepo.get(connectionId);
-  const request = await makeQuoryRequestHandler({ database: connection });
+  const request = await makeQuoryRequestHandler({
+    database: connection,
+    schemaOptions: async () =>
+      connection.projectId
+        ? ((await projectRepo.get(connection.projectId)).configuration ?? {})
+        : {},
+  });
   try {
     const result = await request({ path: "schema", data: {} });
     if (!("schemas" in result))

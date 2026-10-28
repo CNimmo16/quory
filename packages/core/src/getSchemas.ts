@@ -1,8 +1,13 @@
 import type { DatabaseSchema } from ".";
 import { DatabaseDriver } from ".";
+import {
+  configuredRelationships,
+  type SchemaOptions,
+} from "./relationshipConfig";
 
 export default async function getSchemas(
   databaseDriver: DatabaseDriver,
+  options: SchemaOptions = {},
 ): Promise<DatabaseSchema[]> {
   const schemas: DatabaseSchema[] = [];
   const retrieveOrCreateTable = (
@@ -23,7 +28,11 @@ export default async function getSchemas(
   };
 
   const allColumns = await databaseDriver.getAllColumnsInDatabase();
-  const allForeignKeys = await databaseDriver.getAllForeignKeysInDatabase();
+  const allForeignKeys = configuredRelationships(
+    allColumns,
+    await databaseDriver.getAllForeignKeysInDatabase(),
+    options,
+  );
 
   allColumns.forEach(({ tableName, schemaName, ...column }) => {
     const tableInfo = retrieveOrCreateTable(schemaName, tableName);
@@ -46,8 +55,9 @@ export default async function getSchemas(
           foreignColumnName: key.foreignColumn,
           foreignSchemaName: key.foreignSchema,
           foreignTableName: key.foreignTable,
-          hasForeignKeyConstraint: true,
-          confidence: 1,
+          ...(key.source ? { source: key.source } : {}),
+          hasForeignKeyConstraint: !key.source || key.source === "foreign-key",
+          confidence: key.confidence ?? 1,
         })),
       foreignKeyReferences: allForeignKeys
         .filter(
@@ -66,8 +76,9 @@ export default async function getSchemas(
           localColumnName: key.localColumn,
           localSchemaName: key.localSchema,
           localTableName: key.localTable,
-          hasForeignKeyConstraint: true,
-          confidence: 1,
+          ...(key.source ? { source: key.source } : {}),
+          hasForeignKeyConstraint: !key.source || key.source === "foreign-key",
+          confidence: key.confidence ?? 1,
         })),
     });
   });

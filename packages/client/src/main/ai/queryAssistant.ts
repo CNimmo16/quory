@@ -1,5 +1,11 @@
 import { generateText, stepCountIs, tool, type LanguageModel } from "ai";
-import type { DatabaseSchema, Query } from "@quory/core";
+import {
+  relationshipId,
+  type DatabaseSchema,
+  type Query,
+  type ManualRelationship,
+} from "@quory/core";
+import { z } from "zod";
 import type { ChatMessage } from "../../shared/queryChat";
 import {
   queryFromTool,
@@ -14,6 +20,8 @@ export async function runQueryAssistant({
   nickname,
   messages,
   upsert,
+  potentialRelationships = [],
+  addRelationship,
 }: {
   model: LanguageModel;
   schemas: DatabaseSchema[];
@@ -21,7 +29,33 @@ export async function runQueryAssistant({
   nickname?: string | undefined;
   messages: ChatMessage[];
   upsert: (query: Query, nickname: string, summary: string) => Promise<void>;
-}): Promise<{ text: string; queryUpdated: boolean }> {
+  potentialRelationships?: ManualRelationship[];
+  addRelationship?: (
+    relationship: ManualRelationship,
+  ) => Promise<DatabaseSchema[]>;
+}): Promise<{
+  text: string;
+  queryUpdated: boolean;
+  relationshipProposal?: ManualRelationship;
+  relationshipsUpdated?: boolean;
+}> {
+  let proposal: ManualRelationship | undefined;
+  let relationshipsUpdated = false;
+  let adding: Promise<DatabaseSchema[]> | undefined;
+  const lastUser = messages[messages.length - 1];
+  const previous = messages[messages.length - 2];
+  const proposed =
+    previous?.role === "assistant" ? previous.relationshipProposal : undefined;
+  const confirmed =
+    proposed &&
+    lastUser?.role === "user" &&
+    (lastUser.content ===
+      `Add proposed relationship ${proposed.constraintId}` ||
+      /^(yes|yes please|yep|yeah|sure|ok|okay|please do|go ahead|add it|yes, add this relationship and continue)[.!]?$/i.test(
+        lastUser.content.trim(),
+      ))
+      ? proposed
+      : undefined;
   let committedSummary: string | undefined;
   let commit: Promise<void> | undefined;
   let saveError: unknown;
@@ -40,6 +74,9 @@ Each table's conditions array is empty for no filter. Otherwise index 0 is the r
 Order by real schema columns, with priority 0 first, then 1, etc. For “latest”, default to descending on the requested entity's creation timestamp when clearly identifiable in the schema, unless the user or conversation specifies another event or ordering. The presence of other date fields alone does not require a question. Briefly disclose the chosen creation-time default. Ask only when no suitable default is identifiable or the requested event's date field remains ambiguous. Default to 100 rows unless asked otherwise (maximum 100). Include requested related entities as joined tables. A user's email should normally be an equality filter on the related user's email column, not a guessed user ID.
 The builder supports SELECT queries with inner joins, the listed comparison operators, ordering, limits, and nonnegative offsets. Preserve offsets for amendments unless filters or ordering change, in which case reset offset to 0. It cannot perform writes, raw SQL, aggregates, outer joins, or cross-table OR. Choose among multiple foreign keys only when the user's intent is clear, using via selectors. If a request is unsupported, explain the specific limitation and propose a useful alternative supported by the supplied schema and builder when available. Explain how the alternative changes which records qualify and ask before applying that change, unless the user has already requested or accepted it. Do not present a different relationship path as equivalent without evidence.
 The tool summary is shown directly to the user only after saving. Write it as a completed action, such as “Created the query” or “Updated the query”, rather than an instruction such as “Find orders”. Use one or two concise sentences describing the resulting entities, key filters, sorting, and important defaults or accepted scope changes. Mention displayed fields only when useful rather than listing every column. Do not claim to have inspected actual row values; you only have schema information.
+If a requested join has no configured relationship, inspect POTENTIAL_RELATIONSHIPS. If a candidate fits the user's intent, call propose_relationship to ask whether to add it to this project's configuration. A join request alone does not authorize changing project relationships. Never add a relationship before the user confirms the specific proposal. When CONFIRMED_RELATIONSHIP is supplied, call add_relationship with that exact candidate ID, then continue the original query using the returned schema. Mention the added project relationship in the saved query summary. Excluded relationships and relationships below the confidence threshold must not be bypassed. Relationship tools change project metadata only, never database constraints.
+POTENTIAL_RELATIONSHIPS: ${JSON.stringify(potentialRelationships)}
+CONFIRMED_RELATIONSHIP: ${JSON.stringify(confirmed ?? null)}
 Today's UTC date: ${new Date().toISOString().slice(0, 10)}.
 SCHEMA: ${JSON.stringify(schemas)}
 CURRENT_QUERY: ${JSON.stringify(currentQuery ?? null)}
@@ -57,15 +94,99 @@ CURRENT_NICKNAME: ${JSON.stringify(nickname ?? null)}`;
       maxOutputTokens: 6000,
       abortSignal: AbortSignal.timeout(90_000),
       stopWhen: [
-        stepCountIs(3),
-        () => committedSummary !== undefined || saveError !== undefined,
+        stepCountIs(5),
+        () =>
+          committedSummary !== undefined ||
+          saveError !== undefined ||
+          proposal !== undefined,
       ],
       tools: {
+        ...(addRelationship
+          ? {
+              propose_relationship: tool({
+                description:
+                  "Propose a potential relationship and ask for the user's confirmation before changing this project's configuration.",
+                inputSchema: z.object({ candidateId: z.string() }),
+                execute: async ({ candidateId }) => {
+                  if (commit)
+                    return {
+                      proposed: false,
+                      error:
+                        "A query save is already in progress. Propose the relationship in a later turn.",
+                    };
+                  const candidate = potentialRelationships.find(
+                    (item) => item.constraintId === candidateId,
+                  );
+                  if (!candidate)
+                    return {
+                      proposed: false,
+                      error: "Unknown or unavailable relationship candidate.",
+                    };
+                  proposal = candidate;
+                  return { proposed: true, requiresConfirmation: true };
+                },
+              }),
+              add_relationship: tool({
+                description:
+                  "Add the specific relationship already confirmed by the user to project configuration, then use the returned schema to continue the query.",
+                inputSchema: z.object({ candidateId: z.string() }),
+                execute: async ({ candidateId }) => {
+                  if (!confirmed || candidateId !== confirmed.constraintId)
+                    return {
+                      saved: false,
+                      error:
+                        "The user must confirm this specific relationship in a separate reply first.",
+                    };
+                  const candidate = potentialRelationships.find(
+                    (item) => item.constraintId === candidateId,
+                  );
+                  if (
+                    !candidate ||
+                    JSON.stringify(candidate) !== JSON.stringify(confirmed)
+                  )
+                    return {
+                      saved: false,
+                      error:
+                        "This candidate changed or is no longer available. Propose it again.",
+                    };
+                  try {
+                    adding ??= addRelationship(candidate);
+                    schemas = await adding;
+                    relationshipsUpdated = true;
+                    return { saved: true, schemas };
+                  } catch (error) {
+                    return {
+                      saved: false,
+                      error:
+                        error instanceof Error
+                          ? error.message
+                          : "Could not add relationship.",
+                    };
+                  }
+                },
+              }),
+            }
+          : {}),
         upsert_query: tool({
           description:
             "Create or replace the current saved query after resolving ambiguity. Supply the full query, including unchanged parts. Returns validation errors without changing the saved query.",
           inputSchema: upsertQuerySchema,
           execute: async (input) => {
+            if (proposal)
+              return {
+                saved: false,
+                error: "Awaiting relationship confirmation.",
+              };
+            if (adding) {
+              try {
+                await adding;
+              } catch {
+                return {
+                  saved: false,
+                  error: "Relationship could not be added.",
+                };
+              }
+            }
             let query: Query;
             try {
               query = queryFromTool(input);
@@ -93,6 +214,11 @@ CURRENT_NICKNAME: ${JSON.stringify(nickname ?? null)}`;
               };
             }
             // A model may request parallel tool calls. Only one can save per turn.
+            if (proposal)
+              return {
+                saved: false,
+                error: "Awaiting relationship confirmation.",
+              };
             if (!commit) {
               commit = upsert(query, input.nickname, input.summary)
                 .then(() => {
@@ -109,18 +235,57 @@ CURRENT_NICKNAME: ${JSON.stringify(nickname ?? null)}`;
       },
     });
     if (saveError) throw saveError;
+    if (proposal)
+      return {
+        text: `There is no configured relationship for ${proposal.localSchema}.${proposal.localTable}.${proposal.columnPairs[0]!.localColumn} → ${proposal.foreignSchema}.${proposal.foreignTable}.${proposal.columnPairs[0]!.foreignColumn}. Would you like me to add it to this project's configuration and continue?`,
+        queryUpdated: false,
+        relationshipProposal: proposal,
+      };
     if (committedSummary !== undefined)
-      return { text: committedSummary, queryUpdated: true };
+      return {
+        text: committedSummary,
+        queryUpdated: true,
+        ...(relationshipsUpdated ? { relationshipsUpdated } : {}),
+      };
     const text = result.text.trim();
     if (!text)
       throw new Error(
         "The model did not return a question or a valid query. Please try again.",
       );
-    return { text: text.slice(0, 6000), queryUpdated: false };
+    return {
+      text: text.slice(0, 6000),
+      queryUpdated: false,
+      ...(relationshipsUpdated ? { relationshipsUpdated } : {}),
+    };
   } catch (error) {
     // A provider failure after the tool saved must not turn success into a retry.
     if (committedSummary !== undefined)
-      return { text: committedSummary, queryUpdated: true };
+      return {
+        text: committedSummary,
+        queryUpdated: true,
+        ...(relationshipsUpdated ? { relationshipsUpdated } : {}),
+      };
+    if (relationshipsUpdated)
+      return {
+        text: "Added the relationship to this project. The query has not been updated yet; send your request again to continue.",
+        queryUpdated: false,
+        relationshipsUpdated,
+      };
     throw saveError ?? error;
   }
+}
+
+export function relationshipCandidate(
+  key: import("@quory/core").Relationship,
+): ManualRelationship {
+  return {
+    constraintId: relationshipId("manual", key),
+    localSchema: key.localSchema,
+    localTable: key.localTable,
+    foreignSchema: key.foreignSchema,
+    foreignTable: key.foreignTable,
+    columnPairs: [
+      { localColumn: key.localColumn, foreignColumn: key.foreignColumn },
+    ],
+  };
 }

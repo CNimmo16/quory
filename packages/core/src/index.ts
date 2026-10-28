@@ -95,6 +95,7 @@ export type DatabaseTableInfo = {
     isNullable: boolean;
     includedInPrimaryKey: boolean;
     foreignKeys: {
+      source?: import("./inferRelationships").RelationshipSource;
       constraintId?: string;
       columnPosition?: number;
       foreignSchemaName: string;
@@ -104,6 +105,7 @@ export type DatabaseTableInfo = {
       confidence: number;
     }[];
     foreignKeyReferences: {
+      source?: import("./inferRelationships").RelationshipSource;
       constraintId?: string;
       columnPosition?: number;
       localSchemaName: string;
@@ -127,3 +129,15 @@ export type { SqlDialect, SqlParameter } from "./sqlDialect";
 export type { ExecutionOptions } from "./DatabaseDriver";
 
 export type { SqlExecutionOptions, SqlExecutionResult } from "./DatabaseDriver";
+export {
+  default as inferRelationships,
+  relationshipId,
+  areRelationshipDataTypesCompatible,
+} from "./inferRelationships";
+export type {
+  InferRelationshipsOptions,
+  RelationshipSource,
+} from "./inferRelationships";
+export { filterRelationshipsByConfidence } from "./relationshipConfig";
+export type { SchemaOptions, ManualRelationship } from "./relationshipConfig";
+export { default as resolveRelationship } from "./util/resolveRelationship";

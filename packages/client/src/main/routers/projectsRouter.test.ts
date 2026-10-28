@@ -110,6 +110,50 @@ it("starts at selection and creates a database project without a filesystem path
   expect((await caller.list()).activeProject?._id).toBe(projectId);
 });
 
+it("stores inference configuration on its project, supports editing without a connection, and rejects stale updates", async () => {
+  const configuration = {
+    inferRelationships: {
+      crossSchema: true,
+      pluralConversion: false,
+      multipleCandidateBehaviour: "skip" as const,
+      identicalDataTypesOnly: true,
+    },
+    minimumRelationshipConfidence: 0.9,
+    excludedRelationships: ["inferred:example"],
+  };
+  const { projectId } = await caller.create({
+    name: "Configured",
+    storage: "database",
+    configuration,
+  });
+  const other = await caller.create({ name: "Other", storage: "database" });
+  expect(
+    (await caller.configuration({ projectId })).project.configuration,
+  ).toEqual(configuration);
+  expect(
+    (await caller.configuration(other)).project.configuration,
+  ).toBeUndefined();
+  await expect(
+    caller.configure({ projectId, revision: "stale", configuration: {} }),
+  ).rejects.toThrow("project changed");
+  await caller.configure({
+    projectId,
+    revision: "1-saved",
+    configuration: { inferRelationships: false },
+  });
+  expect(
+    (await caller.configuration({ projectId })).project.configuration,
+  ).toEqual({ inferRelationships: false });
+  expect(mocks.disconnect).not.toHaveBeenCalled();
+  await expect(
+    caller.configure({
+      projectId,
+      revision: "1-saved",
+      configuration: { minimumRelationshipConfidence: 1.1 },
+    }),
+  ).rejects.toThrow();
+});
+
 it("renames an active project without disconnecting and rejects stale revisions", async () => {
   const { projectId } = await caller.create({
     name: "Original",

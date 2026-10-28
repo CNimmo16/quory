@@ -300,6 +300,9 @@ it("renames a project from its right-click menu without opening it", async () =>
     clientX: 40,
     clientY: 90,
   });
+  expect(
+    screen.getByRole("menuitem", { name: "Project configuration" }),
+  ).toBeVisible();
   await user.click(screen.getByRole("menuitem", { name: "Rename project" }));
   await user.clear(screen.getByRole("textbox", { name: "Name" }));
   await user.type(

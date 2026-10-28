@@ -4,6 +4,7 @@ import useQuery from "./hooks/useQuery";
 import useQueryCount from "./hooks/useQueryCount";
 
 export { QuoryProvider, useFetchSchema, useQuery, useQueryCount };
+export { useInvalidateQuory } from "./hooks/useInvalidateQuory";
 
 export { default as DataTable } from "./components/DataTable";
 export { TableColumnsMenu } from "./components/TableColumnsMenu";

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { QueryHistory } from "./queryHistory";
+import { manualRelationshipSchema } from "./projectConfiguration";
 
 export const chatMessageSchema = z.object({
   id: z.string(),
@@ -8,6 +9,7 @@ export const chatMessageSchema = z.object({
   queryUpdated: z.boolean().optional(),
   historyAction: z.enum(["undo", "redo"]).optional(),
   relatedMessageId: z.string().optional(),
+  relationshipProposal: manualRelationshipSchema.optional(),
 });
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 
@@ -25,4 +27,5 @@ export type QueryChatResult = {
   revision: string | null;
   queryUpdated: boolean;
   queryHistory?: QueryHistory;
+  relationshipsUpdated?: boolean;
 };

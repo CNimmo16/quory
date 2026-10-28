@@ -5,6 +5,7 @@ import {
   FolderKanban,
   Pencil,
   Trash2,
+  Settings2,
 } from "lucide-react";
 import type { Project } from "../../../shared/project";
 import trpc from "../util/tprc";
@@ -29,6 +30,7 @@ import { LoadingState } from "./LoadingState";
 import { Alert, AlertDescription } from "./ui/alert";
 import { QueryConnectionMenu } from "./QueryConnectionMenu";
 import { QueryConnectionSubmenu } from "./QueryConnectionSubmenu";
+import { ProjectConfigurationDialog } from "./ProjectConfigurationDialog";
 
 export function ProjectQueries({
   projectId,
@@ -54,6 +56,7 @@ export function ProjectQueries({
   ) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
+  const [configurationOpen, setConfigurationOpen] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const actions = useSidebarActions(projectId, project, revision, active);
   const disabled = busy || actions.pending;
@@ -109,6 +112,10 @@ export function ProjectQueries({
           </button>
         </ContextMenuTrigger>
         <ContextMenuContent>
+          <ContextMenuItem onSelect={() => setConfigurationOpen(true)}>
+            <Settings2 aria-hidden="true" />
+            Project configuration
+          </ContextMenuItem>
           <ContextMenuItem
             onSelect={() =>
               actions.beginRename({ name: project.name, revision })
@@ -220,6 +227,12 @@ export function ProjectQueries({
             </li>
           )}
         </ul>
+      )}
+      {configurationOpen && (
+        <ProjectConfigurationDialog
+          projectId={projectId}
+          onClose={() => setConfigurationOpen(false)}
+        />
       )}
       <Dialog
         open={!!actions.renameTarget}

@@ -6,6 +6,8 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Spinner } from "./LoadingState";
+import { ProjectConfigurationFields } from "./ProjectConfigurationFields";
+import type { ProjectConfiguration } from "../../../shared/projectConfiguration";
 
 export function ProjectForm({
   onCreated,
@@ -13,6 +15,7 @@ export function ProjectForm({
   onCreated: (projectId: string) => Promise<void>;
 }) {
   const [name, setName] = useState("");
+  const [configuration, setConfiguration] = useState<ProjectConfiguration>({});
   const [storage, setStorage] = useState<"database" | "folder">("database");
   const [folderPath, setFolderPath] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +28,17 @@ export function ProjectForm({
     try {
       const result = await create.mutateAsync(
         storage === "folder"
-          ? { name: name.trim(), storage, folderPath: folderPath.trim() }
-          : { name: name.trim(), storage },
+          ? {
+              name: name.trim(),
+              storage,
+              folderPath: folderPath.trim(),
+              ...(Object.keys(configuration).length ? { configuration } : {}),
+            }
+          : {
+              name: name.trim(),
+              storage,
+              ...(Object.keys(configuration).length ? { configuration } : {}),
+            },
       );
       await onCreated(result.projectId);
     } catch (cause) {
@@ -150,6 +162,17 @@ export function ProjectForm({
             </p>
           </div>
         )}
+        <details className="rounded-lg border p-4">
+          <summary className="cursor-pointer text-sm font-medium">
+            Project configuration
+          </summary>
+          <div className="pt-4">
+            <ProjectConfigurationFields
+              value={configuration}
+              onChange={setConfiguration}
+            />
+          </div>
+        </details>
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>

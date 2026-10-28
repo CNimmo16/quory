@@ -89,3 +89,46 @@ it("preserves a typed path when browsing is cancelled and displays file errors",
   expect(await screen.findByRole("alert")).toHaveTextContent("broken.json");
   expect(open).not.toHaveBeenCalled();
 });
+
+it("includes project-level inference settings during creation", async () => {
+  const user = userEvent.setup();
+  render(<ProjectForm onCreated={vi.fn().mockResolvedValue(undefined)} />);
+  await user.type(
+    screen.getByRole("textbox", { name: "Project name" }),
+    "Configured",
+  );
+  await user.click(screen.getByText("Project configuration"));
+  await user.click(
+    screen.getByRole("checkbox", {
+      name: "Infer relationships from column names",
+    }),
+  );
+  expect(
+    screen.getByRole("checkbox", {
+      name: "Match singular forms of plural table names",
+    }),
+  ).toBeChecked();
+  await user.click(
+    screen.getByRole("checkbox", {
+      name: "Allow relationships across schemas",
+    }),
+  );
+  await user.clear(
+    screen.getByRole("spinbutton", { name: "Minimum relationship confidence" }),
+  );
+  await user.type(
+    screen.getByRole("spinbutton", { name: "Minimum relationship confidence" }),
+    "0.9",
+  );
+  await user.click(screen.getByRole("button", { name: "Create project" }));
+  await waitFor(() =>
+    expect(mocks.create).toHaveBeenCalledWith({
+      name: "Configured",
+      storage: "database",
+      configuration: {
+        inferRelationships: { crossSchema: true },
+        minimumRelationshipConfidence: 0.9,
+      },
+    }),
+  );
+});
