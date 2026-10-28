@@ -3,6 +3,7 @@ import type { DatabaseSchema } from ".";
 import {
   booleanConditionOperators,
   listConditionOperators,
+  nullConditionOperators,
   valueConditionOperators,
   type Query,
   type ConditionOperator,
@@ -127,6 +128,12 @@ export default function validateQuery(
       } else {
         checkColumn(condition.column);
         if (
+          nullConditionOperators.includes(
+            condition.operator as ConditionOperator,
+          )
+        ) {
+          fields(condition, ["operator", "column"]);
+        } else if (
           listConditionOperators.includes(
             condition.operator as ConditionOperator,
           )

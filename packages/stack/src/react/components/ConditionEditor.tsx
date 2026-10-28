@@ -2,25 +2,30 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { FilterFieldPicker } from "./FilterFieldPicker";
 import { TagsInput } from "./TagsInput";
-import { Hint } from "./Hint";
 import {
-  Condition,
+  type Condition,
   ConditionOperator,
-  DatabaseTableInfo,
+  type DatabaseTableInfo,
   isBooleanCondition,
-  isConditionComplete,
+  isNullCondition,
   isListCondition,
   isValueCondition,
-  ListCondition,
-  ListConditionOperator,
+  type ListConditionOperator,
   listConditionOperators,
-  ValueCondition,
-  ValueConditionOperator,
+  type NullConditionOperator,
+  nullConditionOperators,
+  type ValueConditionOperator,
   valueConditionOperators,
 } from "@quory/core";
 import { produce } from "immer";
-import { Fragment, useEffect, useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { FolderPlus, Plus, Trash2 } from "lucide-react";
+
+const blankFilter = (): Condition => ({
+  column: "",
+  operator: ConditionOperator.EQUALS,
+  value: "",
+});
 
 export default function ConditionEditor({
   columns,
@@ -35,6 +40,7 @@ export default function ConditionEditor({
   focusColumnRequest,
   onApply,
   onNextFilter,
+  depth = 0,
 }: {
   columns: DatabaseTableInfo["columns"];
   condition: Condition;
@@ -48,85 +54,102 @@ export default function ConditionEditor({
   focusColumnRequest?: number | undefined;
   onApply?: ((updated: Condition) => void) | undefined;
   onNextFilter?: ((updated: Condition) => void) | undefined;
+  depth?: number;
 }) {
-  const [ghostFocused, setGhostFocused] = useState(false);
   const [columnOpen, setColumnOpen] = useState(false);
   const [operatorOpen, setOperatorOpen] = useState(false);
+  const [groupOperatorOpen, setGroupOperatorOpen] = useState(false);
   const [focusValue, setFocusValue] = useState(0);
   const [focusChild, setFocusChild] = useState<{
     index: number;
     version: number;
   } | null>(null);
   const valueInput = useRef<HTMLInputElement>(null);
+  const operatorTrigger = useRef<HTMLButtonElement>(null);
 
   const isBoolean = isBooleanCondition(condition);
+  const isNull = isNullCondition(condition);
   useEffect(() => {
     if (!isBoolean && (autoFocus || focusColumnRequest !== undefined))
       setColumnOpen(true);
   }, [autoFocus, focusColumnRequest, isBoolean]);
   useEffect(() => {
     if (!focusValue || isBoolean) return;
-    valueInput.current?.focus();
-    valueInput.current?.select();
-  }, [focusValue, isBoolean]);
-
-  useEffect(() => {
-    if (isBoolean && isConditionComplete(condition)) {
-      setGhostFocused(false);
-      onConditionChange({
-        ...condition,
-        conditions: [
-          ...condition.conditions,
-          {
-            column: "",
-            operator: ConditionOperator.EQUALS,
-            value: "",
-          },
-        ],
-      });
+    if (isNull) operatorTrigger.current?.focus();
+    else {
+      valueInput.current?.focus();
+      valueInput.current?.select();
     }
-  }, [isBoolean, condition, onConditionChange]);
+  }, [focusValue, isBoolean, isNull]);
+
+  function focusAt(index: number) {
+    setFocusChild((current) => ({
+      index,
+      version: (current?.version ?? 0) + 1,
+    }));
+  }
 
   if (isBoolean) {
     return (
-      <div className="flex flex-col gap-2">
-        {condition.conditions.map((subCondition, index) => {
-          return (
-            <Fragment key={index}>
-              {index > 0 && (
-                <div>
-                  <Hint
-                    content={`Click to switch to ${
-                      condition.operator === ConditionOperator.AND
-                        ? "OR"
-                        : "AND"
-                    }`}
-                    side="right"
-                  >
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="text-muted-foreground hover:bg-muted hover:text-primary-emphasis h-6 px-2 text-[10px] font-semibold uppercase"
-                      onClick={() => {
-                        onConditionChange({
-                          ...condition,
-                          operator:
-                            condition.operator === ConditionOperator.AND
-                              ? ConditionOperator.OR
-                              : ConditionOperator.AND,
-                        });
-                      }}
-                    >
-                      {condition.operator}
-                    </Button>
-                  </Hint>
-                </div>
-              )}
+      <div
+        role="group"
+        aria-label="Filter group"
+        className={`flex min-w-0 flex-col gap-3 ${onDelete ? "border-border rounded-md border p-3" : ""}`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-xs">Match</span>
+          <FilterFieldPicker
+            label="Filter group operator"
+            advanceOnSelect={false}
+            searchLabel="Search group operators"
+            value={condition.operator.toUpperCase()}
+            options={["AND", "OR"]}
+            open={groupOperatorOpen}
+            onOpenChange={setGroupOperatorOpen}
+            onSelect={(operator) =>
+              onConditionChange({
+                ...condition,
+                operator:
+                  operator === "AND"
+                    ? ConditionOperator.AND
+                    : ConditionOperator.OR,
+              })
+            }
+            className="w-24"
+            maxHeight={maxDropdownHeight}
+          />
+          <span className="text-muted-foreground text-xs">
+            {condition.operator === ConditionOperator.AND
+              ? "all conditions"
+              : "any condition"}
+          </span>
+          {onDelete && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Delete group"
+              className="text-muted-foreground hover:bg-destructive-subtle hover:text-destructive ml-auto size-8 shrink-0"
+              onClick={onDelete}
+            >
+              <Trash2 aria-hidden="true" className="size-3.5" />
+            </Button>
+          )}
+        </div>
+        {condition.conditions.length > 0 && (
+          <div className="border-border flex min-w-0 flex-col gap-3 border-l-2 pl-3">
+            {condition.conditions.map((subCondition, index) => (
               <ConditionEditor
+                key={index}
+                depth={depth + 1}
                 condition={subCondition}
                 autoFocus={autoFocus && index === 0}
                 focusColumnRequest={
-                  focusChild?.index === index ? focusChild.version : undefined
+                  focusChild?.index === index
+                    ? focusChild.version
+                    : index === 0
+                      ? focusColumnRequest
+                      : undefined
                 }
                 onApply={
                   onApply
@@ -139,36 +162,26 @@ export default function ConditionEditor({
                     : undefined
                 }
                 onNextFilter={(updated) => {
-                  const next = produce(condition, (draft) => {
+                  let next = produce(condition, (draft) => {
                     draft.conditions[index] = updated;
                   });
                   let nextIndex = next.conditions.findIndex(
                     (child, position) =>
                       position > index &&
                       isValueCondition(child) &&
+                      child.operator === ConditionOperator.EQUALS &&
                       !child.column &&
                       !child.value,
                   );
-                  let withNext = next;
                   if (nextIndex < 0) {
                     nextIndex = next.conditions.length;
-                    withNext = {
+                    next = {
                       ...next,
-                      conditions: [
-                        ...next.conditions,
-                        {
-                          column: "",
-                          operator: ConditionOperator.EQUALS,
-                          value: "",
-                        },
-                      ],
+                      conditions: [...next.conditions, blankFilter()],
                     };
                   }
-                  onConditionChange(withNext);
-                  setFocusChild((current) => ({
-                    index: nextIndex,
-                    version: (current?.version ?? 0) + 1,
-                  }));
+                  onConditionChange(next);
+                  focusAt(nextIndex);
                 }}
                 columns={columns}
                 onConditionChange={(changedSubCondition) =>
@@ -186,23 +199,73 @@ export default function ConditionEditor({
                     }),
                   );
                 }}
-                isGhost={
-                  index === condition.conditions.length - 1 &&
-                  !ghostFocused &&
-                  isValueCondition(subCondition) &&
-                  !subCondition.column &&
-                  !subCondition.value
-                }
               />
-            </Fragment>
-          );
-        })}
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={depth >= 20}
+            className="text-muted-foreground hover:text-primary-emphasis h-7 px-2 text-xs"
+            onClick={() => {
+              onConditionChange({
+                ...condition,
+                conditions: [...condition.conditions, blankFilter()],
+              });
+              focusAt(condition.conditions.length);
+            }}
+          >
+            <Plus aria-hidden="true" className="size-3.5" />
+            Add filter
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={depth >= 19}
+            className="text-muted-foreground hover:text-primary-emphasis h-7 px-2 text-xs"
+            onClick={() => {
+              onConditionChange({
+                ...condition,
+                conditions: [
+                  ...condition.conditions,
+                  {
+                    operator: ConditionOperator.AND,
+                    conditions: [blankFilter()],
+                  },
+                ],
+              });
+              focusAt(condition.conditions.length);
+            }}
+          >
+            <FolderPlus aria-hidden="true" className="size-3.5" />
+            Add group
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div
+      className="flex flex-wrap items-center gap-2"
+      onKeyDown={(event) => {
+        if (
+          !isNull ||
+          operatorOpen ||
+          event.target !== operatorTrigger.current ||
+          event.key !== "Enter" ||
+          event.nativeEvent.isComposing
+        )
+          return;
+        event.preventDefault();
+        if (event.shiftKey) onNextFilter?.(condition);
+        else onApply?.(condition);
+      }}
+    >
       <FilterFieldPicker
         label="Filter column"
         searchLabel="Search columns"
@@ -220,102 +283,110 @@ export default function ConditionEditor({
         onFocus={onFocus}
         onBlur={onBlur}
       />
-      {!isGhost && (
-        <>
-          <FilterFieldPicker
-            label="Filter operator"
-            searchLabel="Search operators"
-            value={condition.operator}
-            options={[...valueConditionOperators, ...listConditionOperators]}
-            open={operatorOpen}
-            onOpenChange={setOperatorOpen}
-            onSelect={(_value) => {
-              const value = _value as ConditionOperator;
-              if (
-                valueConditionOperators.includes(value) &&
-                isListCondition(condition)
-              ) {
-                onConditionChange({
-                  column: condition.column,
-                  operator: value as ValueConditionOperator,
-                  value: "",
-                } satisfies ValueCondition);
-              } else if (
-                listConditionOperators.includes(value) &&
-                isValueCondition(condition)
-              ) {
-                onConditionChange({
-                  column: condition.column,
-                  operator: value as ListConditionOperator,
-                  values: condition.value ? [condition.value] : [],
-                } satisfies ListCondition);
-              } else {
-                onConditionChange(
-                  isValueCondition(condition)
-                    ? {
-                        ...condition,
-                        operator: value as ValueConditionOperator,
-                      }
-                    : {
-                        ...condition,
-                        operator: value as ListConditionOperator,
-                      },
-                );
-              }
-              setFocusValue((current) => current + 1);
-            }}
-            className="w-24"
-            maxHeight={maxDropdownHeight}
-            onFocus={onFocus}
-            onBlur={onBlur}
-          />
-          {isValueCondition(condition) && (
-            <Input
-              ref={valueInput}
-              aria-label="Filter value"
-              onKeyDown={(event) => {
-                if (event.key !== "Enter" || event.nativeEvent.isComposing)
-                  return;
-                event.preventDefault();
-                if (!isConditionComplete(condition)) return;
-                if (event.shiftKey) onNextFilter?.(condition);
-                else onApply?.(condition);
-              }}
-              className="border-border text-foreground focus-visible:ring-primary h-8 min-w-32 flex-1 text-xs shadow-none"
-              value={condition.value}
-              onChange={(event) =>
-                onConditionChange({ ...condition, value: event.target.value })
-              }
-              onFocus={onFocus}
-              onBlur={onBlur}
-            />
-          )}
-          {isListCondition(condition) && (
-            <TagsInput
-              inputRef={valueInput}
-              onSubmit={(values, next) => {
-                const updated = { ...condition, values };
-                if (!isConditionComplete(updated)) return;
-                if (next) onNextFilter?.(updated);
-                else onApply?.(updated);
-              }}
-              value={condition.values}
-              onChange={(values) => onConditionChange({ ...condition, values })}
-              onFocus={onFocus}
-              onBlur={onBlur}
-            />
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Delete filter"
-            className="text-muted-foreground hover:bg-destructive-subtle hover:text-destructive size-8 shrink-0"
-            onClick={onDelete}
-          >
-            <Trash2 aria-hidden="true" className="size-3.5" />
-          </Button>
-        </>
+      <FilterFieldPicker
+        triggerRef={operatorTrigger}
+        label="Filter operator"
+        searchLabel="Search operators"
+        value={condition.operator}
+        options={[
+          ...valueConditionOperators,
+          ...listConditionOperators,
+          ...nullConditionOperators,
+        ]}
+        open={operatorOpen}
+        onOpenChange={setOperatorOpen}
+        onSelect={(_value) => {
+          const operator = _value as ConditionOperator;
+          if (nullConditionOperators.includes(operator)) {
+            onConditionChange({
+              column: condition.column,
+              operator: operator as NullConditionOperator,
+            });
+          } else if (listConditionOperators.includes(operator)) {
+            onConditionChange({
+              column: condition.column,
+              operator: operator as ListConditionOperator,
+              values: isListCondition(condition)
+                ? condition.values
+                : isValueCondition(condition) && condition.value
+                  ? [condition.value]
+                  : [],
+            });
+          } else {
+            onConditionChange({
+              column: condition.column,
+              operator: operator as ValueConditionOperator,
+              value: isValueCondition(condition) ? condition.value : "",
+            });
+          }
+          setFocusValue((current) => current + 1);
+        }}
+        className="w-28"
+        maxHeight={maxDropdownHeight}
+        onFocus={onFocus}
+        onBlur={onBlur}
+      />
+      {isValueCondition(condition) && (
+        <Input
+          ref={valueInput}
+          aria-label="Filter value"
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+            event.preventDefault();
+            if (event.shiftKey) onNextFilter?.(condition);
+            else onApply?.(condition);
+          }}
+          className="border-border text-foreground focus-visible:ring-primary h-8 min-w-32 flex-1 text-xs shadow-none"
+          value={condition.value}
+          onChange={(event) =>
+            onConditionChange({ ...condition, value: event.target.value })
+          }
+          onFocus={onFocus}
+          onBlur={onBlur}
+        />
+      )}
+      {isListCondition(condition) && (
+        <TagsInput
+          inputRef={valueInput}
+          onSubmit={(values, next) => {
+            const updated = { ...condition, values };
+            if (next) onNextFilter?.(updated);
+            else onApply?.(updated);
+          }}
+          value={condition.values}
+          onChange={(values) => onConditionChange({ ...condition, values })}
+          onFocus={onFocus}
+          onBlur={onBlur}
+        />
+      )}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label="Wrap filter in group"
+        title="Wrap filter in group"
+        disabled={depth >= 20}
+        className="text-muted-foreground hover:text-primary-emphasis size-8 shrink-0"
+        onClick={() =>
+          onConditionChange({
+            operator: ConditionOperator.AND,
+            conditions: [condition],
+          })
+        }
+      >
+        <FolderPlus aria-hidden="true" className="size-3.5" />
+      </Button>
+      {onDelete && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Delete filter"
+          className="text-muted-foreground hover:bg-destructive-subtle hover:text-destructive size-8 shrink-0"
+          onClick={onDelete}
+        >
+          <Trash2 aria-hidden="true" className="size-3.5" />
+        </Button>
       )}
     </div>
   );

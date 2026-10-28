@@ -255,6 +255,38 @@ This might return row data such as:
 ]
 ```
 
+#### Filter conditions
+
+Each table's `where` accepts a single condition or nested AND/OR groups. For
+example, this represents `(title LIKE 'Quory%' AND author_id IS NOT NULL) OR title IS NULL`:
+
+```ts
+import { ConditionOperator as Op, type Condition } from "@quory/core";
+
+const where: Condition = {
+  operator: Op.OR,
+  conditions: [
+    {
+      operator: Op.AND,
+      conditions: [
+        { column: "title", operator: Op.LIKE, value: "Quory%" },
+        { column: "author_id", operator: Op.IS_NOT_NULL },
+      ],
+    },
+    { column: "title", operator: Op.IS_NULL },
+  ],
+};
+```
+
+Null checks have no `value` or `values` field and produce no SQL parameters.
+The string `"NULL"` remains a normal comparison value. Groups must contain at
+least one condition. Columns within a group belong to the same table instance;
+filters on separate table instances are combined with AND.
+
+For editors, `parseToCompleteCondition` recursively removes empty draft rows
+and groups, returning `null` when nothing remains. It throws for partially
+entered filters so applying a draft cannot silently discard them.
+
 #### Controlling the join path
 
 You can optionally provide hints to Quory about the path it uses to join the tables using the "via" option.

@@ -34,6 +34,8 @@ export enum ConditionOperator {
   NOT_LIKE = "not like",
   NOT_IN = "not in",
   IN = "in",
+  IS_NULL = "is null",
+  IS_NOT_NULL = "is not null",
 }
 
 export type BooleanConditionOperator = Extract<
@@ -57,6 +59,8 @@ export type ValueConditionOperator = Exclude<
   | ConditionOperator.OR
   | ConditionOperator.IN
   | ConditionOperator.NOT_IN
+  | ConditionOperator.IS_NULL
+  | ConditionOperator.IS_NOT_NULL
 >;
 
 export const valueConditionOperators: ConditionOperator[] = [
@@ -90,6 +94,21 @@ export const isListCondition = (
 ): condition is ListCondition =>
   listConditionOperators.includes(condition.operator);
 
+export type NullConditionOperator = Extract<
+  ConditionOperator,
+  ConditionOperator.IS_NULL | ConditionOperator.IS_NOT_NULL
+>;
+
+export const nullConditionOperators: ConditionOperator[] = [
+  ConditionOperator.IS_NULL,
+  ConditionOperator.IS_NOT_NULL,
+];
+
+export const isNullCondition = (
+  condition: Condition,
+): condition is NullCondition =>
+  nullConditionOperators.includes(condition.operator);
+
 export type BooleanCondition = {
   operator: BooleanConditionOperator;
   conditions: Condition[];
@@ -107,7 +126,13 @@ export type ListCondition = {
   values: string[];
 };
 
-export type Condition = BooleanCondition | ValueCondition | ListCondition;
+export type NullCondition = {
+  column: string;
+  operator: NullConditionOperator;
+};
+
+export type Condition =
+  BooleanCondition | ValueCondition | ListCondition | NullCondition;
 
 export type JoinDef = {
   tableRef: string;

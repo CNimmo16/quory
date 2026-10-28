@@ -174,3 +174,120 @@ it("cancels only the requested database execution", async () => {
   await rejected;
   expect(signal?.aborted).toBe(true);
 });
+
+it("preserves nested null checks across AI, persistence, HTTP execution and counts", async () => {
+  const tool = structuredClone(orderQuery);
+  tool.tables = [
+    {
+      ...tool.tables[1]!,
+      parent: null,
+      columns: ["id"],
+      conditions: [
+        {
+          operator: ConditionOperator.OR,
+          column: null,
+          values: [],
+          children: [1, 4],
+        },
+        {
+          operator: ConditionOperator.AND,
+          column: null,
+          values: [],
+          children: [2, 3],
+        },
+        {
+          operator: ConditionOperator.EQUALS,
+          column: "id",
+          values: ["1"],
+          children: [],
+        },
+        {
+          operator: ConditionOperator.IS_NULL,
+          column: "email",
+          values: [],
+          children: [],
+        },
+        {
+          operator: ConditionOperator.IS_NOT_NULL,
+          column: "email",
+          values: [],
+          children: [],
+        },
+      ],
+    },
+  ];
+  const { upsertQuerySchema } = await import("./queryTool");
+  const query = queryFromTool(upsertQuerySchema.parse(tool));
+  expect(query.base.where).toEqual({
+    operator: ConditionOperator.OR,
+    conditions: [
+      {
+        operator: ConditionOperator.AND,
+        conditions: [
+          { column: "id", operator: ConditionOperator.EQUALS, value: "1" },
+          { column: "email", operator: ConditionOperator.IS_NULL },
+        ],
+      },
+      { column: "email", operator: ConditionOperator.IS_NOT_NULL },
+    ],
+  });
+  await expect(validateAssistantQuery(schemas, query)).resolves.toBeUndefined();
+  const { query: validator } =
+    await import("../../../../stack/src/server/validators");
+  const saved = validator.parse(JSON.parse(JSON.stringify(query)));
+  expect(saved.base.where).toEqual(query.base.where);
+  const db = database();
+  await routes.query.handle({ database: db }, { query: saved });
+  const [sql, parameters] = vi.mocked(db.driver.exec).mock.calls[0]!;
+  expect(sql).toContain(
+    '(("public__users"."id" = $1 AND "public__users"."email" IS NULL) OR "public__users"."email" IS NOT NULL)',
+  );
+  expect(parameters).toEqual(["1", 100, 0]);
+  await routes.queryCount.handle({ database: db }, { query: saved });
+  expect(vi.mocked(db.driver.exec).mock.calls[1]![1]).toEqual(["1"]);
+});
+
+it.each([ConditionOperator.IS_NULL, ConditionOperator.IS_NOT_NULL])(
+  "rejects values, children and missing columns on AI %s filters",
+  async (operator) => {
+    const tool = structuredClone(orderQuery);
+    const table = tool.tables[1]!;
+    for (const invalid of [
+      { column: "email", values: ["NULL"], children: [] },
+      { column: "email", values: [], children: [1] },
+      { column: null, values: [], children: [] },
+    ]) {
+      table.conditions = [{ operator, ...invalid }];
+      expect(() => queryFromTool(tool)).toThrow();
+    }
+    const { condition: validator } =
+      await import("../../../../stack/src/server/validators");
+    expect(validator.safeParse({ column: "email", operator }).success).toBe(
+      true,
+    );
+    for (const extra of [
+      { value: "NULL" },
+      { values: [] },
+      { conditions: [] },
+    ]) {
+      expect(
+        validator.safeParse({ column: "email", operator, ...extra }).success,
+      ).toBe(false);
+      const db = database();
+      await expect(
+        routes.query.handle(
+          { database: db },
+          {
+            query: {
+              base: {
+                ...simple.base,
+                where: { column: "email", operator, ...extra },
+              },
+            },
+          },
+        ),
+      ).rejects.toThrow();
+      expect(db.driver.exec).not.toHaveBeenCalled();
+    }
+  },
+);

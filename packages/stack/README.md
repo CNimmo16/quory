@@ -36,3 +36,9 @@ prepared query), schemas and the same `joinActions`. Share
 highlight the diagram and results together. The navigator includes editable
 filters, column controls, adding/removing related tables, responsive diagram
 layout, and mouse/keyboard pan and zoom.
+
+The shared filter editor supports `is null` / `is not null` and nested groups.
+Choose AND or OR for each group, use Add filter or Add group to extend it, or
+wrap an existing filter in a group. Null checks do not require a value. Edits
+remain local until Apply; incomplete filters show an error, while untouched
+empty rows and groups are omitted. Saved filtersets retain the group structure.

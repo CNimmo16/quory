@@ -98,3 +98,25 @@ it("matches equivalent relationship selectors regardless of object field order",
     saved.base.where,
   );
 });
+
+it("round-trips grouped null checks through JSON without adding values", () => {
+  const saved = structuredClone(query);
+  saved.base.where = {
+    operator: ConditionOperator.OR,
+    conditions: [
+      {
+        operator: ConditionOperator.AND,
+        conditions: [
+          { column: "status", operator: ConditionOperator.IS_NOT_NULL },
+          { column: "priority", operator: ConditionOperator.IS_NULL },
+        ],
+      },
+      { column: "status", operator: ConditionOperator.EQUALS, value: "open" },
+    ],
+  };
+  const snapshot = JSON.parse(JSON.stringify(captureFilterset(saved)));
+  const applied = applyFilterset(query, snapshot);
+  expect(applied.base.where).toEqual(saved.base.where);
+  expect(applied.offset).toBe(0);
+  expect(applied.base.joins![0]!.where).toEqual(saved.base.joins![0]!.where);
+});

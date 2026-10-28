@@ -35,7 +35,7 @@ const filterNode = z
     values: z
       .array(z.string())
       .describe(
-        "One value for a scalar comparison; multiple for in/not in; empty for and/or.",
+        "One value for a scalar comparison; multiple for in/not in; empty for and/or and is null/is not null.",
       ),
     children: z
       .array(z.number().int().nonnegative())
@@ -136,6 +136,14 @@ export function queryFromTool(input: UpsertQueryInput): Query {
       }
       if (!node.column || node.children.length)
         throw new Error("Comparisons need a column and no child conditions.");
+      if (
+        node.operator === ConditionOperator.IS_NULL ||
+        node.operator === ConditionOperator.IS_NOT_NULL
+      ) {
+        if (node.values.length)
+          throw new Error("Null filters must not have values.");
+        return { column: node.column, operator: node.operator };
+      }
       if (
         node.operator === ConditionOperator.IN ||
         node.operator === ConditionOperator.NOT_IN

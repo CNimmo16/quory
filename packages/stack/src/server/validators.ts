@@ -6,12 +6,22 @@ import {
   ValueConditionOperator,
   BooleanConditionOperator,
   ListConditionOperator,
+  nullConditionOperators,
+  NullConditionOperator,
 } from "@quory/core";
 import { Query } from "@quory/core";
 import { Condition } from "@quory/core";
 import { z } from "zod";
 
 export const condition: z.ZodType<Condition> = z.union([
+  z
+    .object({
+      column: z.string(),
+      operator: z.enum(
+        nullConditionOperators as unknown as readonly [NullConditionOperator],
+      ),
+    })
+    .strict(),
   z
     .object({
       column: z.string(),

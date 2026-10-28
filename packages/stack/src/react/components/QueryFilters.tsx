@@ -3,8 +3,9 @@ import {
   ConditionOperator,
   findTableFromSchemas,
   isBooleanCondition,
-  isConditionComplete,
   isListCondition,
+  isNullCondition,
+  parseToCompleteCondition,
   splitTableRef,
   type Condition,
   type DatabaseSchema,
@@ -38,20 +39,13 @@ export function formatCondition(condition: Condition): string {
       })
       .join(` ${condition.operator.toUpperCase()} `);
   }
+  if (isNullCondition(condition))
+    return `${condition.column} ${condition.operator.toUpperCase()}`;
   return `${condition.column} ${condition.operator} ${
     isListCondition(condition)
       ? `(${condition.values.map((value) => JSON.stringify(value)).join(", ")})`
       : JSON.stringify(condition.value)
   }`;
-}
-
-function completeCondition(condition: Condition): Condition | null {
-  if (!isBooleanCondition(condition))
-    return isConditionComplete(condition) ? condition : null;
-  const conditions = condition.conditions
-    .map(completeCondition)
-    .filter((child): child is Condition => child !== null);
-  return conditions.length ? { ...condition, conditions } : null;
 }
 
 export function QueryFilterPopover({
@@ -67,9 +61,20 @@ export function QueryFilterPopover({
 }) {
   const [open, setOpen] = useState(false);
   const [condition, setCondition] = useState<Condition | null>(null);
+  const [error, setError] = useState<string | null>(null);
   function apply(updated = condition) {
     if (!updated || !isBooleanCondition(updated)) return;
-    const complete = completeCondition(updated);
+    let complete: Condition | null;
+    try {
+      complete = parseToCompleteCondition(updated);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Complete each filter before applying.",
+      );
+      return;
+    }
     if (complete && isBooleanCondition(complete))
       joinActions(join.joinAlias).setCondition(complete);
     else joinActions(join.joinAlias).removeCondition();
@@ -80,6 +85,7 @@ export function QueryFilterPopover({
       open={open}
       onOpenChange={(next) => {
         if (next) {
+          setError(null);
           setCondition(
             join.where
               ? isBooleanCondition(join.where)
@@ -124,10 +130,18 @@ export function QueryFilterPopover({
               columns={columns}
               condition={condition}
               maxDropdownHeight={500}
-              onConditionChange={setCondition}
+              onConditionChange={(next) => {
+                setCondition(next);
+                setError(null);
+              }}
               autoFocus={!join.where}
               onApply={apply}
             />
+          )}
+          {error && (
+            <p role="alert" className="text-destructive mt-3 text-xs">
+              {error}
+            </p>
           )}
         </div>
         <div className="border-border bg-background/60 flex shrink-0 items-center justify-end gap-2 border-t px-3 py-2">

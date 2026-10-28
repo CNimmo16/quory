@@ -8,7 +8,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import DataTable from "./DataTable";
 import TableNavigator from "./TableNavigator";
 import { QueryModeSwitch } from "./QueryModeSwitch";
-import { ChevronLeft, ChevronRight, Undo2, Redo2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Undo2,
+  Redo2,
+  RefreshCw,
+} from "lucide-react";
 import { QueryFilters } from "./QueryFilters";
 import { QueryFiltersets } from "./QueryFiltersets";
 import useElementSize from "../hooks/useElementSize";
@@ -270,15 +276,32 @@ export default function QueryView({
               {data.rows.length} rows
             </span>
           )}
-          {isLoading && (
-            <span
-              role="status"
-              className="ml-auto flex items-center gap-2 text-xs text-muted-foreground"
+          <div className="ml-auto flex items-center gap-3">
+            {isLoading && (
+              <span
+                role="status"
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+              >
+                <Spinner className="size-3.5" />
+                <span>Running query…</span>
+              </span>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+              aria-label="Refresh query results"
+              disabled={isLoading}
+              onClick={() => {
+                setCountRequestedFor(null);
+                void refetch();
+              }}
             >
-              <Spinner className="size-3.5" />
-              <span>Running query…</span>
-            </span>
-          )}
+              <RefreshCw aria-hidden="true" className="size-3.5" />
+              Refresh
+            </Button>
+          </div>
         </header>
         {error && (
           <Alert variant="destructive" className="m-3 bg-destructive-subtle">

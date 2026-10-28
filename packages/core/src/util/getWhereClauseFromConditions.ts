@@ -39,6 +39,9 @@ export default function getWhereClauseFromConditions(
         return `(${condition.conditions
           .map(makeCondition)
           .join(` ${condition.operator.toUpperCase()} `)})`;
+      case ConditionOperator.IS_NULL:
+      case ConditionOperator.IS_NOT_NULL:
+        return `${ref}.${q(condition.column)} ${condition.operator.toUpperCase()}`;
       default:
         return `${ref}.${q(
           condition.column,

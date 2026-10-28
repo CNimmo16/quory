@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, type Ref } from "react";
 import { ChevronsUpDown } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -24,6 +24,8 @@ export function FilterFieldPicker({
   maxHeight,
   onFocus,
   onBlur,
+  triggerRef,
+  advanceOnSelect = true,
 }: {
   label: string;
   searchLabel: string;
@@ -37,6 +39,8 @@ export function FilterFieldPicker({
   maxHeight: number;
   onFocus?: (() => void) | undefined;
   onBlur?: (() => void) | undefined;
+  triggerRef?: Ref<HTMLButtonElement>;
+  advanceOnSelect?: boolean;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const advancing = useRef(false);
@@ -44,6 +48,7 @@ export function FilterFieldPicker({
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button
+          ref={triggerRef}
           type="button"
           variant="outline"
           role="combobox"
@@ -92,7 +97,7 @@ export function FilterFieldPicker({
                 value={option}
                 className="data-[selected=true]:bg-primary-subtle data-[selected=true]:text-primary-emphasis text-xs"
                 onSelect={() => {
-                  advancing.current = true;
+                  advancing.current = advanceOnSelect;
                   onOpenChange(false);
                   onSelect(option);
                 }}
