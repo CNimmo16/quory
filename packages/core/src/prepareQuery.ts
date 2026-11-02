@@ -467,7 +467,11 @@ export default async function prepareQuery(
         extractOrderBy(childJoin, priorities),
       ),
     ];
-  })(joinTree);
+  })(joinTree).sort((a, b) => {
+    // Sort by priority descending (higher priority comes first)
+    // If priorities are equal, maintain original order (stable sort)
+    return b.priority - a.priority;
+  });
 
   let fromClause = `${tableRefSql(joinTree.tableRef)} AS ${q(
     joinTree.joinAlias,

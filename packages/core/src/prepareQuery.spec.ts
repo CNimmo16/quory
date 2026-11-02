@@ -217,4 +217,172 @@ describe("prepareQuery", () => {
       `),
     );
   });
+
+  describe("orderBy priority", () => {
+    it("sorts ORDER BY columns by priority (higher priority first)", async () => {
+      const { sql } = await prepareQuery(mockSchemas, {
+        base: {
+          tableRef: "public.customer",
+          select: "*",
+          orderBy: [{ column: "id", direction: "asc", priority: 1 }],
+          joins: [
+            {
+              tableRef: "public.order",
+              select: "*",
+              orderBy: [{ column: "id", direction: "desc", priority: 3 }],
+            },
+            {
+              tableRef: "public.phone_number",
+              select: "*",
+              orderBy: [{ column: "id", direction: "asc", priority: 2 }],
+            },
+          ],
+        },
+      });
+
+      // Priority 3 (order.id) should come first, then priority 2 (phone_number.id), then priority 1 (customer.id)
+      expect(sql).toContain(
+        'ORDER BY "public__order"."id" DESC,"public__phone_number"."id" ASC,"public__customer"."id" ASC',
+      );
+    });
+
+    it("defaults missing priority to 0", async () => {
+      const { sql } = await prepareQuery(mockSchemas, {
+        base: {
+          tableRef: "public.customer",
+          select: "*",
+          orderBy: [
+            { column: "id", direction: "asc" }, // No priority, should default to 0
+          ],
+          joins: [
+            {
+              tableRef: "public.order",
+              select: "*",
+              orderBy: [{ column: "id", direction: "desc", priority: 5 }],
+            },
+          ],
+        },
+      });
+
+      // Priority 5 (order.id) should come first, then priority 0 (customer.id)
+      expect(sql).toContain(
+        'ORDER BY "public__order"."id" DESC,"public__customer"."id" ASC',
+      );
+    });
+
+    it("maintains position order for equal priorities (stable sort)", async () => {
+      const { sql } = await prepareQuery(mockSchemas, {
+        base: {
+          tableRef: "public.customer",
+          select: "*",
+          orderBy: [{ column: "id", direction: "asc", priority: 2 }],
+          joins: [
+            {
+              tableRef: "public.order",
+              select: "*",
+              orderBy: [{ column: "id", direction: "desc", priority: 2 }],
+            },
+            {
+              tableRef: "public.phone_number",
+              select: "*",
+              orderBy: [{ column: "id", direction: "asc", priority: 2 }],
+            },
+          ],
+        },
+      });
+
+      // All have priority 2, so order should follow tree traversal order:
+      // customer (base), then order (first join), then phone_number (second join)
+      expect(sql).toContain(
+        'ORDER BY "public__customer"."id" ASC,"public__order"."id" DESC,"public__phone_number"."id" ASC',
+      );
+    });
+
+    it("handles mix of priorities and missing priorities", async () => {
+      const { sql } = await prepareQuery(mockSchemas, {
+        base: {
+          tableRef: "public.customer",
+          select: "*",
+          orderBy: [
+            { column: "id", direction: "asc" }, // priority 0 (default)
+          ],
+          joins: [
+            {
+              tableRef: "public.order",
+              select: "*",
+              orderBy: [{ column: "id", direction: "desc", priority: 10 }],
+            },
+            {
+              tableRef: "public.phone_number",
+              select: "*",
+              orderBy: [
+                { column: "id", direction: "asc" }, // priority 0 (default)
+              ],
+            },
+          ],
+        },
+      });
+
+      // Priority 10 first, then the two priority 0 entries in tree order
+      expect(sql).toContain(
+        'ORDER BY "public__order"."id" DESC,"public__customer"."id" ASC,"public__phone_number"."id" ASC',
+      );
+    });
+
+    it("supports multiple orderBy columns with different priorities in same join", async () => {
+      const { sql } = await prepareQuery(mockSchemas, {
+        base: {
+          tableRef: "public.customer",
+          select: ["id"],
+          orderBy: [{ column: "id", direction: "asc", priority: 1 }],
+          joins: [
+            {
+              tableRef: "public.order",
+              select: ["id", "customer_id"],
+              orderBy: [
+                { column: "id", direction: "desc", priority: 3 },
+                { column: "customer_id", direction: "asc", priority: 2 },
+              ],
+            },
+          ],
+        },
+      });
+
+      // Priority 3 (order.id) first, then priority 2 (order.customer_id), then priority 1 (customer.id)
+      expect(sql).toContain(
+        'ORDER BY "public__order"."id" DESC,"public__order"."customer_id" ASC,"public__customer"."id" ASC',
+      );
+    });
+
+    it("respects priorities on deeply nested orderBy clauses", async () => {
+      const { sql } = await prepareQuery(mockSchemas, {
+        base: {
+          tableRef: "public.customer",
+          select: ["id"],
+          orderBy: [{ column: "id", direction: "asc", priority: 0 }],
+          joins: [
+            {
+              tableRef: "public.order",
+              select: ["id", "customer_id"],
+              orderBy: [
+                { column: "id", direction: "desc", priority: 3 },
+                { column: "customer_id", direction: "asc", priority: 2 },
+              ],
+              joins: [
+                {
+                  tableRef: "public.order_fulfilment",
+                  select: ["id", "customer_id"],
+                  orderBy: [{ column: "id", direction: "asc", priority: 9 }],
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      expect(sql).toContain(
+        'ORDER BY "public__order_fulfilment"."id" ASC,"public__order"."id" DESC,"public__order"."customer_id" ASC,"public__customer"."id" ASC',
+      );
+    });
+  });
 });
