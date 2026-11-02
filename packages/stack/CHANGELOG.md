@@ -1,5 +1,19 @@
 # @quory/stack
 
+## 1.2.0
+
+### Minor Changes
+
+- 1073f6e: Add opt-in primary-key relationship inference with configurable schema, pluralization, ambiguity and type matching rules. Support manual project relationships, persistent inferred relationship exclusions and minimum confidence filtering, with equal path selection for inferred and declared relationships. Add project configuration at creation and in the sidebar, clickable inferred diagram edges, and assistant proposals that require confirmation before adding a project relationship.
+
+### Patch Changes
+
+- Updated dependencies [1073f6e]
+  - @quory/core@7.1.0
+  - @quory/mysql@2.0.1
+  - @quory/postgres@2.0.1
+  - @quory/sqlite@1.0.2
+
 ## 1.1.0
 
 ### Minor Changes
