@@ -63,6 +63,49 @@ function connectorPath(points: DiagramPoint[]) {
   return `${path} L ${last.x} ${last.y}`;
 }
 
+function RelationshipDetails({
+  relationship,
+  configurable,
+}: {
+  relationship: RelationshipConstraint;
+  configurable: boolean;
+}) {
+  const {
+    source,
+    confidence,
+    localSchema,
+    localTable,
+    foreignSchema,
+    foreignTable,
+  } = relationship;
+  const label = {
+    "foreign-key": "Foreign key",
+    manual: "Manual relationship",
+    inferred: "Inferred relationship",
+  }[source ?? "foreign-key"];
+
+  return (
+    <div className="space-y-1">
+      <div className="font-semibold">
+        {label}
+        {source === "inferred" &&
+          confidence !== undefined &&
+          ` · confidence ${confidence.toFixed(2)}`}
+      </div>
+      {relationship.columnPairs.map(({ localColumn, foreignColumn }) => (
+        <div
+          key={JSON.stringify([localColumn, foreignColumn])}
+          className="break-all font-mono"
+        >
+          {localSchema}.{localTable}.{localColumn} = {foreignSchema}.
+          {foreignTable}.{foreignColumn}
+        </div>
+      ))}
+      {configurable && <div>Click to configure</div>}
+    </div>
+  );
+}
+
 function TableNavigator({
   width,
   maxHeight = 440,
@@ -184,9 +227,7 @@ function TableNavigator({
           }}
         >
           <svg
-            aria-label={
-              onRelationshipClick ? "Relationship connections" : undefined
-            }
+            aria-label="Relationship connections"
             className="pointer-events-none absolute inset-0"
             width={layout.width}
             height={layout.height}
@@ -242,45 +283,45 @@ function TableNavigator({
                 const end = edge.points[edge.points.length - 1]!;
                 const path = connectorPath(edge.points);
                 return (
-                  <g
+                  <Hint
                     key={edge.target}
-                    role={clickable ? "button" : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                    aria-label={
-                      clickable
-                        ? `Configure inferred relationship from ${source?.tableRef} to ${target?.tableRef}`
-                        : undefined
-                    }
-                    className={
-                      clickable
-                        ? "pointer-events-auto cursor-pointer"
-                        : undefined
-                    }
-                    onClick={
-                      clickable
-                        ? () => onRelationshipClick!(relationship!)
-                        : undefined
-                    }
-                    onKeyDown={
-                      clickable
-                        ? (event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              onRelationshipClick!(relationship!);
-                            }
-                          }
-                        : undefined
+                    content={
+                      relationship ? (
+                        <RelationshipDetails
+                          relationship={relationship}
+                          configurable={clickable}
+                        />
+                      ) : (
+                        "Relationship details unavailable"
+                      )
                     }
                   >
-                    {relationship?.source === "inferred" && (
-                      <title>
-                        Inferred relationship · confidence{" "}
-                        {relationship.confidence?.toFixed(2)}
-                        {clickable ? " · Click to configure" : ""}
-                      </title>
-                    )}
-                    {clickable && (
+                    <g
+                      role={clickable ? "button" : "group"}
+                      tabIndex={0}
+                      aria-label={
+                        clickable
+                          ? `Configure inferred relationship from ${source?.tableRef} to ${target?.tableRef}`
+                          : `Relationship from ${source?.tableRef} to ${target?.tableRef}`
+                      }
+                      className="group/edge pointer-events-auto cursor-default"
+                      onClick={
+                        clickable
+                          ? () => onRelationshipClick!(relationship!)
+                          : undefined
+                      }
+                      onKeyDown={
+                        clickable
+                          ? (event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onRelationshipClick!(relationship!);
+                              }
+                            }
+                          : undefined
+                      }
+                    >
                       <path
                         d={path}
                         fill="none"
@@ -288,41 +329,45 @@ function TableNavigator({
                         strokeWidth={16}
                         pointerEvents="stroke"
                       />
-                    )}
-                    <path
-                      d={path}
-                      fill="none"
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                      className="stroke-card"
-                      strokeWidth={5}
-                    />
-                    <path
-                      d={path}
-                      fill="none"
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                      className={
-                        active
-                          ? "stroke-primary-emphasis"
-                          : "stroke-muted-foreground/55"
-                      }
-                      strokeWidth={active ? 2 : 1.5}
-                      strokeDasharray={
-                        relationship?.source === "inferred" ? "5 3" : undefined
-                      }
-                    />
-                    <circle
-                      cx={end.x}
-                      cy={end.y}
-                      r={2}
-                      className={
-                        active
-                          ? "fill-primary-emphasis"
-                          : "fill-muted-foreground/65"
-                      }
-                    />
-                  </g>
+                      <path
+                        d={path}
+                        fill="none"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        className="stroke-card"
+                        strokeWidth={5}
+                      />
+                      <path
+                        d={path}
+                        fill="none"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        className={cn(
+                          "group-hover/edge:stroke-primary-emphasis group-hover/edge:stroke-[2.5] group-focus-visible/edge:stroke-primary-emphasis group-focus-visible/edge:stroke-[2.5]",
+                          active
+                            ? "stroke-primary-emphasis"
+                            : "stroke-muted-foreground/55",
+                        )}
+                        strokeWidth={active ? 2 : 1.5}
+                        strokeDasharray={
+                          relationship?.source === "inferred"
+                            ? "5 3"
+                            : undefined
+                        }
+                      />
+                      <circle
+                        cx={end.x}
+                        cy={end.y}
+                        r={2}
+                        className={cn(
+                          "group-hover/edge:fill-primary-emphasis group-focus-visible/edge:fill-primary-emphasis",
+                          active
+                            ? "fill-primary-emphasis"
+                            : "fill-muted-foreground/65",
+                        )}
+                      />
+                    </g>
+                  </Hint>
                 );
               })}
           </svg>

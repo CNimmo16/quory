@@ -136,6 +136,77 @@ function renderNavigator(
 }
 
 describe("TableNavigator", () => {
+  it.each([
+    ["foreign-key", "Foreign key"],
+    ["inferred", "Inferred relationship · confidence 0.85"],
+    ["manual", "Manual relationship"],
+  ] as const)(
+    "shows the selected %s join's column pairs on hover",
+    async (source, label) => {
+      const user = userEvent.setup();
+      const related = structuredClone(schemas);
+      const orders = related[0]!.tables[1]!;
+      const column = orders.columns[0]!;
+      for (const [index, name] of ["billing_id", "billing_name"].entries()) {
+        orders.columns.push({
+          ...column,
+          name,
+          foreignKeys: [
+            {
+              ...column.foreignKeys[0]!,
+              foreignColumnName: index === 0 ? "id" : "name",
+              source,
+              constraintId: "billing_customer",
+              columnPosition: index + 1,
+              confidence: 0.85,
+            },
+          ],
+        });
+      }
+      renderNavigator(
+        {
+          base: {
+            ...query.base,
+            joins: [
+              {
+                tableRef: "public.orders",
+                joinAlias: "orders",
+                select: ["customer_id"],
+                resultAliases: {},
+                joins: [],
+                via: [
+                  {
+                    tableRef: "public.orders",
+                    usingConstraintId: "billing_customer",
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        false,
+        related,
+      );
+
+      const edge = screen.getByRole(
+        source === "inferred" ? "button" : "group",
+        {
+          name: /relationship from public.customers to public.orders/i,
+        },
+      );
+      await user.hover(edge.querySelector("path[pointer-events='stroke']")!);
+      const tooltip = await screen.findByRole("tooltip");
+      expect(tooltip).toHaveTextContent(label);
+      expect(tooltip).toHaveTextContent(
+        "public.orders.billing_id = public.customers.id",
+      );
+      expect(tooltip).toHaveTextContent(
+        "public.orders.billing_name = public.customers.name",
+      );
+      expect(tooltip).not.toHaveTextContent("customer_id");
+    },
+  );
+
   it("removes joined tables directly and provides no delete action on the base table", async () => {
     const user = userEvent.setup();
     const { removeJoin } = renderNavigator({
