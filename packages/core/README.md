@@ -255,6 +255,17 @@ This might return row data such as:
 ]
 ```
 
+#### Sorting across tables
+
+Put each `orderBy` entry on the table instance that owns the column. Core combines
+the entries into one SQL `ORDER BY`, with the highest numeric `priority` first.
+For example, to sort books by author name and then by book title, give the joined
+author's `name` a priority of `1` and leave the base book's `title` at the default
+of `0`. Set `direction` independently on each entry.
+
+Equal priorities keep traversal order. The planner reads each table's `orderBy`
+array from first to last before visiting its children in the prepared join tree.
+
 #### Filter conditions
 
 Each table's `where` accepts a single condition or nested AND/OR groups. For

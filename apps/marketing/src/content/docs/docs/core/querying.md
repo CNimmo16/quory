@@ -16,6 +16,7 @@ const query: Query = {
   base: {
     tableRef: "public.customers",
     select: ["id", "email"],
+    orderBy: [{ column: "email", direction: "asc" }],
     where: {
       operator: ConditionOperator.AND,
       conditions: [
@@ -35,7 +36,7 @@ const query: Query = {
       {
         tableRef: "public.orders",
         select: ["id", "created_at"],
-        orderBy: [{ column: "created_at", direction: "desc" }],
+        orderBy: [{ column: "created_at", direction: "desc", priority: 1 }],
       },
     ],
   },
@@ -49,6 +50,8 @@ const result = await runQuery(driver, schemas, query);
 Filters belong to the table whose columns they reference. A value condition uses `column`, `operator`, and a string `value`; a list condition uses `values`. Combine conditions with `AND` or `OR`. Use the exported `ConditionOperator` enum in TypeScript.
 
 Select specific column names, `"*"` for all columns, or `[]` to traverse a table without selecting its columns. Joins can have their own filters, ordering, and nested joins.
+
+Sort priorities apply across all tables in the query. The example sorts by order creation time first (newest first, priority `1`). For orders with the same timestamp, it sorts by customer email (ascending, default priority `0`). Equal priorities keep each table's array order and follow the prepared join tree, visiting parents before children.
 
 ## Move through results
 
