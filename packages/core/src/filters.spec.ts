@@ -64,7 +64,7 @@ it.each(["postgres", "mysql", "sqlite"] as const)(
       `${quoteIdentifier(preparedQuery.base.joinAlias, dialect)}.${quoteIdentifier(name, dialect)}`;
     const placeholders =
       dialect === "postgres" ? ["$1", "$2", "$3", "$4"] : ["?", "?", "?", "?"];
-    expect(sql.split(" WHERE ")[1]?.split(" GROUP BY ")[0]).toBe(
+    expect(sql.trimEnd().split(" WHERE ")[1]).toBe(
       `((${ref("status")} = ${placeholders[0]} AND ${ref('note"`')} IS NULL) OR (${ref('note"`')} IS NOT NULL AND ${ref("id")} = ${placeholders[1]} AND ${ref("status")} IN (${placeholders[2]},${placeholders[3]})))`,
     );
     expect(parameters).toEqual(["open", "3", "a", "b"]);

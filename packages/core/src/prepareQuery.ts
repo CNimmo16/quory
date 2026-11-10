@@ -476,20 +476,7 @@ export default async function prepareQuery(
   let fromClause = `${tableRefSql(joinTree.tableRef)} AS ${q(
     joinTree.joinAlias,
   )}`;
-  const primaryKeyRefs: string[] = [];
   function traverseTree(thisJoin: PreparedJoinDef) {
-    const [schemaName, tableName] = splitTableRef(thisJoin.tableRef);
-    const thisTable = findTableFromSchemas(
-      databaseSchemas,
-      schemaName,
-      tableName,
-    );
-    primaryKeyRefs.push(
-      ...thisTable.columns
-        .filter((column) => column.includedInPrimaryKey)
-        .map((column) => `${q(thisJoin.joinAlias)}.${q(column.name)}`),
-    );
-
     for (const childJoin of thisJoin.joins) {
       const [childSchemaName, childTableName] = splitTableRef(
         childJoin.tableRef,
@@ -519,8 +506,6 @@ export default async function prepareQuery(
     (column) => `${column.ref} AS ${q(column.outerAlias)}`,
   )} FROM ${fromClause} ${
     conditions.length >= 1 ? `WHERE ${conditions.join(" AND ")}` : ""
-  } ${
-    primaryKeyRefs.length >= 1 ? `GROUP BY ${primaryKeyRefs.join(", ")}` : ""
   } ${
     orderBy.length >= 1 && options.includeOrderBy !== false
       ? `ORDER BY ${orderBy.map(

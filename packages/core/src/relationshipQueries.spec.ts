@@ -21,6 +21,41 @@ function database(sql: string) {
 }
 
 describe("constraint-aware query results", () => {
+  it("preserves each matching row when the joined table has no primary key", async () => {
+    const driver = database(`
+      CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT);
+      CREATE TABLE events (customer_id INTEGER REFERENCES customers(id), label TEXT);
+      INSERT INTO customers VALUES (1, 'Alice');
+      INSERT INTO events VALUES (1, 'Opened'), (1, 'Closed');
+    `);
+    const schemas = await getSchemas(driver);
+    const query: Query = {
+      base: {
+        tableRef: "main.customers",
+        select: ["name"],
+        joins: [{ tableRef: "main.events", select: ["label"] }],
+      },
+    };
+    const { rows } = await runQuery(driver, schemas, query);
+    expect(rows.map((row) => row[1]!.data.label).sort()).toEqual([
+      "Closed",
+      "Opened",
+    ]);
+
+    const customerNames: Query = {
+      base: {
+        ...query.base,
+        joins: [{ tableRef: "main.events", select: [] }],
+      },
+    };
+    const names = await runQuery(driver, schemas, customerNames);
+    expect(names.rows.map((row) => row[0]!.data.name)).toEqual(["Alice", "Alice"]);
+
+    const page = { ...customerNames, limit: 1 };
+    expect((await runQuery(driver, schemas, page)).rows).toHaveLength(1);
+    expect((await getCountForQuery(driver, schemas, page)).count).toBe(2);
+  });
+
   it.each([false, true])(
     "joins every pair in both directions (implicit primary key: %s)",
     async (implicit) => {

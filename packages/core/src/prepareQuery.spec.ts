@@ -107,9 +107,6 @@ describe("prepareQuery", () => {
           INNER JOIN "public"."order" AS "public__order" ON "public__order"."customer_id" = "public__customer"."id"
           INNER JOIN "public"."order_fulfilment" AS "public__order_fulfilment" ON "public__order_fulfilment"."customer_id" = "public__order"."id"
         WHERE "public__customer"."id" = ?
-        GROUP BY "public__customer"."id",
-          "public__order"."id",
-          "public__order_fulfilment"."id"
       `),
     );
   });
@@ -143,9 +140,6 @@ describe("prepareQuery", () => {
           INNER JOIN "public"."order" AS "public__order" ON "public__order"."id" = "public__order_fulfilment"."customer_id"
           INNER JOIN "public"."customer" AS "public__customer" ON "public__customer"."id" = "public__order"."customer_id"
         WHERE "public__order_fulfilment"."id" = ?
-        GROUP BY "public__order_fulfilment"."id",
-          "public__order"."id",
-          "public__customer"."id"
       `),
     );
   });
@@ -208,12 +202,6 @@ describe("prepareQuery", () => {
         WHERE "public__customer"."id" = ?
           AND "public__order"."id" = ?
           AND "public__order_fulfilment"."id" > ?
-        GROUP BY "public__customer"."id",
-          "public__phone_number"."id",
-          "public__order"."id",
-          "public__phone_number__2"."id",
-          "public__order__2"."id",
-          "public__order_fulfilment"."id"
       `),
     );
   });
