@@ -107,7 +107,7 @@ export function ProjectForm({
                 value={value}
                 checked={storage === value}
                 onChange={() => setStorage(value)}
-                className="mt-1 accent-teal-600"
+                className="mt-1 accent-teal-600 dark:accent-primary"
               />
               <Icon
                 aria-hidden="true"

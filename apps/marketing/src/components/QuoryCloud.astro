@@ -1,7 +1,7 @@
 ---
 import DownloadButton from "./DownloadButton.astro";
 import CloudSignupForm from "./CloudSignupForm.astro";
-import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
+import QuoryIcon from "../../../../packages/config/branding/quory-icon.svg";
 
 interface Props {
   placement?: "homepage" | "installation";
@@ -185,9 +185,14 @@ const Container = afterDownload ? "dialog" : "section";
           </div>
         </div>
         <div
-          class="absolute top-1/2 left-1/2 z-2 flex aspect-square w-[29%] -translate-1/2 flex-col items-center justify-center gap-3 rounded-[24%] border border-primary/22 bg-background shadow-[0_18px_45px_-18px_rgb(var(--primary)/0.4),0_0_0_8px_rgb(var(--background)/0.4)] [&_img]:h-auto [&_img]:w-[42%]"
+          class="absolute top-1/2 left-1/2 z-2 flex aspect-square w-[29%] -translate-1/2 flex-col items-center justify-center gap-3 rounded-[24%] border border-primary/22 bg-background shadow-[0_18px_45px_-18px_rgb(var(--primary)/0.4),0_0_0_8px_rgb(var(--background)/0.4)]"
         >
-          <img src={iconUrl} width="58" height="58" alt="" />
+          <QuoryIcon
+            class="h-auto w-[42%] text-primary [&_g]:fill-current"
+            width="58"
+            height="58"
+            aria-hidden="true"
+          />
         </div>
         <div
           class="absolute top-[21.591%] left-[21.875%] z-3 grid aspect-square w-[14%] -translate-1/2 place-items-center rounded-[25%] border border-primary/18 bg-white shadow-[0_8px_20px_-10px_rgb(var(--primary)/0.35)] [&_img]:h-auto [&_img]:w-[52%]"

@@ -76,11 +76,29 @@ vi.mock("@tanstack/react-router", () => ({
   redirect: vi.fn(),
 }));
 vi.mock("./NavLink", () => ({
-  default: ({ children, to }: { children: ReactNode; to: string }) => (
-    <a href={to}>{children}</a>
+  default: ({
+    children,
+    to,
+    onClick,
+  }: {
+    children: ReactNode;
+    to: string;
+    onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+  }) => (
+    <a href={to} onClick={onClick}>
+      {children}
+    </a>
   ),
   navigationItemClassName: "",
 }));
+
+it("does not navigate when clicking the current query", () => {
+  mocks.connected = true;
+  mocks.pathname = "/queries/orders";
+  render(<Layout />);
+  const query = screen.getByRole("link", { name: "Orders" });
+  expect(fireEvent.click(query)).toBe(false);
+});
 vi.mock("../GlobalProviders", () => ({ trpcClient: {} }));
 vi.mock("../hooks/useOpenProject", () => ({
   useOpenProject: () => ({ openProject: mocks.openProject, isPending: false }),

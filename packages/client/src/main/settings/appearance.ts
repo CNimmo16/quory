@@ -4,7 +4,7 @@ import type { Preferences } from "../../shared/settings";
 
 export function titleBarColors() {
   const theme = nativeTheme.shouldUseDarkColors ? palette.dark : palette.light;
-  return { color: theme.background, symbolColor: theme.foreground, height: 44 };
+  return { color: theme.chrome, symbolColor: theme.foreground, height: 44 };
 }
 export function applyNativeAppearance(appearance: Preferences["appearance"]) {
   nativeTheme.themeSource = appearance.theme;

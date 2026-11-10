@@ -16,9 +16,8 @@ pnpm --filter @quory/client typecheck
 pnpm --filter @quory/client test
 ```
 
-The development server reloads renderer changes and restarts Electron when main
-process or preload code changes. A restart clears unsaved forms. Restart any
-development server launched before this watch option was enabled to pick it up.
+Renderer changes hot-reload in the existing Electron window. Restart `pnpm serve`
+to pick up main process or preload changes.
 
 The interaction tests cover connection forms, searchable table selection, filter
 editing, and applying or dismissing column selections.

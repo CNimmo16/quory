@@ -2,7 +2,7 @@
 
 @import "tailwindcss" source("./");
 @source "../../../../stack/src/react";
-@config "../../../tailwind.config.ts";
+@config "../../../tailwind.config.mts";
 
 @layer base {
   :root {

@@ -2,6 +2,8 @@
 import "../styles/global.css";
 import GitHubLink from "../components/GitHubLink.astro";
 import Analytics from "../components/Analytics.astro";
+import ColourSchemePicker from "../components/ColourSchemePicker";
+import colourScheme from "../lib/colour-scheme.js?raw";
 import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
 import QuoryLogo from "../../../../packages/config/branding/quory-logo.svg";
 import palette from "../../../../packages/config/theme/palette.json";
@@ -23,14 +25,17 @@ const {
     <meta name="description" content={description} />
     <meta
       name="theme-color"
+      data-theme-colour="light"
       content={palette.light.background}
       media="(prefers-color-scheme: light)"
     />
     <meta
       name="theme-color"
+      data-theme-colour="dark"
       content={palette.dark.background}
       media="(prefers-color-scheme: dark)"
     />
+    <script is:inline set:html={colourScheme} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
@@ -54,7 +59,7 @@ const {
         aria-label="Quory home"
       >
         <QuoryLogo
-          class="h-10 w-auto text-primary max-[780px]:h-[34px] max-[520px]:h-[30px] dark:text-[#54a4a9] [&_g]:fill-current"
+          class="h-10 w-auto text-primary max-[780px]:h-[34px] max-[520px]:h-[30px] [&_g]:fill-current"
           width="120"
           height="40"
           aria-hidden="true"
@@ -106,7 +111,10 @@ const {
           </span>
         </a>
       </nav>
-      <GitHubLink compactOnMobile />
+      <div class="flex shrink-0 items-center gap-4 max-[780px]:gap-2 max-[520px]:gap-0">
+        <GitHubLink compactOnMobile />
+        <ColourSchemePicker client:load />
+      </div>
     </header>
     <main id="main">
       <slot />
@@ -117,7 +125,7 @@ const {
       <div>
         <a class="inline-flex items-center" href="/" aria-label="Quory home">
           <QuoryLogo
-            class="h-8 w-auto text-primary dark:text-[#54a4a9] [&_g]:fill-current"
+            class="h-8 w-auto text-primary [&_g]:fill-current"
             width="96"
             height="32"
             aria-hidden="true"

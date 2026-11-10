@@ -1,10 +1,10 @@
 ---
-import logoUrl from "../../../../../packages/config/branding/quory-logo.svg?url";
+import QuoryLogo from "../../../../../packages/config/branding/quory-logo.svg";
 ---
 
 <div class="docs-brand">
   <a href="/" aria-label="Quory home" class="brand">
-    <img src={logoUrl} width="120" height="40" alt="" />
+    <QuoryLogo width="120" height="40" aria-hidden="true" />
   </a>
   <a class="docs-link" href="/docs/">Docs</a>
 </div>
@@ -19,18 +19,22 @@ import logoUrl from "../../../../../packages/config/branding/quory-logo.svg?url"
   .brand {
     display: inline-flex;
     flex-shrink: 0;
+    color: var(--sl-color-accent);
   }
-  .brand img {
+  .brand :global(svg) {
     width: auto;
     height: 40px;
   }
+  .brand :global(g) {
+    fill: currentColor;
+  }
   @media (max-width: 780px) {
-    .brand img {
+    .brand :global(svg) {
       height: 34px;
     }
   }
   @media (max-width: 520px) {
-    .brand img {
+    .brand :global(svg) {
       height: 30px;
     }
   }

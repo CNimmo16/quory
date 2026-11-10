@@ -66,6 +66,8 @@ export default defineConfig({
     worker: { format: "es" },
     optimizeDeps: { include: ["sql.js", "zod", "date-fns"] },
     resolve: { dedupe: ["react", "react-dom"] },
+    // Apply the same React deduplication to the shared menu during prerendering.
+    ssr: { noExternal: [/^@radix-ui\//] },
     server: { strictPort: true },
   },
   devToolbar: { enabled: false },

@@ -43,7 +43,7 @@ export function WindowToolbarFrame({
                 "--toolbar-sidebar-width": `${sidebarWidth}px`,
               } as CSSProperties
             }
-            className="app-toolbar relative h-11 shrink-0 border-b border-border bg-background"
+            className="app-toolbar relative h-11 shrink-0 border-b border-border bg-chrome"
           >
             {sidebarWidth > 92 && (
               <div

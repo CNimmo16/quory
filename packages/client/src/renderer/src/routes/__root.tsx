@@ -240,7 +240,7 @@ function RootLayout() {
         <aside
           aria-label="Projects"
           style={{ width: projectsCollapsed ? 48 : layout.leftWidth }}
-          className="relative flex h-full shrink-0 flex-col border-r bg-background select-none"
+          className="relative flex h-full shrink-0 flex-col border-r bg-chrome select-none"
         >
           <div
             className={`flex h-14 shrink-0 items-center gap-2 border-b text-xs font-semibold text-muted-foreground ${

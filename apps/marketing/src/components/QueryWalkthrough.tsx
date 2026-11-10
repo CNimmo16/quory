@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 const examples = [
   {
@@ -172,6 +172,7 @@ function LoadingSpinner() {
 }
 
 export default function QueryWalkthrough() {
+  const walkthroughRef = useRef<HTMLElement>(null);
   const [exampleIndex, setExampleIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   // Render a complete example before hydration and for reduced-motion visitors.
@@ -233,10 +234,17 @@ export default function QueryWalkthrough() {
   function selectExample(index: number) {
     setExampleIndex(index);
     setElapsed(0);
+    walkthroughRef.current?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+      block: "start",
+    });
   }
 
   return (
     <section
+      ref={walkthroughRef}
       className="group/walkthrough mx-auto w-[min(1000px,calc(100%-96px))] pt-5 pb-10 text-foreground data-[paused=true]:**:[animation-play-state:paused] motion-reduce:**:animate-none! motion-reduce:**:transition-none! max-[1100px]:w-[calc(100%-64px)] max-[780px]:w-[calc(100%-40px)] max-[780px]:pt-4 max-[780px]:pb-14 max-[580px]:w-[calc(100%-36px)] data-[paused=true]:[&_*::before]:[animation-play-state:paused] motion-reduce:[&_*::before]:animate-none! motion-reduce:[&_*::before]:transition-none!"
       aria-label="How Quory works"
       data-paused={!animated}

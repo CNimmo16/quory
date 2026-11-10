@@ -13,7 +13,7 @@
   "scripts": {
     "lint": "eslint .",
     "start": "node scripts/prepare-electron.mjs && electron-vite preview",
-    "serve": "node scripts/prepare-electron.mjs && electron-vite dev --watch",
+    "serve": "node scripts/prepare-electron.mjs && electron-vite dev",
     "build": "electron-vite build",
     "build:unpack": "electron-vite build && electron-builder --dir",
     "build:win": "electron-vite build && electron-builder --win",

@@ -4,7 +4,7 @@ These SVG assets are shared by the Electron client and Astro marketing app.
 Assets use SVG paths, with no runtime font dependency. Wordmarks and standalone
 marks have transparent backgrounds; the application icon has a white background.
 
-- `quory-logo.svg`: primary colour, `#197278`, from `../theme/palette.json` (the same in both themes).
+- `quory-logo.svg`: light-theme primary colour, `#197278`. The marketing wordmark uses the active theme’s primary colour.
 - `quory-logo-black.svg`: solid black, `#000000`.
 - `quory-logo-white.svg`: solid white, `#FFFFFF`, for dark backgrounds.
 

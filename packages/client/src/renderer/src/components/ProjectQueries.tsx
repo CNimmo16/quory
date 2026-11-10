@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { useMatchRoute } from "@tanstack/react-router";
 import {
   ChevronDown,
   ChevronRight,
@@ -59,6 +60,7 @@ export function ProjectQueries({
   const [configurationOpen, setConfigurationOpen] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const actions = useSidebarActions(projectId, project, revision, active);
+  const matchRoute = useMatchRoute();
   const disabled = busy || actions.pending;
   const listId = useId();
   const { data, error } = trpc.projects.listQueries.useQuery(
@@ -75,6 +77,10 @@ export function ProjectQueries({
         to="/queries/$queryId"
         params={{ queryId }}
         className="gap-2 pl-3"
+        onClick={(event) => {
+          const selected = matchRoute({ to: "/queries/$queryId" });
+          if (selected && selected.queryId === queryId) event.preventDefault();
+        }}
       >
         {children}
       </NavLink>

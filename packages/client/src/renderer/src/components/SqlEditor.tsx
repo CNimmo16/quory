@@ -54,10 +54,10 @@ export function SqlEditor({
       }),
       syntaxHighlighting(
         HighlightStyle.define([
-          { tag: tags.keyword, color: "rgb(var(--primary-emphasis))" },
+          { tag: tags.keyword, color: "rgb(var(--sql-keyword))" },
           {
             tag: [tags.string, tags.number, tags.bool],
-            color: "rgb(var(--secondary-emphasis))",
+            color: "rgb(var(--sql-literal))",
           },
           { tag: tags.comment, color: "rgb(var(--muted-foreground))" },
           {
@@ -119,6 +119,7 @@ export function SqlEditor({
         : {})}
     >
       <CodeMirror
+        theme="none"
         value={value}
         {...(onChange ? { onChange } : {})}
         height={height}
