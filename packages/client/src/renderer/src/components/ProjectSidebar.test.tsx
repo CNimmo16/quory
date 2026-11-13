@@ -12,6 +12,9 @@ import {
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   pathname: "/connections",
+  ephemeral: false,
+  modifiedTimes: {} as Record<string, Record<string, number>>,
+  discardQuery: vi.fn(),
   pendingQuery: undefined as string | undefined,
   connected: false,
   blockSwitch: false,
@@ -50,6 +53,14 @@ vi.mock("@tanstack/react-router", () => ({
   useRouter: () => ({
     invalidate: mocks.invalidateRouter,
     state: {
+      matches: mocks.ephemeral
+        ? [
+            {
+              routeId: "/queries/$queryId",
+              loaderData: { query: { ephemeral: true } },
+            },
+          ]
+        : [],
       location: {
         get search() {
           return { queryId: mocks.pendingQuery };
@@ -167,7 +178,15 @@ vi.mock("../util/tprc", () => ({
               queries: [
                 {
                   id: "orders",
-                  query: { nickname: "Orders", _rev: "1-query" },
+                  query: {
+                    nickname: mocks.ephemeral ? "" : "Orders",
+                    ephemeral: mocks.ephemeral,
+                    modifiedAt:
+                      mocks.modifiedTimes[
+                        (args[0] as { projectId: string }).projectId
+                      ]?.orders,
+                    _rev: "1-query",
+                  },
                 },
                 {
                   id: "custom",
@@ -175,12 +194,24 @@ vi.mock("../util/tprc", () => ({
                     nickname: "Custom query",
                     mode: "sql",
                     _rev: "1-sql",
+                    modifiedAt:
+                      mocks.modifiedTimes[
+                        (args[0] as { projectId: string }).projectId
+                      ]?.custom,
                   },
                 },
               ],
             },
           };
         },
+      },
+    },
+    queries: {
+      discardEphemeralQuery: {
+        useMutation: () => ({
+          mutate: mocks.discardQuery,
+          mutateAsync: mocks.discardQuery,
+        }),
       },
     },
     connections: {
@@ -258,6 +289,8 @@ function MockQueryScreen() {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.ephemeral = false;
+  mocks.modifiedTimes = {};
   mocks.pathname = "/connections";
   mocks.pendingQuery = undefined;
   mocks.connected = false;
@@ -427,22 +460,87 @@ it("reports a failed connection choice from the query context menu", async () =>
   );
 });
 
-it("does not delete the open query when leaving unsaved changes is blocked", async () => {
+it("confirms query deletion in its context menu and navigates only after success", async () => {
   mocks.connected = true;
   mocks.pathname = "/queries/orders";
-  mocks.navigate.mockImplementation(async () => {});
-  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  render(<Layout />);
+  const user = userEvent.setup();
+  fireEvent.contextMenu(screen.getByRole("link", { name: "Orders" }), {
+    clientX: 40,
+    clientY: 100,
+  });
+  const deleteItem = screen.getByRole("menuitem", { name: "Delete query" });
+  await user.click(deleteItem);
+  expect(mocks.deleteQuery).not.toHaveBeenCalled();
+  expect(mocks.navigate).not.toHaveBeenCalled();
+  expect(
+    screen
+      .getByRole("menuitem", { name: "Confirm delete" })
+      .closest('[role="menu"]'),
+  ).not.toBe(deleteItem.closest('[role="menu"]'));
+  // jsdom has no submenu geometry for pointer movement between menus.
+  fireEvent.click(screen.getByRole("menuitem", { name: "Cancel" }));
+  expect(mocks.deleteQuery).not.toHaveBeenCalled();
+  expect(screen.queryByRole("menuitem", { name: "Confirm delete" })).toBeNull();
+  await user.click(screen.getByRole("menuitem", { name: "Delete query" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Confirm delete" }));
+  await waitFor(() =>
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/queries",
+      ignoreBlocker: true,
+    }),
+  );
+  expect(mocks.deleteQuery).toHaveBeenCalledWith({
+    projectId: "app",
+    queryId: "orders",
+    revision: "1-query",
+  });
+  expect(mocks.deleteQuery.mock.invocationCallOrder[0]).toBeLessThan(
+    mocks.navigate.mock.invocationCallOrder[0]!,
+  );
+  expect(confirm).not.toHaveBeenCalled();
+  confirm.mockRestore();
+});
+
+it("keeps the open query and its draft when confirmed deletion fails", async () => {
+  mocks.connected = true;
+  mocks.pathname = "/queries/orders";
+  mocks.deleteQuery.mockRejectedValue(new Error("Could not delete query"));
   render(<Layout />);
   fireEvent.contextMenu(screen.getByRole("link", { name: "Orders" }), {
     clientX: 40,
     clientY: 100,
   });
-  await userEvent
-    .setup()
-    .click(screen.getByRole("menuitem", { name: "Delete query" }));
-  expect(mocks.navigate).toHaveBeenCalledWith({ to: "/queries" });
-  expect(mocks.deleteQuery).not.toHaveBeenCalled();
-  confirm.mockRestore();
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("menuitem", { name: "Delete query" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Confirm delete" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Could not delete query",
+  );
+  expect(mocks.navigate).not.toHaveBeenCalled();
+  expect(mocks.pathname).toBe("/queries/orders");
+});
+
+it("leaves the current query open when another query is deleted through its menu", async () => {
+  mocks.connected = true;
+  mocks.pathname = "/queries/orders";
+  render(<Layout />);
+  fireEvent.contextMenu(screen.getByText("Custom query"), {
+    clientX: 40,
+    clientY: 100,
+  });
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("menuitem", { name: "Delete query" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Confirm delete" }));
+  await waitFor(() =>
+    expect(mocks.deleteQuery).toHaveBeenCalledWith({
+      projectId: "app",
+      queryId: "custom",
+      revision: "1-sql",
+    }),
+  );
+  expect(mocks.navigate).not.toHaveBeenCalled();
 });
 
 it("confirms project deletion and leaves the current query open when deleting another project", async () => {
@@ -816,4 +914,130 @@ it("disconnects the active environment through its right-click menu", async () =
     .setup()
     .click(screen.getByRole("menuitem", { name: "Disconnect" }));
   await waitFor(() => expect(mocks.disconnect).toHaveBeenCalledOnce());
+});
+
+it("opens a copy of a right-clicked connection without switching and retains the query", async () => {
+  mocks.connected = true;
+  mocks.pathname = "/queries/orders";
+  render(<Layout />);
+  await openConnections();
+  fireEvent.contextMenu(screen.getByRole("menuitem", { name: "Local" }), {
+    clientX: 50,
+    clientY: 100,
+  });
+  await userEvent
+    .setup()
+    .click(screen.getByRole("menuitem", { name: "Duplicate connection" }));
+  expect(mocks.navigate).toHaveBeenCalledWith({
+    to: "/connections",
+    search: { queryId: "orders", create: true, sourceConnectionId: "local" },
+  });
+  expect(mocks.connect).not.toHaveBeenCalled();
+});
+
+it("marks ephemeral queries in the sidebar with an unsaved label and italic title", () => {
+  mocks.ephemeral = true;
+  mocks.connected = true;
+  render(<Layout />);
+  const title = screen.getByText("Unsaved query");
+  expect(title).toHaveClass("italic", "text-muted-foreground");
+  expect(title.parentElement).toHaveTextContent("Unsaved");
+  expect(screen.getByText("Unsaved")).toHaveClass("border-dashed");
+});
+
+it("discards drafts only after leaving their route, not on re-render or connection changes", () => {
+  mocks.pathname = "/queries/orders";
+  mocks.connected = true;
+  const view = render(<Layout />);
+  view.rerender(<Layout />);
+  expect(mocks.discardQuery).not.toHaveBeenCalled();
+  mocks.connected = false;
+  view.rerender(<Layout />);
+  expect(mocks.discardQuery).not.toHaveBeenCalled();
+  mocks.pathname = "/queries/custom";
+  view.rerender(<Layout />);
+  expect(mocks.discardQuery).toHaveBeenCalledWith({
+    projectId: "app",
+    queryId: "orders",
+  });
+});
+
+it("does not return to a discarded draft after creating a connection", async () => {
+  mocks.pathname = "/queries/orders";
+  mocks.ephemeral = true;
+  render(<Layout />);
+  await openConnections();
+  await userEvent
+    .setup()
+    .click(screen.getByRole("menuitem", { name: "New connection" }));
+  expect(mocks.navigate).toHaveBeenCalledWith({ to: "/connections" });
+});
+
+it("changes a draft's connection from its sidebar menu without leaving or discarding it", async () => {
+  mocks.pathname = "/queries/orders";
+  mocks.ephemeral = true;
+  mocks.connected = true;
+  render(<Layout />);
+  const user = userEvent.setup();
+  fireEvent.contextMenu(screen.getByText("Unsaved query"), {
+    clientX: 40,
+    clientY: 100,
+  });
+  await user.click(screen.getByRole("menuitem", { name: "Change connection" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Staging" }));
+  await waitFor(() =>
+    expect(mocks.connect).toHaveBeenCalledWith({ connectionId: "staging" }),
+  );
+  expect(mocks.navigate).not.toHaveBeenCalled();
+  expect(mocks.openProject).not.toHaveBeenCalled();
+  expect(mocks.discardQuery).not.toHaveBeenCalled();
+});
+
+it("orders saved queries by modification time, keeping their position when opened", () => {
+  mocks.connected = true;
+  mocks.modifiedTimes = { app: { orders: 100, custom: 200 } };
+  const view = render(<Layout />);
+  const list = screen.getByRole("list", { name: "Application queries" });
+  const names = () =>
+    within(list)
+      .getAllByRole("link")
+      .map((link) => link.textContent);
+  expect(names()).toEqual(["Custom querySQL", "Orders"]);
+  mocks.pathname = "/queries/orders";
+  view.rerender(<Layout />);
+  expect(names()).toEqual(["Custom querySQL", "Orders"]);
+  mocks.modifiedTimes.app!.orders = 300;
+  view.rerender(<Layout />);
+  expect(names()).toEqual(["Orders", "Custom querySQL"]);
+});
+
+it("pins unsaved queries above saved queries regardless of modification time", () => {
+  mocks.connected = true;
+  mocks.ephemeral = true;
+  mocks.modifiedTimes = { app: { orders: 100, custom: 200 } };
+  render(<Layout />);
+  const list = screen.getByRole("list", { name: "Application queries" });
+  expect(within(list).getAllByRole("link")[0]).toHaveTextContent(
+    "Unsaved query",
+  );
+});
+
+it("keeps modification ordering independent for each project's sidebar", async () => {
+  mocks.connected = true;
+  mocks.modifiedTimes = {
+    app: { orders: 100, custom: 200 },
+    team: { orders: 200, custom: 100 },
+  };
+  render(<Layout />);
+  await userEvent.setup().click(screen.getByRole("button", { name: "Team" }));
+  expect(
+    within(
+      screen.getByRole("list", { name: "Application queries" }),
+    ).getAllByRole("link")[0],
+  ).toHaveTextContent("Custom query");
+  expect(
+    within(screen.getByRole("list", { name: "Team queries" })).getAllByRole(
+      "button",
+    )[0],
+  ).toHaveTextContent("Orders");
 });

@@ -11,6 +11,8 @@ import {
 import splitTableRef from "./util/splitTableRef";
 import findTableFromSchemas from "./util/findTableFromSchemas";
 
+export const MAX_QUERY_TABLES = 32;
+
 /** Runtime boundary for every query source, including callers bypassing HTTP. */
 export default function validateQuery(
   schemas: DatabaseSchema[],
@@ -57,7 +59,7 @@ export default function validateQuery(
   let conditionCount = 0;
   let selected = false;
   function checkJoin(joinInput: unknown) {
-    if (++joinCount > 32) throw new Error("Too many joined tables.");
+    if (++joinCount > MAX_QUERY_TABLES) throw new Error("Too many joined tables.");
     const join = object(joinInput);
     const table = tableFor(join.tableRef);
     const checkColumn = (column: unknown) => {

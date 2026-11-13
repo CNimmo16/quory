@@ -19,6 +19,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { JoinEdgeEditor } from "./JoinEdgeEditor";
 import { Hint } from "./Hint";
 import { cn } from "../lib/utils";
 import JoinAnotherTableButton from "./JoinAnotherTableButton";
@@ -95,7 +96,7 @@ function RelationshipDetails({
       {relationship.columnPairs.map(({ localColumn, foreignColumn }) => (
         <div
           key={JSON.stringify([localColumn, foreignColumn])}
-          className="break-all font-mono"
+          className="font-mono break-all"
         >
           {localSchema}.{localTable}.{localColumn} = {foreignSchema}.
           {foreignTable}.{foreignColumn}
@@ -262,16 +263,15 @@ function TableNavigator({
                 const target = layout.nodes.find(
                   (node) => node.join.joinAlias === edge.target,
                 )?.join;
+                if (!source || !target) return null;
                 let relationship: RelationshipConstraint | undefined;
                 try {
-                  if (source && target) {
-                    const steps = normalizeVia(target.via);
-                    relationship = resolveRelationship(
-                      schemas,
-                      source.tableRef,
-                      steps[steps.length - 1] ?? { tableRef: target.tableRef },
-                    ).relationship;
-                  }
+                  const steps = normalizeVia(target.via);
+                  relationship = resolveRelationship(
+                    schemas,
+                    source.tableRef,
+                    steps[steps.length - 1] ?? { tableRef: target.tableRef },
+                  ).relationship;
                 } catch {
                   /* Legacy prepared queries may omit a relationship selector. */
                 }
@@ -283,91 +283,106 @@ function TableNavigator({
                 const end = edge.points[edge.points.length - 1]!;
                 const path = connectorPath(edge.points);
                 return (
-                  <Hint
-                    key={edge.target}
-                    content={
-                      relationship ? (
-                        <RelationshipDetails
-                          relationship={relationship}
-                          configurable={clickable}
-                        />
-                      ) : (
-                        "Relationship details unavailable"
-                      )
-                    }
-                  >
-                    <g
-                      role={clickable ? "button" : "group"}
-                      tabIndex={0}
-                      aria-label={
-                        clickable
-                          ? `Configure inferred relationship from ${source?.tableRef} to ${target?.tableRef}`
-                          : `Relationship from ${source?.tableRef} to ${target?.tableRef}`
-                      }
-                      className="group/edge pointer-events-auto cursor-default"
-                      onClick={
-                        clickable
-                          ? () => onRelationshipClick!(relationship!)
-                          : undefined
-                      }
-                      onKeyDown={
-                        clickable
-                          ? (event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                onRelationshipClick!(relationship!);
-                              }
-                            }
-                          : undefined
+                  <g key={edge.target} className="group/edge">
+                    <Hint
+                      content={
+                        relationship ? (
+                          <RelationshipDetails
+                            relationship={relationship}
+                            configurable={clickable}
+                          />
+                        ) : (
+                          "Relationship details unavailable"
+                        )
                       }
                     >
-                      <path
-                        d={path}
-                        fill="none"
-                        stroke="transparent"
-                        strokeWidth={16}
-                        pointerEvents="stroke"
-                      />
-                      <path
-                        d={path}
-                        fill="none"
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                        className="stroke-card"
-                        strokeWidth={5}
-                      />
-                      <path
-                        d={path}
-                        fill="none"
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                        className={cn(
-                          "group-hover/edge:stroke-primary-emphasis group-hover/edge:stroke-[2.5] group-focus-visible/edge:stroke-primary-emphasis group-focus-visible/edge:stroke-[2.5]",
-                          active
-                            ? "stroke-primary-emphasis"
-                            : "stroke-muted-foreground/55",
-                        )}
-                        strokeWidth={active ? 2 : 1.5}
-                        strokeDasharray={
-                          relationship?.source === "inferred"
-                            ? "5 3"
+                      <g
+                        role={clickable ? "button" : "group"}
+                        tabIndex={0}
+                        aria-label={
+                          clickable
+                            ? `Configure inferred relationship from ${source.tableRef} to ${target.tableRef}`
+                            : `Relationship from ${source.tableRef} to ${target.tableRef}`
+                        }
+                        className="pointer-events-auto cursor-default"
+                        onClick={
+                          clickable
+                            ? () => onRelationshipClick!(relationship!)
                             : undefined
                         }
-                      />
-                      <circle
-                        cx={end.x}
-                        cy={end.y}
-                        r={2}
-                        className={cn(
-                          "group-hover/edge:fill-primary-emphasis group-focus-visible/edge:fill-primary-emphasis",
-                          active
-                            ? "fill-primary-emphasis"
-                            : "fill-muted-foreground/65",
-                        )}
-                      />
-                    </g>
-                  </Hint>
+                        onKeyDown={
+                          clickable
+                            ? (event) => {
+                                if (
+                                  event.key === "Enter" ||
+                                  event.key === " "
+                                ) {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  onRelationshipClick!(relationship!);
+                                }
+                              }
+                            : undefined
+                        }
+                      >
+                        <path
+                          d={path}
+                          fill="none"
+                          stroke="transparent"
+                          strokeWidth={16}
+                          pointerEvents="stroke"
+                        />
+                        <path
+                          d={path}
+                          fill="none"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          className="stroke-card"
+                          strokeWidth={5}
+                        />
+                        <path
+                          d={path}
+                          fill="none"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          className={cn(
+                            "group-hover/edge:stroke-primary-emphasis group-focus-within/edge:stroke-primary-emphasis group-focus-within/edge:stroke-[2.5] group-hover/edge:stroke-[2.5]",
+                            active
+                              ? "stroke-primary-emphasis"
+                              : "stroke-muted-foreground/55",
+                          )}
+                          strokeWidth={active ? 2 : 1.5}
+                          strokeDasharray={
+                            relationship?.source === "inferred"
+                              ? "5 3"
+                              : undefined
+                          }
+                        />
+                        <circle
+                          cx={end.x}
+                          cy={end.y}
+                          r={2}
+                          className={cn(
+                            "group-hover/edge:fill-primary-emphasis group-focus-within/edge:fill-primary-emphasis",
+                            active
+                              ? "fill-primary-emphasis"
+                              : "fill-muted-foreground/65",
+                          )}
+                        />
+                      </g>
+                    </Hint>
+                    <JoinEdgeEditor
+                      points={edge.points}
+                      schemas={schemas}
+                      source={source.tableRef}
+                      target={target.tableRef}
+                      tableCount={layout.nodes.length}
+                      current={relationship}
+                      onSelect={(steps) =>
+                        joinActions(target.joinAlias).setJoinRoute(steps)
+                      }
+                    />
+                  </g>
                 );
               })}
           </svg>
@@ -468,7 +483,7 @@ function TableNavigator({
                         </span>
                       )}
                     </Hint>
-                    {parent && (
+                    {(parent || join.joins.length > 0) && (
                       <Hint
                         content={
                           isRequiredBridge

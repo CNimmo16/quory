@@ -130,7 +130,7 @@ export type DatabaseSchema = {
   tables: DatabaseTableInfo[];
 };
 
-export { default as validateQuery } from "./validateQuery";
+export { default as validateQuery, MAX_QUERY_TABLES } from "./validateQuery";
 export { quoteIdentifier, parameterPlaceholder } from "./sqlDialect";
 export type { SqlDialect, SqlParameter } from "./sqlDialect";
 

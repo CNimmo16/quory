@@ -16,6 +16,7 @@ export function useSidebarActions(
   const renameProject = trpc.projects.rename.useMutation();
   const deleteProject = trpc.projects.delete.useMutation();
   const renameQuery = trpc.projects.renameQuery.useMutation();
+  const discardQuery = trpc.queries.discardEphemeralQuery.useMutation();
   const deleteQuery = trpc.projects.deleteQuery.useMutation();
   const utils = trpc.useUtils();
   const navigate = useNavigate();
@@ -25,7 +26,8 @@ export function useSidebarActions(
     renameProject.isPending ||
     deleteProject.isPending ||
     renameQuery.isPending ||
-    deleteQuery.isPending;
+    deleteQuery.isPending ||
+    discardQuery.isPending;
   async function refresh(connections = false) {
     await Promise.all([
       utils.projects.list.invalidate(),
@@ -68,34 +70,39 @@ export function useSidebarActions(
     id: string;
     nickname: string;
     revision: string;
+    ephemeral?: boolean | undefined;
   }) {
     if (pending) return;
-    const message = query
-      ? `Delete "${query.nickname}"? This permanently deletes the saved query.`
-      : `Delete project "${
-          project.name
-        }"? Its connections and queries stored in Quory will be deleted.${
-          project.storage === "folder"
-            ? " Shared .quory files will remain on disk."
-            : ""
-        }`;
-    if (!confirm(message)) return;
+    if (
+      !query &&
+      !confirm(
+        `Delete project "${project.name}"? Its connections and queries stored in Quory will be deleted.${project.storage === "folder" ? " Shared .quory files will remain on disk." : ""}`,
+      )
+    )
+      return;
     setError(null);
     try {
       const selected = matchRoute({ to: "/queries/$queryId" });
-      if (active && (!query || (selected && selected.queryId === query.id))) {
-        // Let the current editor's unsaved-change blocker run before deletion.
+      if (active && !query) {
+        // Project deletion still uses the editor's unsaved-change guard.
         await navigate({ to: "/queries" });
         if (router.state.location.pathname.replace(/\/$/, "") !== "/queries")
           return;
       }
-      if (query)
+      if (query?.ephemeral)
+        await discardQuery.mutateAsync({ projectId, queryId: query.id });
+      else if (query)
         await deleteQuery.mutateAsync({
           projectId,
           queryId: query.id,
           revision: query.revision,
         });
       else await deleteProject.mutateAsync({ projectId, revision });
+      if (query && active && selected && selected.queryId === query.id) {
+        // The in-menu confirmation already authorized discarding this query.
+        // Navigate only after deletion succeeds, without a second dialog.
+        await navigate({ to: "/queries", ignoreBlocker: true });
+      }
       await refresh(!query);
     } catch (cause) {
       setError(

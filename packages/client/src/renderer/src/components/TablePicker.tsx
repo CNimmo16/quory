@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { defaultFilter } from "cmdk";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -11,6 +12,18 @@ import {
   CommandList,
 } from "./ui/command";
 import { cn } from "../lib/utils";
+
+function isExactTableMatch(
+  tableRef: string,
+  search: string,
+  names: string[] = [],
+) {
+  const term = search.trim().toLowerCase();
+  return (
+    tableRef.toLowerCase() === term ||
+    names.some((name) => name.toLowerCase() === term)
+  );
+}
 
 export function TablePicker({
   id,
@@ -26,6 +39,16 @@ export function TablePicker({
   maxHeight: number;
 }) {
   const [open, setOpen] = useState(!value);
+  const [search, setSearch] = useState("");
+  // Schema groups stay intact, with exact-match schemas ahead of partial matches.
+  const rankedGroups = groups
+    .map((group) => ({
+      group,
+      exact: group.tables.some((table) =>
+        isExactTableMatch(`${group.name}.${table.name}`, search, [table.name]),
+      ),
+    }))
+    .sort((a, b) => Number(b.exact) - Number(a.exact));
   const selectedTable = groups
     .flatMap((group) =>
       group.tables.map((table) => ({
@@ -36,7 +59,13 @@ export function TablePicker({
     .find((table) => table.value === value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        setSearch("");
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           id={id}
@@ -54,8 +83,17 @@ export function TablePicker({
         className="w-(--radix-popover-trigger-width) p-0"
         align="start"
       >
-        <Command label="Search tables">
+        <Command
+          label="Search tables"
+          filter={(tableRef, term, keywords) => {
+            if (isExactTableMatch(tableRef, term, keywords)) return 1;
+            // Keep fuzzy matching, but reserve the highest rank for exact names.
+            return defaultFilter(tableRef, term) * 0.9;
+          }}
+        >
           <CommandInput
+            value={search}
+            onValueChange={setSearch}
             placeholder="Search tables…"
             aria-label="Search tables"
           />
@@ -68,7 +106,7 @@ export function TablePicker({
             }}
           >
             <CommandEmpty>No tables found.</CommandEmpty>
-            {groups.map((group) => (
+            {rankedGroups.map(({ group }) => (
               <CommandGroup key={group.name} heading={group.name}>
                 {group.tables.map((table) => {
                   const tableRef = `${group.name}.${table.name}`;
@@ -76,6 +114,7 @@ export function TablePicker({
                     <CommandItem
                       key={tableRef}
                       value={tableRef}
+                      keywords={[table.name]}
                       onSelect={() => {
                         onChange(tableRef);
                         setOpen(false);

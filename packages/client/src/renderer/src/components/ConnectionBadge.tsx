@@ -3,6 +3,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../main/ipc";
 import {
   Check,
+  Copy,
   ChevronDown,
   Database,
   Pencil,
@@ -38,7 +39,7 @@ export const ConnectionSelectorContext = createContext<{
   error: string | undefined;
   onSelect: (id: string) => Promise<void>;
   onEdit: (id: string) => Promise<void>;
-  onCreate: () => Promise<void>;
+  onCreate: (sourceConnectionId?: string) => Promise<void>;
   onDisconnect: () => Promise<void>;
   registerSwitchGuard?: (canSwitch: () => boolean) => () => void;
 } | null>(null);
@@ -161,6 +162,11 @@ export function ConnectionBadge({
                   <span className="min-w-0 flex-1 truncate">
                     {connection.nickname}
                   </span>
+                  {connection.temporary && (
+                    <span className="text-xs text-muted-foreground">
+                      Temporary
+                    </span>
+                  )}
                   {isActive && (
                     <Check
                       aria-hidden="true"
@@ -177,6 +183,14 @@ export function ConnectionBadge({
                 >
                   <Pencil aria-hidden="true" />
                   Edit connection
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onSelect={() => {
+                    void context.onCreate(id);
+                  }}
+                >
+                  <Copy aria-hidden="true" />
+                  Duplicate connection
                 </ContextMenuItem>
                 {isActive && (
                   <ContextMenuItem

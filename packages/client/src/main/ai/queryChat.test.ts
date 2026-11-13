@@ -17,8 +17,9 @@ const mocks = vi.hoisted(() => ({
   assistant: vi.fn(),
   model: vi.fn(),
 }));
-vi.mock("../repositories/queryRepo", () => ({
-  queryRepo: { get: mocks.get, put: mocks.put },
+vi.mock("../repositories/projectQueryRepo", () => ({
+  projectQueryRepo: () => ({ get: mocks.get, put: mocks.put }),
+  discardEphemeralQuery: vi.fn(),
 }));
 vi.mock("../repositories/projectRepo", () => ({
   projectRepo: {
@@ -112,7 +113,7 @@ beforeEach(() => {
   });
 });
 
-describe("chat persistence", () => {
+describe("chat storage", () => {
   it("surfaces provider quota errors even when the SDK wraps retry failures", async () => {
     mocks.assistant.mockRejectedValue(
       new RetryError({
@@ -131,7 +132,7 @@ describe("chat persistence", () => {
     await expect(caller.chat(input())).rejects.toThrow("out of credits");
     expect(mocks.put).not.toHaveBeenCalled();
   });
-  it("creates a single saved query and returns the same result for a transport retry", async () => {
+  it("creates a single ephemeral query and returns the same result for a transport retry", async () => {
     const request = input();
     const result = await caller.chat(request);
     expect(result.queryId).toBe(request.requestId);
@@ -141,6 +142,10 @@ describe("chat persistence", () => {
     ]);
     expect(await caller.chat(request)).toEqual(result);
     expect(mocks.put).toHaveBeenCalledOnce();
+    expect(docs.get(result.queryId!)).toMatchObject({
+      ephemeral: true,
+      nickname: orderQuery.nickname,
+    });
     expect(mocks.assistant).toHaveBeenCalledOnce();
   });
   it("keeps the same query id when amending and persists the conversation", async () => {

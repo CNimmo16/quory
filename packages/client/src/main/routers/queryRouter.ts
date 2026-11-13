@@ -1,7 +1,6 @@
 import { randomUUID } from "crypto";
 import { publicProcedure, router } from "../util/trpc";
 import { z } from "zod";
-import { splitTableRef } from "@quory/core";
 import { TRPCError } from "@trpc/server";
 import {
   chatMessageSchema,
@@ -11,6 +10,7 @@ import {
 import { moveQueryHistory } from "../../shared/queryHistory";
 import { queryHistorySchema } from "../repositories/queryHistorySchema";
 
+import { discardEphemeralQuery } from "../repositories/projectQueryRepo";
 import { savedQueryService } from "../repositories/savedQueryService";
 import { queryChatProcedure } from "../ai/queryChat";
 
@@ -59,21 +59,40 @@ const queryRouter = router({
     .mutation(async ({ input: { query, connectionId } }) => {
       const queryId = randomUUID();
 
-      const tableName = isSqlQuery(query)
-        ? "SQL query"
-        : splitTableRef(query.base.tableRef)[1];
-      await savedQueryService.create(
-        connectionId,
-        queryId,
-        query,
-        `${tableName} ${new Date()
-          .toISOString()
-          .substring(0, 16)
-          .replace("T", " ")}`,
-      );
+      await savedQueryService.create(connectionId, queryId, query, "");
       return {
         queryId,
       };
+    }),
+  discardEphemeralQuery: publicProcedure
+    .input(z.object({ projectId: z.string(), queryId: z.string() }))
+    .mutation(({ input }) =>
+      discardEphemeralQuery(input.projectId, input.queryId),
+    ),
+  saveQuery: publicProcedure
+    .input(
+      z.object({
+        connectionId: z.string(),
+        queryId: z.string(),
+        revision: z.string(),
+        nickname: z.string().trim().min(1, "Enter a query name.").max(100),
+        query: queryDefinitionSchema,
+        queryHistory: queryHistorySchema.optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const result = await savedQueryService.update(
+        input.connectionId,
+        input.queryId,
+        input.revision,
+        {
+          query: input.query,
+          nickname: input.nickname,
+          ephemeral: false,
+          ...(input.queryHistory ? { queryHistory: input.queryHistory } : {}),
+        },
+      );
+      return { revision: result.rev };
     }),
   updateQuery: publicProcedure
     .input(
@@ -151,7 +170,7 @@ const queryRouter = router({
             : ""
         } ${
           input.action === "undo" ? "The previous query" : "The query change"
-        } has been restored and saved.`,
+        } has been restored${existing.ephemeral ? "" : " and saved"}.`,
       };
       messages.push(event);
       const doc = await savedQueryService.update(

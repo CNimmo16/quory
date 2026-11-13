@@ -44,6 +44,7 @@ export function ConnectionForm({
   isSaving,
   isConnecting,
   saveText,
+  creating = false,
 }: {
   config: Partial<
     inferProcedureInput<AppRouter["connections"]["saveConnection"]>["config"]
@@ -63,6 +64,7 @@ export function ConnectionForm({
   onConnect?: () => void;
   isConnecting?: boolean;
   saveText: string;
+  creating?: boolean;
 }) {
   const typeSpecificFieldsWithDefaults =
     config.type === "postgres" || config.type === "mysql"
@@ -240,6 +242,30 @@ export function ConnectionForm({
                 : "SQL cannot change data on this connection."}
           </p>
         </div>
+        {creating && (
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={config.temporary ?? false}
+                onChange={(event) =>
+                  setConfig({ ...config, temporary: event.target.checked })
+                }
+                disabled={isSaving}
+                aria-describedby="temporary-connection-help"
+                className="accent-primary"
+              />
+              Temporary connection
+            </label>
+            <p
+              id="temporary-connection-help"
+              className="text-xs text-muted-foreground"
+            >
+              Available only in this project until disconnected. Connection
+              details are not saved to disk.
+            </p>
+          </div>
+        )}
         {errorMessage && (
           <Alert variant="destructive">
             <AlertDescription>{errorMessage}</AlertDescription>

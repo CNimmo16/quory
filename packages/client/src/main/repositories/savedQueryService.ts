@@ -149,16 +149,18 @@ export const savedQueryService = {
       _id: queryId,
       projectId,
       nickname,
+      ephemeral: true,
     });
   },
   async update(
     connection: ConnectionContext,
     queryId: string,
     revision: string,
-    changes: { query?: QueryDefinition; nickname?: string } & Pick<
-      SavedQuery,
-      "chatMessages" | "lastChatRequestId" | "queryHistory"
-    >,
+    changes: {
+      query?: QueryDefinition;
+      nickname?: string;
+      ephemeral?: false;
+    } & Pick<SavedQuery, "chatMessages" | "lastChatRequestId" | "queryHistory">,
   ) {
     const context = await assertConnection(connection);
     const existing = await fetch(context, queryId);
@@ -203,6 +205,7 @@ export const savedQueryService = {
       _id: existing._id,
       _rev: revision,
       projectId: context.projectId,
+      ...(existing.ephemeral ? { ephemeral: changes.ephemeral ?? true } : {}),
     });
   },
   async delete(

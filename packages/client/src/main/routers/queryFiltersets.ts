@@ -21,6 +21,11 @@ async function assertQuery(input: z.infer<typeof scope>) {
       message: "The active project changed. Reopen this query.",
     });
   const query = await savedQueryService.fetch(context, input.queryId);
+  if (query.ephemeral)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Save this query before using filtersets.",
+    });
   if (isSqlQuery(query))
     throw new TRPCError({
       code: "BAD_REQUEST",

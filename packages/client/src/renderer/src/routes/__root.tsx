@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Button } from "../components/ui/button";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { LoadingState } from "../components/LoadingState";
@@ -103,11 +103,8 @@ function RootLayout() {
   const matchRoute = useMatchRoute();
   const opening = useOpenProject();
 
-  const {
-    data: savedConnectionsData,
-    error: savedConnectionsError,
-    refetch: refetchSavedConnections,
-  } = trpc.connections.listSavedConnections.useQuery();
+  const { data: savedConnectionsData, error: savedConnectionsError } =
+    trpc.connections.listSavedConnections.useQuery();
 
   const activeConnection = savedConnectionsData?.connections.find(
     ({ isActive }) => isActive,
@@ -117,10 +114,37 @@ function RootLayout() {
 
   const utils = trpc.useUtils();
 
+  const activeProjectId = activeProject?._id;
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
+  const previousQuery = useRef<{ projectId: string; queryId: string } | null>(
+    null,
+  );
+  const { mutate: discardEphemeralQuery } =
+    trpc.queries.discardEphemeralQuery.useMutation({
+      onSuccess: () => {
+        void utils.projects.listQueries.invalidate();
+      },
+    });
+  useEffect(() => {
+    const queryId = /^\/queries\/([^/]+)\/?$/.exec(pathname)?.[1];
+    const previous = previousQuery.current;
+    if (
+      previous &&
+      (previous.queryId !== queryId || previous.projectId !== activeProjectId)
+    )
+      discardEphemeralQuery(previous);
+    previousQuery.current =
+      queryId && activeProjectId
+        ? { projectId: activeProjectId, queryId }
+        : null;
+  }, [pathname, activeProjectId, discardEphemeralQuery]);
+
   const { mutate: disconnectFromDatabase } =
     trpc.connections.disconnectFromDatabase.useMutation({
       onSuccess: () => {
-        refetchSavedConnections();
+        utils.connections.listSavedConnections.invalidate();
         utils.connections.fetchActiveConnection.invalidate();
         navigate({ to: "/connections" });
       },
@@ -223,12 +247,25 @@ function RootLayout() {
             to: "/connections/$connectionId",
             params: { connectionId },
           }),
-        onCreate: () => {
-          const query = matchRoute({ to: "/queries/$queryId" });
+        onCreate: (sourceConnectionId) => {
+          const loaded = router.state.matches.find(
+            (match) => match.routeId === "/queries/$queryId",
+          )?.loaderData;
+          // Leaving a draft discards it, so it cannot be a return destination.
+          const query =
+            loaded && "query" in loaded && loaded.query.ephemeral
+              ? false
+              : matchRoute({ to: "/queries/$queryId" });
           return navigate({
             to: "/connections",
-            ...(query
-              ? { search: { queryId: query.queryId, create: true } }
+            ...(query || sourceConnectionId
+              ? {
+                  search: {
+                    ...(query ? { queryId: query.queryId } : {}),
+                    create: true,
+                    ...(sourceConnectionId ? { sourceConnectionId } : {}),
+                  },
+                }
               : {}),
           });
         },
@@ -312,7 +349,23 @@ function RootLayout() {
                         id === expandedProject || id === activeProject?._id
                       }
                       busy={opening.isPending || isConnecting}
-                      onOpenQuery={opening.openProject}
+                      onOpenQuery={(projectId, queryId, connectionId) => {
+                        const selected = matchRoute({
+                          to: "/queries/$queryId",
+                        });
+                        if (
+                          projectId === activeProjectId &&
+                          selected &&
+                          selected.queryId === queryId &&
+                          connectionId
+                        )
+                          return selectConnection(connectionId);
+                        return opening.openProject(
+                          projectId,
+                          queryId,
+                          connectionId,
+                        );
+                      }}
                     />
                   </li>
                 ))}

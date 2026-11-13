@@ -10,14 +10,17 @@ type ConnectionConfig = ComponentProps<typeof ConnectionForm>["config"];
 function SavedConnectionForm({
   initialConfig,
   save,
+  creating = false,
 }: {
   initialConfig: ConnectionConfig;
+  creating?: boolean;
   save: (config: ConnectionConfig) => void;
 }) {
   const [config, setConfig] = useState(initialConfig);
   return (
     <TooltipProvider>
       <ConnectionForm
+        creating={creating}
         config={config}
         setConfig={setConfig}
         onSave={() => save(config)}
@@ -246,4 +249,30 @@ it("defaults write protection to read only and saves the selected policy", async
   expect(save).toHaveBeenLastCalledWith(
     expect.objectContaining({ writeProtection: "dangerously-write" }),
   );
+});
+
+it("offers temporary connections only during creation and submits the choice", async () => {
+  const save = vi.fn();
+  const view = render(
+    <SavedConnectionForm
+      initialConfig={savedConnection}
+      save={save}
+      creating
+    />,
+  );
+  const checkbox = screen.getByRole("checkbox", {
+    name: "Temporary connection",
+  });
+  expect(checkbox).not.toBeChecked();
+  await userEvent.setup().click(checkbox);
+  await userEvent
+    .setup()
+    .click(screen.getByRole("button", { name: "Save connection" }));
+  expect(save).toHaveBeenCalledWith({ ...savedConnection, temporary: true });
+  view.rerender(
+    <SavedConnectionForm initialConfig={savedConnection} save={save} />,
+  );
+  expect(
+    screen.queryByRole("checkbox", { name: "Temporary connection" }),
+  ).not.toBeInTheDocument();
 });

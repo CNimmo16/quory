@@ -49,6 +49,7 @@ vi.mock("../state/activeProjectState", async () => {
 });
 vi.mock("./sqlProcedures", () => ({ sqlProcedures: {} }));
 import queryRouter from "./queryRouter";
+import { discardProjectEphemeralQueries } from "../repositories/projectQueryRepo";
 const caller = queryRouter.createCaller({});
 const query = {
   base: { tableRef: "public.orders", select: "*" as const, joins: [] },
@@ -56,6 +57,8 @@ const query = {
 };
 let docs: Map<string, SavedQuery & { _id: string; _rev: string }>;
 beforeEach(() => {
+  discardProjectEphemeralQueries("a");
+  discardProjectEphemeralQueries("b");
   vi.resetAllMocks();
   mocks.active = "a";
   mocks.generation = 0;
@@ -82,6 +85,18 @@ beforeEach(() => {
 });
 async function create() {
   const { queryId } = await caller.createQuery({ connectionId: "a", query });
+  const { query: draft } = await caller.fetchQuery({
+    connectionId: "a",
+    queryId,
+  });
+  await caller.saveQuery({
+    connectionId: "a",
+    queryId,
+    revision: draft._rev,
+    nickname: "Orders",
+    query,
+    ...(draft.queryHistory ? { queryHistory: draft.queryHistory } : {}),
+  });
   return queryId;
 }
 
@@ -455,7 +470,12 @@ it("saves SQL definitions and makes conversion irreversible without retaining th
     connectionId: "a",
     query: { mode: "sql", sql: "SELECT 42" },
   });
-  expect(docs.get(created.queryId)).toMatchObject({
+  expect(
+    (await caller.fetchQuery({ connectionId: "a", queryId: created.queryId }))
+      .query,
+  ).toMatchObject({
+    ephemeral: true,
+    nickname: "",
     mode: "sql",
     sql: "SELECT 42",
   });
@@ -465,4 +485,91 @@ it("saves SQL definitions and makes conversion irreversible without retaining th
     revision: converted.revision,
   });
   expect(docs.has(queryId)).toBe(false);
+});
+
+it.each([query, { mode: "sql" as const, sql: "SELECT 42" }])(
+  "creates unnamed ephemeral queries, requires a name, and persists only on explicit save",
+  async (definition) => {
+    const { queryId } = await caller.createQuery({
+      connectionId: "a",
+      query: definition,
+    });
+    const { query: draft } = await caller.fetchQuery({
+      connectionId: "a",
+      queryId,
+    });
+    expect(draft).toMatchObject({
+      ephemeral: true,
+      nickname: "",
+      projectId: "a",
+    });
+    expect(mocks.put).not.toHaveBeenCalled();
+    await expect(
+      caller.saveQuery({
+        connectionId: "a",
+        queryId,
+        revision: draft._rev,
+        query: definition,
+        nickname: "   ",
+      }),
+    ).rejects.toThrow("Enter a query name");
+    expect(docs.size).toBe(0);
+    const saved = await caller.saveQuery({
+      connectionId: "a",
+      queryId,
+      revision: draft._rev,
+      query: definition,
+      nickname: "  My query  ",
+    });
+    expect(docs.get(queryId)).toMatchObject({
+      nickname: "My query",
+      _rev: saved.revision,
+    });
+    expect(docs.get(queryId)?.ephemeral).not.toBe(true);
+    await caller.discardEphemeralQuery({ projectId: "a", queryId });
+    expect(
+      (await caller.fetchQuery({ connectionId: "a", queryId })).query.nickname,
+    ).toBe("My query");
+  },
+);
+
+it("keeps edits and SQL conversion ephemeral and rejects late writes after discard", async () => {
+  const { queryId } = await caller.createQuery({ connectionId: "a", query });
+  const { query: draft } = await caller.fetchQuery({
+    connectionId: "a",
+    queryId,
+  });
+  const changed = await caller.updateQuery({
+    connectionId: "a",
+    queryId,
+    revision: draft._rev,
+    query: { ...query, limit: 7 },
+  });
+  const converted = await caller.updateQuery({
+    connectionId: "a",
+    queryId,
+    revision: changed.revision,
+    query: { mode: "sql", sql: "SELECT 7" },
+  });
+  expect(
+    (await caller.fetchQuery({ connectionId: "a", queryId })).query,
+  ).toMatchObject({ ephemeral: true, sql: "SELECT 7" });
+  expect(mocks.put).not.toHaveBeenCalled();
+  await caller.discardEphemeralQuery({ projectId: "b", queryId });
+  expect(
+    (await caller.listSavedQueries({ projectId: "a" })).queries,
+  ).toHaveLength(1);
+  await caller.discardEphemeralQuery({ projectId: "a", queryId });
+  expect(
+    (await caller.listSavedQueries({ projectId: "a" })).queries,
+  ).toHaveLength(0);
+  await expect(
+    caller.updateQuery({
+      connectionId: "a",
+      queryId,
+      revision: converted.revision,
+      query: { mode: "sql", sql: "SELECT 8" },
+    }),
+  ).rejects.toThrow();
+  expect(mocks.put).not.toHaveBeenCalled();
 });

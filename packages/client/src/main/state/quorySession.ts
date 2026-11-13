@@ -39,7 +39,7 @@ async function createSession(connectionId: string) {
 
 export const quorySessions = new SessionOwner<
   Awaited<ReturnType<typeof createSession>>
->();
+>((id) => connectionRepo.forgetTemporary(id));
 export async function getQuorySession() {
   const session = await quorySessions.get();
   while (session.refreshedGeneration !== session.schemaGeneration) {

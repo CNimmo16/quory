@@ -10,6 +10,8 @@ import {
   isBooleanCondition,
   isValueCondition,
   ValueCondition,
+  type JoinDef,
+  type ViaTableStep,
   PreparedJoinDef,
   PreparedQuery,
   splitTableRef,
@@ -17,6 +19,7 @@ import {
 import useFetchSchema from "./useFetchSchema";
 import { enableMapSet, produce, WritableDraft } from "immer";
 import findJoinRecursively from "../../util/findJoinRecursively";
+import removeBaseJoin from "../../util/removeBaseJoin";
 
 enableMapSet();
 
@@ -55,6 +58,7 @@ export default function useQuery(
         column: string;
         value: string;
       },
+      via?: ViaTableStep[],
     ) => {
       if (!data) {
         throw new Error("No data");
@@ -106,6 +110,7 @@ export default function useQuery(
           sourceJoin.joins.push({
             select: targetTable.columns.map(({ name }) => name),
             tableRef: targetTableRef,
+            ...(via && { via }),
             where,
             joins: [],
             joinAlias: "TEMP",
@@ -151,6 +156,33 @@ export default function useQuery(
                 !hiddenColumnRefs.has(`${this.join.tableRef}.${name}`),
             )
             .map(({ name }) => name);
+        },
+        setJoinRoute(steps: ViaTableStep[]) {
+          const destination = steps[steps.length - 1];
+          if (!found.parent || destination?.tableRef !== found.join.tableRef) {
+            throw new Error("A join route must end at the joined table.");
+          }
+          // Keep this branch independent of other instances of the same table,
+          // which may carry different filters or descendants.
+          const reroute = (join: PreparedJoinDef): JoinDef => {
+            if (join !== found.join) {
+              return { ...join, joins: join.joins.map(reroute) };
+            }
+            return steps.slice(0, -1).reduceRight<JoinDef>(
+              (child, step) => ({
+                tableRef: step.tableRef,
+                select: [],
+                via: [step],
+                joins: [child],
+              }),
+              { ...join, via: [destination] },
+            );
+          };
+          setQuery({
+            ...data.preparedQuery,
+            base: reroute(data.preparedQuery.base),
+            offset: 0,
+          });
         },
         setSelectedColumns(columnsToSelect: string[]) {
           setQuery(
@@ -257,6 +289,12 @@ export default function useQuery(
           );
         },
         removeJoin() {
+          if (!found.parent) {
+            if (this.join.joins.length) {
+              setQuery(removeBaseJoin(data.preparedQuery, schemaData.schemas));
+            }
+            return;
+          }
           setQuery(
             produce(data.preparedQuery, (draft) => {
               draft.offset = 0;
@@ -287,20 +325,17 @@ export default function useQuery(
             }),
           );
         },
-        addJoin(targetTableRef: string) {
+        addJoin(targetTableRef: string, via?: ViaTableStep[]) {
           setQuery(
             produce(data.preparedQuery, (draft) => {
               draft.offset = 0;
-              const source = findJoinRecursively(
-                draft.base,
-                this.join.joinAlias,
+              goToAdjacentJoin(
+                draft,
+                joinAlias,
+                targetTableRef,
+                undefined,
+                via,
               );
-              if (!source) {
-                throw new Error(
-                  `Couldn't find join for alias ${this.join.joinAlias}`,
-                );
-              }
-              goToAdjacentJoin(draft, this.join.joinAlias, targetTableRef);
             }),
           );
         },

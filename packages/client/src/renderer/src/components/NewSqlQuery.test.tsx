@@ -39,7 +39,7 @@ it("keeps custom SQL creation available as a component without the global entryp
   expect(screen.getByText("SQL workspace")).toBeVisible();
   await userEvent
     .setup()
-    .click(screen.getByRole("button", { name: "Save query" }));
+    .click(screen.getByRole("button", { name: "Open query" }));
   await waitFor(() =>
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/queries/$queryId",

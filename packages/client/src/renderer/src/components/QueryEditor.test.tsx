@@ -7,11 +7,19 @@ vi.mock("./ConnectionBadge", async () => {
 });
 import type { ComponentType } from "react";
 import { WindowToolbarFrame } from "./WindowToolbar";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 import type { Query, PreparedQuery } from "@quory/core";
 import { ConditionOperator } from "@quory/core";
+import type { CustomSqlQuery, QueryDefinition } from "../../../shared/sqlQuery";
 import type { SavedQuery } from "../../../main/repositories/queryRepo";
 import { schemas } from "../../../../test/queryFixtures";
 import type { QueryChatResult } from "../../../shared/queryChat";
@@ -21,7 +29,16 @@ import {
 } from "../../../shared/queryHistory";
 
 const mocks = vi.hoisted(() => ({
+  customSql: false,
+  sqlQuery: {
+    mode: "sql",
+    sql: "SELECT 1",
+    dialect: "postgres",
+  } as CustomSqlQuery,
   chat: vi.fn(),
+  save: vi.fn(),
+  update: vi.fn(),
+  block: null as null | (() => boolean),
   invalidate: vi.fn(),
   remove: vi.fn(),
   refresh: () => {},
@@ -41,11 +58,26 @@ vi.mock("@tanstack/react-router", async () => {
         useEffect(() => {
           mocks.refresh = () => refresh((value) => value + 1);
         }, []);
-        return { query: mocks.doc, connectionId: "connection-1" };
+        return {
+          query: mocks.customSql
+            ? {
+                ...mocks.sqlQuery,
+                projectId: mocks.doc.projectId,
+                nickname: mocks.doc.nickname,
+                ephemeral: mocks.doc.ephemeral,
+                _id: mocks.doc._id,
+                _rev: mocks.doc._rev,
+              }
+            : mocks.doc,
+          connectionId: "connection-1",
+          dialect: "postgres",
+        };
       },
     }),
     useNavigate: () => vi.fn(),
-    useBlocker: () => {},
+    useBlocker: ({ shouldBlockFn }: { shouldBlockFn: () => boolean }) => {
+      mocks.block = shouldBlockFn;
+    },
     redirect: vi.fn(),
     useRouter: () => ({ invalidate: mocks.invalidate }),
   };
@@ -61,12 +93,32 @@ vi.mock("../util/tprc", () => ({
       projects: { listQueries: { invalidate: async () => {} } },
     }),
     queries: {
+      saveQuery: {
+        useMutation: ({ onSuccess }: { onSuccess: () => Promise<void> }) => ({
+          isPending: false,
+          mutate: async (input: {
+            query: QueryDefinition;
+            nickname: string;
+          }) => {
+            mocks.save(input);
+            if (input.query.mode === "sql") mocks.sqlQuery = input.query;
+            else mocks.doc = { ...mocks.doc, ...input.query };
+            mocks.doc = {
+              ...mocks.doc,
+              nickname: input.nickname,
+              ephemeral: false,
+              _rev: "1-saved",
+            };
+            await onSuccess();
+          },
+        }),
+      },
       chat: { useMutation: () => ({ mutateAsync: mocks.chat }) },
       deleteQuery: {
         useMutation: () => ({ mutate: mocks.remove, isPending: false }),
       },
       updateQuery: {
-        useMutation: () => ({ mutate: vi.fn(), isPending: false }),
+        useMutation: () => ({ mutate: mocks.update, isPending: false }),
       },
       updateQueryNickname: {
         useMutation: ({ onSuccess }: { onSuccess: () => Promise<void> }) => ({
@@ -79,6 +131,21 @@ vi.mock("../util/tprc", () => ({
       },
     },
   },
+}));
+vi.mock("./SqlQueryWorkspace", () => ({
+  SqlQueryWorkspace: ({
+    query,
+    onChange,
+  }: {
+    query: CustomSqlQuery;
+    onChange: (query: CustomSqlQuery) => void;
+  }) => (
+    <textarea
+      aria-label="SQL query"
+      value={query.sql}
+      onChange={(event) => onChange({ ...query, sql: event.target.value })}
+    />
+  ),
 }));
 vi.mock("./QueryView", async () => {
   const { useState, useEffect } = await import("react");
@@ -151,6 +218,8 @@ const Page = Route.options.component as ComponentType;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.customSql = false;
+  mocks.sqlQuery = { mode: "sql", sql: "SELECT 1", dialect: "postgres" };
   mocks.doc = {
     _id: "query-1",
     _rev: "1-saved",
@@ -391,16 +460,26 @@ it("places query actions after the connection badge and confirms deletion from t
   ).not.toBeInTheDocument();
   const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
   await user.click(actions);
-  await user.click(screen.getByRole("menuitem", { name: "Delete query" }));
+  const deleteItem = screen.getByRole("menuitem", { name: "Delete query" });
+  await user.click(deleteItem);
   expect(mocks.remove).not.toHaveBeenCalled();
-  confirm.mockReturnValue(true);
-  await user.click(actions);
+  expect(
+    screen
+      .getByRole("menuitem", { name: "Confirm delete" })
+      .closest('[role="menu"]'),
+  ).not.toBe(deleteItem.closest('[role="menu"]'));
+  // jsdom has no submenu geometry for pointer movement between menus.
+  fireEvent.click(screen.getByRole("menuitem", { name: "Cancel" }));
+  expect(mocks.remove).not.toHaveBeenCalled();
+  expect(screen.queryByRole("menuitem", { name: "Confirm delete" })).toBeNull();
   await user.click(screen.getByRole("menuitem", { name: "Delete query" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Confirm delete" }));
   expect(mocks.remove).toHaveBeenCalledWith({
     queryId: "query-1",
     connectionId: "connection-1",
     revision: "1-saved",
   });
+  expect(confirm).not.toHaveBeenCalled();
   confirm.mockRestore();
 });
 
@@ -445,3 +524,197 @@ it("hides legacy undo notices and sends only conversation plus the latest query"
     { id: "a", role: "assistant", content: "Your orders query is ready." },
   ]);
 });
+
+it.each(["", "Recent paid orders"])(
+  "requires a name when saving the ephemeral query %j",
+  async (suggestedName) => {
+    mocks.doc.ephemeral = true;
+    mocks.doc.nickname = suggestedName;
+    const user = userEvent.setup();
+    mount();
+    expect(
+      screen.getByRole("heading", { name: suggestedName || "Unsaved query" }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save query" })).toBeEnabled();
+    await user.click(
+      screen.getByRole("button", { name: "Set manual row limit" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Save query" }));
+    const dialog = screen.getByRole("dialog", { name: "Save query" });
+    const name = within(dialog).getByRole("textbox", { name: "Query name" });
+    expect(name).toHaveValue(suggestedName);
+    await user.clear(name);
+    await user.type(name, "   ");
+    expect(
+      within(dialog).getByRole("button", { name: "Save query" }),
+    ).toBeDisabled();
+    expect(mocks.save).not.toHaveBeenCalled();
+    await user.clear(name);
+    await user.type(name, "  My orders  ");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Save query" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(mocks.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nickname: "My orders",
+        query: expect.objectContaining({ limit: 7 }),
+        queryHistory: expect.any(Object),
+      }),
+    );
+    expect(screen.getByRole("heading", { name: "My orders" })).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Save query" }),
+    ).not.toBeInTheDocument();
+  },
+);
+
+it("cancelling the name dialog keeps the query unsaved", async () => {
+  mocks.doc.ephemeral = true;
+  mocks.doc.nickname = "";
+  const user = userEvent.setup();
+  mount();
+  await user.click(screen.getByRole("button", { name: "Save query" }));
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(mocks.save).not.toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "Save query" })).toBeVisible();
+});
+
+it("warns about discarding the entire ephemeral query even without edits", () => {
+  mocks.doc.ephemeral = true;
+  mount();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  expect(mocks.block!()).toBe(true);
+  expect(confirm).toHaveBeenCalledWith(
+    "This query hasn’t been saved. Leave and discard the entire query?",
+  );
+  confirm.mockReturnValue(true);
+  expect(mocks.block!()).toBe(false);
+  confirm.mockRestore();
+});
+
+it("retains the changes-only warning for a saved query", async () => {
+  mount();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  expect(mocks.block!()).toBe(false);
+  await userEvent
+    .setup()
+    .click(screen.getByRole("button", { name: "Set manual row limit" }));
+  expect(mocks.block!()).toBe(true);
+  expect(confirm).toHaveBeenCalledWith(
+    "You have made changes to this query. Are you sure you want to leave without saving?",
+  );
+  confirm.mockRestore();
+});
+
+it("saves an ephemeral SQL query with a required name and the latest SQL", async () => {
+  mocks.customSql = true;
+  mocks.doc.ephemeral = true;
+  mocks.doc.nickname = "";
+  mount();
+  const user = userEvent.setup();
+  await user.clear(screen.getByRole("textbox", { name: "SQL query" }));
+  await user.type(
+    screen.getByRole("textbox", { name: "SQL query" }),
+    "SELECT 42",
+  );
+  await user.click(screen.getByRole("button", { name: "Save query" }));
+  const dialog = screen.getByRole("dialog", { name: "Save query" });
+  expect(
+    within(dialog).getByRole("textbox", { name: "Query name" }),
+  ).toHaveValue("");
+  expect(
+    within(dialog).getByRole("button", { name: "Save query" }),
+  ).toBeDisabled();
+  await user.type(
+    within(dialog).getByRole("textbox", { name: "Query name" }),
+    "Answer",
+  );
+  await user.click(within(dialog).getByRole("button", { name: "Save query" }));
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+  expect(mocks.save).toHaveBeenCalledWith(
+    expect.objectContaining({
+      nickname: "Answer",
+      query: {
+        mode: "sql",
+        sql: "SELECT 42",
+        dialect: "postgres",
+        parameters: undefined,
+      },
+    }),
+  );
+  expect(mocks.block!()).toBe(false);
+});
+
+it.each([true, false])(
+  "uses the appropriate SQL departure warning (ephemeral: %s)",
+  async (ephemeral) => {
+    mocks.customSql = true;
+    mocks.doc.ephemeral = ephemeral;
+    mount();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    if (!ephemeral) {
+      expect(mocks.block!()).toBe(false);
+      await userEvent
+        .setup()
+        .type(screen.getByRole("textbox", { name: "SQL query" }), "0");
+    }
+    expect(mocks.block!()).toBe(true);
+    expect(confirm).toHaveBeenCalledWith(
+      ephemeral
+        ? "This query hasn’t been saved. Leave and discard the entire query?"
+        : "You have unsaved SQL changes. Leave without saving?",
+    );
+    confirm.mockRestore();
+  },
+);
+
+it.each([false, true])(
+  "opening and refreshing a query never modifies it (SQL: %s)",
+  (sql) => {
+    mocks.customSql = sql;
+    mocks.doc.modifiedAt = 100;
+    const original = structuredClone(mocks.doc);
+    const view = mount();
+    act(() => mocks.refresh());
+    view.unmount();
+    mount();
+    expect(mocks.doc).toEqual(original);
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.save).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  { sql: true, ephemeral: false },
+  { sql: false, ephemeral: true },
+  { sql: true, ephemeral: true },
+])(
+  "confirms deletion in the popup for SQL=$sql, unsaved=$ephemeral",
+  async ({ sql, ephemeral }) => {
+    mocks.customSql = sql;
+    mocks.doc.ephemeral = ephemeral;
+    mount();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Query actions" }));
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: ephemeral ? "Discard query" : "Delete query",
+      }),
+    );
+    expect(mocks.remove).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole("menuitem", {
+        name: ephemeral ? "Confirm discard" : "Confirm delete",
+      }),
+    );
+    expect(mocks.remove).toHaveBeenCalledOnce();
+    expect(confirm).not.toHaveBeenCalled();
+    confirm.mockRestore();
+  },
+);

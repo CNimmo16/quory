@@ -130,6 +130,7 @@ it("opens an inferred edge with the keyboard and excludes its exact relationship
     removeJoin: vi.fn(),
     addJoin: vi.fn(),
     addJoinOnForeignKey: vi.fn(),
+    setJoinRoute: vi.fn(),
     addJoinOnForeignKeyReference: vi.fn(),
     hasCondition: () => false,
   });

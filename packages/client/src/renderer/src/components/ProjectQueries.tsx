@@ -11,6 +11,7 @@ import {
 import type { Project } from "../../../shared/project";
 import trpc from "../util/tprc";
 import NavLink, { navigationItemClassName } from "./NavLink";
+import { QueryActionsMenuItems } from "./QueryActionsMenu";
 import { useSidebarActions } from "../hooks/useSidebarActions";
 import {
   ContextMenu,
@@ -69,6 +70,11 @@ export function ProjectQueries({
       enabled: expanded,
       refetchInterval: expanded && project.storage === "folder" ? 3000 : false,
     },
+  );
+  const queries = [...(data?.queries ?? [])].sort(
+    (a, b) =>
+      Number(!!b.query.ephemeral) - Number(!!a.query.ephemeral) ||
+      (b.query.modifiedAt ?? 0) - (a.query.modifiedAt ?? 0),
   );
   function queryItem(queryId: string, children: React.ReactNode) {
     return active && hasActiveConnection ? (
@@ -162,7 +168,7 @@ export function ProjectQueries({
               </Alert>
             </li>
           ) : data ? (
-            data.queries.map(({ id, query }) => (
+            queries.map(({ id, query }) => (
               <li key={id}>
                 <ContextMenu modal={false}>
                   <ContextMenuTrigger asChild disabled={disabled}>
@@ -170,9 +176,16 @@ export function ProjectQueries({
                       {queryItem(
                         id,
                         <>
-                          <span className="min-w-0 flex-1 truncate">
-                            {query.nickname}
+                          <span
+                            className={`min-w-0 flex-1 truncate ${query.ephemeral ? "text-muted-foreground italic" : ""}`}
+                          >
+                            {query.nickname || "Unsaved query"}
                           </span>
+                          {query.ephemeral && (
+                            <span className="rounded-sm border border-dashed px-1 text-[10px] text-muted-foreground">
+                              Unsaved
+                            </span>
+                          )}
                           {query.mode === "sql" && (
                             <span className="rounded-sm border px-1 font-mono text-[10px] font-medium text-primary-emphasis">
                               SQL
@@ -198,31 +211,29 @@ export function ProjectQueries({
                         );
                       }}
                     />
-                    <ContextMenuItem
-                      onSelect={() =>
-                        actions.beginRename({
-                          queryId: id,
-                          name: query.nickname,
-                          revision: query._rev,
-                        })
+                    <QueryActionsMenuItems
+                      menu="context"
+                      disabled={disabled}
+                      ephemeral={query.ephemeral}
+                      onRename={
+                        query.ephemeral
+                          ? undefined
+                          : () =>
+                              actions.beginRename({
+                                queryId: id,
+                                name: query.nickname,
+                                revision: query._rev,
+                              })
                       }
-                    >
-                      <Pencil aria-hidden="true" />
-                      Rename query
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      onSelect={() =>
+                      onDelete={() =>
                         void actions.remove({
                           id,
-                          nickname: query.nickname,
+                          nickname: query.nickname || "Unsaved query",
+                          ephemeral: query.ephemeral,
                           revision: query._rev,
                         })
                       }
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 aria-hidden="true" />
-                      Delete query
-                    </ContextMenuItem>
+                    />
                   </ContextMenuContent>
                 </ContextMenu>
               </li>

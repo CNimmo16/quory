@@ -50,12 +50,12 @@ export function NewSqlQuery({
               setError(
                 cause instanceof Error
                   ? cause.message
-                  : "Could not save SQL query.",
+                  : "Could not open SQL query.",
               );
             }
           }}
         >
-          {create.isPending && <Spinner />}Save query
+          {create.isPending && <Spinner />}Open query
         </Button>
         {error && (
           <Alert variant="destructive" className="mt-3">

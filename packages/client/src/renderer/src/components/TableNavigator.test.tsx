@@ -102,6 +102,7 @@ function renderNavigator(
     removeJoin,
     addJoin,
     addJoinOnForeignKey: vi.fn(),
+    setJoinRoute: vi.fn(),
     addJoinOnForeignKeyReference: vi.fn(),
     hasCondition: () => false,
   });
@@ -207,7 +208,7 @@ describe("TableNavigator", () => {
     },
   );
 
-  it("removes joined tables directly and provides no delete action on the base table", async () => {
+  it("allows removing either table when another table remains", async () => {
     const user = userEvent.setup();
     const { removeJoin } = renderNavigator({
       ...query,
@@ -225,11 +226,11 @@ describe("TableNavigator", () => {
       },
     });
     const base = screen.getByRole("group", { name: /base table/ });
-    expect(
-      within(base).queryByRole("button", {
-        name: /Remove .* from query|Delete query|Actions for/,
-      }),
-    ).not.toBeInTheDocument();
+    await user.click(
+      within(base).getByRole("button", { name: "Remove customers from query" }),
+    );
+    expect(removeJoin).toHaveBeenCalledOnce();
+    removeJoin.mockClear();
     expect(
       screen.queryByRole("button", { name: /Actions for/ }),
     ).not.toBeInTheDocument();
@@ -237,6 +238,13 @@ describe("TableNavigator", () => {
       screen.getByRole("button", { name: "Remove orders from query" }),
     );
     expect(removeJoin).toHaveBeenCalledOnce();
+  });
+
+  it("does not offer removal for the only table", () => {
+    renderNavigator();
+    expect(
+      screen.queryByRole("button", { name: "Remove customers from query" }),
+    ).toBeNull();
   });
 
   it("keeps removal disabled for implicit tables needed to connect descendants", async () => {
@@ -379,7 +387,17 @@ describe("TableNavigator", () => {
     );
     expect(search).toHaveFocus();
     await user.keyboard("{Enter}");
-    expect(addJoin).toHaveBeenCalledWith("public.order_items");
+    expect(addJoin).toHaveBeenCalledWith("public.order_items", [
+      {
+        tableRef: "public.order_items",
+        usingConstraintId: JSON.stringify([
+          "customer_id",
+          "public",
+          "customers",
+          "id",
+        ]),
+      },
+    ]);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -432,7 +450,17 @@ describe("TableNavigator", () => {
       "true",
     );
     await user.keyboard("{ArrowDown}{Enter}");
-    expect(addJoin).toHaveBeenCalledWith("public.order_archive");
+    expect(addJoin).toHaveBeenCalledWith("public.order_archive", [
+      {
+        tableRef: "public.order_archive",
+        usingConstraintId: JSON.stringify([
+          "customer_id",
+          "public",
+          "customers",
+          "id",
+        ]),
+      },
+    ]);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -531,7 +559,17 @@ describe("TableNavigator", () => {
         name: "orders",
       }),
     );
-    expect(addJoin).toHaveBeenCalledWith("public.orders");
+    expect(addJoin).toHaveBeenCalledWith("public.orders", [
+      {
+        tableRef: "public.orders",
+        usingConstraintId: JSON.stringify([
+          "customer_id",
+          "public",
+          "customers",
+          "id",
+        ]),
+      },
+    ]);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

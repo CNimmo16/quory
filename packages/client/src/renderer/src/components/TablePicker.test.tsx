@@ -52,3 +52,41 @@ it("searches grouped tables, selects with the keyboard and allows choosing a dif
   await user.click(screen.getByRole("option", { name: "orders" }));
   expect(change).toHaveBeenLastCalledWith("public.orders");
 });
+
+it.each(["user", "USER", "public.user"])(
+  "ranks the exact table first for %j across schemas and selects it with Enter",
+  async (search) => {
+    const change = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <TablePicker
+        id="tables"
+        groups={[
+          {
+            name: "audit",
+            tables: [{ name: "user_events" }, { name: "superuser" }],
+          },
+          {
+            name: "public",
+            tables: [
+              { name: "users" },
+              { name: "user_settings" },
+              { name: "user" },
+            ],
+          },
+        ]}
+        value={null}
+        onChange={change}
+        maxHeight={400}
+      />,
+    );
+    await user.type(
+      screen.getByRole("combobox", { name: "Search tables" }),
+      search,
+    );
+    expect(screen.getAllByRole("option")[0]).toHaveTextContent(/^user$/);
+    expect(screen.getByRole("option", { name: "user_settings" })).toBeVisible();
+    await user.keyboard("{Enter}");
+    expect(change).toHaveBeenCalledWith("public.user");
+  },
+);

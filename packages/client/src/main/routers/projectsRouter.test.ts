@@ -296,6 +296,7 @@ it("uses the folder repository when renaming or deleting a folder query", async 
   expect(mocks.folderPut).toHaveBeenCalledWith({
     ...query,
     nickname: "New name",
+    modifiedAt: expect.any(Number),
   });
   await caller.deleteQuery({
     projectId,

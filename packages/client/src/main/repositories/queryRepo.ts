@@ -8,6 +8,9 @@ export type SavedQuery = QueryDefinition & {
   /** Only present on legacy documents until project migration. */
   connectionId?: string;
   nickname: string;
+  modifiedAt?: number;
+  /** Session-only draft, persisted only by an explicit Save query action. */
+  ephemeral?: boolean;
   chatMessages?: ChatMessage[];
   lastChatRequestId?: string;
   queryHistory?: QueryHistory;

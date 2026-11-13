@@ -25,6 +25,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { QueryToolbar } from "../../components/WindowToolbar";
+import { SaveQueryDialog } from "../../components/SaveQueryDialog";
 import { QueryActionsMenu } from "../../components/QueryActionsMenu";
 import { Spinner } from "../../components/LoadingState";
 import useElementSize from "../../hooks/useElementSize";
@@ -95,6 +96,7 @@ function QueryEditor({
   );
   const [chatOpen, setChatOpen] = useState(true);
   const [editingNickname, setEditingNickname] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [nickname, setNickname] = useState(data.query.nickname);
   const { ref, width, height } = useElementSize();
   const { data: schemaData } = useFetchSchema();
@@ -117,11 +119,18 @@ function QueryEditor({
   const deleteQuery = trpc.queries.deleteQuery.useMutation({
     onSuccess: async () => {
       await utils.projects.listQueries.invalidate();
-      await navigate({ to: "/queries" });
+      await navigate({ to: "/queries", ignoreBlocker: true });
     },
   });
   const updateQuery = trpc.queries.updateQuery.useMutation({
     onSuccess: async () => {
+      await utils.projects.listQueries.invalidate();
+      await router.invalidate();
+    },
+  });
+  const save = trpc.queries.saveQuery.useMutation({
+    onSuccess: async () => {
+      setSaveDialogOpen(false);
       await utils.projects.listQueries.invalidate();
       await router.invalidate();
     },
@@ -133,7 +142,13 @@ function QueryEditor({
       await utils.projects.listQueries.invalidate();
     },
   });
-  const shouldBlock = () => {
+  const shouldBlock = (leavingQuery = true) => {
+    if (save.isPending) return true;
+    if (deleteQuery.isSuccess) return false;
+    if (leavingQuery && data.query.ephemeral)
+      return !confirm(
+        "This query hasn’t been saved. Leave and discard the entire query?",
+      );
     if (chat.isPending)
       return !confirm(
         "Your query is still being updated. Leave this conversation?",
@@ -143,10 +158,11 @@ function QueryEditor({
       "You have made changes to this query. Are you sure you want to leave without saving?",
     );
   };
-  useBlocker({ shouldBlockFn: shouldBlock });
-  const switching = useConnectionSwitchGuard(shouldBlock);
+  useBlocker({ shouldBlockFn: () => shouldBlock() });
+  const switching = useConnectionSwitchGuard(() => shouldBlock(false));
   const busy =
     switching ||
+    save.isPending ||
     chat.isPending ||
     updateQuery.isPending ||
     updateNickname.isPending ||
@@ -160,16 +176,11 @@ function QueryEditor({
     );
   }
   function handleDeleteQuery() {
-    if (
-      confirm(
-        "This will permanently delete this query. Do you want to proceed?",
-      )
-    )
-      deleteQuery.mutate({
-        queryId,
-        connectionId: data.connectionId,
-        revision: data.query._rev,
-      });
+    deleteQuery.mutate({
+      queryId,
+      connectionId: data.connectionId,
+      revision: data.query._rev,
+    });
   }
   const error = updateQuery.error ?? updateNickname.error ?? deleteQuery.error;
   return (
@@ -208,42 +219,68 @@ function QueryEditor({
           <div className="flex min-w-0 flex-1 items-center gap-1">
             <h1
               className="truncate text-sm font-medium"
-              title={data.query.nickname}
+              title={data.query.nickname || "Unsaved query"}
             >
-              {data.query.nickname}
+              {data.query.nickname || "Unsaved query"}
             </h1>
           </div>
         )}
         <div className="flex items-center gap-1">
           <ConnectionBadge />
           <QueryActionsMenu
+            ephemeral={data.query.ephemeral}
             disabled={busy}
-            onRename={() => {
-              setEditingNickname(true);
-              setNickname(data.query.nickname);
-            }}
+            onRename={
+              data.query.ephemeral
+                ? undefined
+                : () => {
+                    setEditingNickname(true);
+                    setNickname(data.query.nickname);
+                  }
+            }
             onDelete={handleDeleteQuery}
           />
         </div>
-        {unsavedChanges && (
+        {(data.query.ephemeral || unsavedChanges) && (
           <Button
             size="sm"
             disabled={busy}
             onClick={() =>
-              updateQuery.mutate({
-                queryId,
-                connectionId: data.connectionId,
-                query: queryHistory.present.query,
-                queryHistory,
-                revision: data.query._rev,
-              })
+              data.query.ephemeral
+                ? setSaveDialogOpen(true)
+                : updateQuery.mutate({
+                    queryId,
+                    connectionId: data.connectionId,
+                    query: queryHistory.present.query,
+                    queryHistory,
+                    revision: data.query._rev,
+                  })
             }
             aria-busy={updateQuery.isPending}
           >
-            {updateQuery.isPending && <Spinner />}Save changes
+            {updateQuery.isPending && <Spinner />}
+            {data.query.ephemeral ? "Save query" : "Save changes"}
           </Button>
         )}
       </QueryToolbar>
+      {saveDialogOpen && (
+        <SaveQueryDialog
+          initialName={data.query.nickname}
+          pending={save.isPending}
+          error={save.error?.message}
+          onClose={() => setSaveDialogOpen(false)}
+          onSave={(queryName) =>
+            save.mutate({
+              queryId,
+              connectionId: data.connectionId,
+              revision: data.query._rev,
+              query: queryHistory.present.query,
+              queryHistory,
+              nickname: queryName,
+            })
+          }
+        />
+      )}
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error.message}</AlertDescription>
@@ -260,7 +297,7 @@ function QueryEditor({
               initialQuery={queryHistory.present.query}
               connectionId={data.connectionId}
               filtersetScope={
-                data.query.projectId
+                !data.query.ephemeral && data.query.projectId
                   ? { projectId: data.query.projectId, queryId }
                   : undefined
               }
@@ -326,6 +363,7 @@ function CustomSqlQueryEditor({
   });
   const [nickname, setNickname] = useState(data.query.nickname);
   const [editingNickname, setEditingNickname] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [sqlValid, setSqlValid] = useState(true);
   const router = useRouter();
   const navigate = useNavigate();
@@ -336,6 +374,14 @@ function CustomSqlQueryEditor({
       JSON.stringify(data.query.parameters ?? []);
   const update = trpc.queries.updateQuery.useMutation({
     onSuccess: async () => {
+      await utils.projects.listQueries.invalidate();
+      await router.invalidate();
+    },
+  });
+  const save = trpc.queries.saveQuery.useMutation({
+    onSuccess: async () => {
+      setSaveDialogOpen(false);
+      await utils.projects.listQueries.invalidate();
       await router.invalidate();
     },
   });
@@ -349,17 +395,28 @@ function CustomSqlQueryEditor({
   const remove = trpc.queries.deleteQuery.useMutation({
     onSuccess: async () => {
       await utils.projects.listQueries.invalidate();
-      await navigate({ to: "/queries" });
+      await navigate({ to: "/queries", ignoreBlocker: true });
     },
   });
-  const shouldBlock = () =>
-    dirty &&
-    !remove.isSuccess &&
-    !confirm("You have unsaved SQL changes. Leave without saving?");
-  useBlocker({ shouldBlockFn: shouldBlock });
-  const switching = useConnectionSwitchGuard(shouldBlock);
+  const shouldBlock = (leavingQuery = true) => {
+    if (save.isPending) return true;
+    if (remove.isSuccess) return false;
+    if (leavingQuery && data.query.ephemeral)
+      return !confirm(
+        "This query hasn’t been saved. Leave and discard the entire query?",
+      );
+    return (
+      dirty && !confirm("You have unsaved SQL changes. Leave without saving?")
+    );
+  };
+  useBlocker({ shouldBlockFn: () => shouldBlock() });
+  const switching = useConnectionSwitchGuard(() => shouldBlock(false));
   const busy =
-    switching || update.isPending || rename.isPending || remove.isPending;
+    switching ||
+    save.isPending ||
+    update.isPending ||
+    rename.isPending ||
+    remove.isPending;
   const input = {
     connectionId: data.connectionId,
     queryId,
@@ -401,35 +458,53 @@ function CustomSqlQueryEditor({
         ) : (
           <h1
             className="min-w-0 flex-1 truncate text-sm font-medium"
-            title={data.query.nickname}
+            title={data.query.nickname || "Unsaved query"}
           >
-            {data.query.nickname}
+            {data.query.nickname || "Unsaved query"}
           </h1>
         )}
         <div className="flex items-center gap-1">
           <ConnectionBadge />
           <QueryActionsMenu
+            ephemeral={data.query.ephemeral}
             disabled={busy}
-            onRename={() => {
-              setNickname(data.query.nickname);
-              setEditingNickname(true);
-            }}
-            onDelete={() => {
-              if (confirm("Permanently delete this SQL query?"))
-                remove.mutate(input);
-            }}
+            onRename={
+              data.query.ephemeral
+                ? undefined
+                : () => {
+                    setNickname(data.query.nickname);
+                    setEditingNickname(true);
+                  }
+            }
+            onDelete={() => remove.mutate(input)}
           />
         </div>
-        {dirty && (
+        {(data.query.ephemeral || dirty) && (
           <Button
             size="sm"
             disabled={busy || !sqlValid || !query.sql.trim()}
-            onClick={() => update.mutate({ ...input, query })}
+            onClick={() =>
+              data.query.ephemeral
+                ? setSaveDialogOpen(true)
+                : update.mutate({ ...input, query })
+            }
           >
-            {update.isPending && <Spinner />}Save changes
+            {update.isPending && <Spinner />}
+            {data.query.ephemeral ? "Save query" : "Save changes"}
           </Button>
         )}
       </QueryToolbar>
+      {saveDialogOpen && (
+        <SaveQueryDialog
+          initialName={data.query.nickname}
+          pending={save.isPending}
+          error={save.error?.message}
+          onClose={() => setSaveDialogOpen(false)}
+          onSave={(queryName) =>
+            save.mutate({ ...input, query, nickname: queryName })
+          }
+        />
+      )}
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error.message}</AlertDescription>

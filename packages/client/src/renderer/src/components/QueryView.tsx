@@ -105,7 +105,12 @@ export default function QueryView({
   const joinActions: typeof originalJoinActions = (alias) => ({
     ...originalJoinActions(alias),
     removeJoin: () => {
-      if (query) changeQuery(removeQueryJoin(query, alias));
+      if (!query) return;
+      if (query.base.joinAlias === alias) {
+        originalJoinActions(alias).removeJoin();
+      } else {
+        changeQuery(removeQueryJoin(query, alias));
+      }
     },
   });
 

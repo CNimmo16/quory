@@ -110,8 +110,15 @@ export class FolderQueryRepo {
   }
   private async read(id: string) {
     let contents: string;
+    let modifiedAt: number;
     try {
-      contents = await fs.readFile(this.file(id), "utf8");
+      const file = await fs.open(this.file(id), "r");
+      try {
+        contents = await file.readFile("utf8");
+        modifiedAt = (await file.stat()).mtimeMs;
+      } finally {
+        await file.close();
+      }
     } catch (error) {
       if (isMissing(error))
         throw Object.assign(new Error("Query file not found."), {
@@ -128,6 +135,7 @@ export class FolderQueryRepo {
         _id: id,
         _rev: revision(contents),
         projectId: this.projectId,
+        modifiedAt,
       };
     } catch (error) {
       throw new Error(

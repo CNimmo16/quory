@@ -6,6 +6,13 @@ export class SessionOwner<T extends { dispose(): Promise<void> }> {
   private operations = new Set<Promise<unknown>>();
   private stopped = false;
 
+  constructor(private readonly onDisconnected?: (id: string) => void) {}
+
+  private release(id: string) {
+    if (id !== this.current?.id && id !== this.pending?.id)
+      this.onDisconnected?.(id);
+  }
+
   get connectionGeneration() {
     return this.generation;
   }
@@ -23,6 +30,7 @@ export class SessionOwner<T extends { dispose(): Promise<void> }> {
   connect(id: string, initialize: () => Promise<T>): Promise<T> {
     if (this.stopped)
       return Promise.reject(new Error("Application is shutting down."));
+    const superseded = this.pending;
     const generation = ++this.generation;
     const promise = (async () => {
       const session = await initialize();
@@ -33,13 +41,17 @@ export class SessionOwner<T extends { dispose(): Promise<void> }> {
       const previous = this.current;
       this.current = { id, session };
       this.pending = undefined;
-      if (previous) await previous.session.dispose();
+      if (previous) {
+        this.release(previous.id);
+        await previous.session.dispose();
+      }
       // Disposal can overlap another switch/disconnect.
       if (generation !== this.generation)
         throw new Error("Connection was superseded.");
       return session;
     })();
     this.pending = { id, promise };
+    if (superseded) this.release(superseded.id);
     this.track(promise);
     void promise.catch(() => {
       if (generation === this.generation) this.pending = undefined;
@@ -50,13 +62,17 @@ export class SessionOwner<T extends { dispose(): Promise<void> }> {
   disconnect(id?: string): Promise<void> {
     if (id && this.current?.id !== id && this.pending?.id !== id)
       return Promise.resolve();
-    const cancelled = !id || this.pending?.id === id;
+    const pending = this.pending;
+    const cancelled = !id || pending?.id === id;
     if (cancelled || (!this.pending && this.current?.id === id)) {
       ++this.generation;
       this.pending = undefined;
     }
     const previous = !id || this.current?.id === id ? this.current : undefined;
     if (previous) this.current = undefined;
+    if (previous) this.release(previous.id);
+    if (cancelled && pending && pending.id !== previous?.id)
+      this.release(pending.id);
     const cleanup = previous?.session.dispose() ?? Promise.resolve();
     this.track(cleanup);
     // Also wait for superseded initializations to release their resources.

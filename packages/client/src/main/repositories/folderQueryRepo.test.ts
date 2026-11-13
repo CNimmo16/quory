@@ -175,3 +175,25 @@ it("round trips custom SQL files with bound parameters independently of relation
     _rev: result.rev,
   });
 });
+
+it("uses file modification times without updating them when queries are opened", async () => {
+  const { repo, directory } = await fixture();
+  await repo.put(query);
+  const file = join(directory, "queries", "orders.json");
+  const originalTime = new Date("2025-01-01T00:00:00Z");
+  await fs.utimes(file, originalTime, originalTime);
+  const original = await repo.get("orders");
+  expect(original.modifiedAt).toBe(originalTime.getTime());
+  expect((await repo.get("orders")).modifiedAt).toBe(original.modifiedAt);
+  await repo.allDocs({ include_docs: true });
+  expect((await fs.stat(file)).mtimeMs).toBe(original.modifiedAt);
+  const contents = JSON.parse(await fs.readFile(file, "utf8"));
+  expect(contents).not.toHaveProperty("modifiedAt");
+  await fs.writeFile(
+    file,
+    JSON.stringify({ ...contents, nickname: "Changed outside Quory" }),
+  );
+  const modifiedTime = new Date("2025-02-01T00:00:00Z");
+  await fs.utimes(file, modifiedTime, modifiedTime);
+  expect((await repo.get("orders")).modifiedAt).toBe(modifiedTime.getTime());
+});

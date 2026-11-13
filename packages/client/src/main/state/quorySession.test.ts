@@ -1,6 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ get: vi.fn(), create: vi.fn() }));
-vi.mock("./connectionRepo", () => ({ connectionRepo: { get: mocks.get } }));
+vi.mock("./connectionRepo", () => ({
+  connectionRepo: { get: mocks.get, forgetTemporary: vi.fn() },
+}));
 vi.mock("../repositories/projectRepo", () => ({
   projectRepo: { get: vi.fn() },
 }));

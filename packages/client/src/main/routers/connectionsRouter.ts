@@ -87,6 +87,7 @@ const connectionsRouter = router({
         revision: z.string().optional(),
         config: z.object({
           nickname: z.string(),
+          temporary: z.boolean().optional(),
           colour: z.enum(CONNECTION_COLOURS).optional(),
           writeProtection: z
             .enum(["read-only", "confirm-before-write", "dangerously-write"])
@@ -114,7 +115,15 @@ const connectionsRouter = router({
     .mutation(async ({ input: { revision, connectionId, config } }) => {
       const project = activeProjectState.requireActiveProject();
       const generation = activeProjectState.getProjectGeneration();
-      if (connectionId) await projectConnection(connectionId);
+      const existing = connectionId
+        ? await projectConnection(connectionId)
+        : null;
+      if (existing && Boolean(existing.temporary) !== Boolean(config.temporary))
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Duplicate the connection to change whether it is temporary.",
+        });
       try {
         const test = await makeQuoryRequestHandler({ database: config });
         await test.dispose();
@@ -147,13 +156,25 @@ const connectionsRouter = router({
         });
       }
       activeProjectState.assertCurrent(project._id, generation);
+      // Disconnect before replacing an active temporary record, since disconnect
+      // removes it. Recheck the project after waiting for session cleanup.
+      if (existing?.temporary) {
+        if (existing._rev !== revision)
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Connection changed. Reload it before saving again.",
+          });
+        await activeConnectionState.deleteActiveConnection(connectionId);
+        activeProjectState.assertCurrent(project._id, generation);
+      }
       await connectionRepo.put({
         projectId: project._id,
         _id: connectionId,
         _rev: revision,
         ...config,
       });
-      await activeConnectionState.deleteActiveConnection(connectionId);
+      if (!config.temporary)
+        await activeConnectionState.deleteActiveConnection(connectionId);
       return {
         connectionId: connectionId,
       };

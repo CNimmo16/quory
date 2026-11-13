@@ -3,7 +3,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
-  search: { queryId: "orders", create: false },
+  search: {
+    queryId: "orders",
+    create: false,
+    sourceConnectionId: undefined as string | undefined,
+  },
+  listConnections: vi.fn(),
+  extraNicknames: [] as string[],
   navigate: vi.fn(),
   invalidate: vi.fn(),
   save: vi.fn(),
@@ -20,29 +26,59 @@ const mocks = vi.hoisted(() => ({
     username: "app",
     password: "secret",
     port: 5432,
+    colour: "red",
+    writeProtection: "confirm-before-write",
+    temporary: true,
+    ssl: {
+      mode: "verify-full",
+      ca: "CA PEM",
+      cert: "CERT PEM",
+      key: "KEY PEM",
+    },
   },
 }));
 vi.mock("@tanstack/react-router", () => ({
-  createFileRoute: () => (options: unknown) => ({
+  createFileRoute: (path: string) => (options: unknown) => ({
     options,
     useSearch: () => mocks.search,
-    useLoaderData: () => ({ connection: mocks.connection }),
+    useLoaderData: () =>
+      path === "/connections/"
+        ? {
+            connections: [
+              { id: "new-id", connection: mocks.connection },
+              ...mocks.extraNicknames.map((nickname) => ({
+                id: nickname,
+                connection: { ...mocks.connection, nickname },
+              })),
+            ],
+            source: mocks.search.sourceConnectionId
+              ? { id: "new-id", connection: mocks.connection }
+              : undefined,
+          }
+        : { connection: mocks.connection },
   }),
   useNavigate: () => mocks.navigate,
   useRouter: () => ({ invalidate: mocks.invalidate }),
 }));
-vi.mock("../GlobalProviders", () => ({ trpcClient: {} }));
+vi.mock("../GlobalProviders", () => ({
+  trpcClient: {
+    connections: { listSavedConnections: { query: mocks.listConnections } },
+  },
+}));
 vi.mock("./ConnectionForm", () => ({
   ConnectionForm: ({
     onSave,
     onConnect,
     saveText,
+    config,
   }: {
     onSave: () => void;
     onConnect?: () => void;
     saveText: string;
+    config: unknown;
   }) => (
     <>
+      <output data-testid="config">{JSON.stringify(config)}</output>
       <button onClick={onSave}>{saveText}</button>
       {onConnect && <button onClick={onConnect}>Connect</button>}
     </>
@@ -89,7 +125,12 @@ const IndexPage = IndexRoute.options.component as ComponentType;
 const EditPage = EditRoute.options.component as ComponentType;
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.search = { queryId: "orders", create: false };
+  mocks.extraNicknames = [];
+  mocks.search = {
+    queryId: "orders",
+    create: false,
+    sourceConnectionId: undefined,
+  };
 });
 it("opens the connection form directly without the removed selection screen", () => {
   render(<IndexPage />);
@@ -129,4 +170,77 @@ it("returns to the global query screen when backing out of connection creation",
   expect(mocks.navigate).toHaveBeenCalledWith({
     to: "/queries",
   });
+});
+
+it("duplicates settings into a new identity and keeps the source unchanged", async () => {
+  mocks.search.sourceConnectionId = "new-id";
+  render(<IndexPage />);
+  await userEvent
+    .setup()
+    .click(screen.getByRole("button", { name: "Create connection" }));
+  expect(mocks.save).toHaveBeenCalledWith({
+    config: expect.objectContaining({
+      nickname: "Staging copy",
+      hostOrFilePath: "localhost",
+      password: "secret",
+      temporary: false,
+      colour: "red",
+      writeProtection: "confirm-before-write",
+      ssl: mocks.connection.ssl,
+    }),
+  });
+  const input = mocks.save.mock.calls[0]![0];
+  expect(input.connectionId).toBeUndefined();
+  expect(input.config._id).toBeUndefined();
+  expect(input.config._rev).toBeUndefined();
+  expect(input.config.projectId).toBeUndefined();
+  expect(mocks.connection.nickname).toBe("Staging");
+});
+
+it("prefills a new connection from the project's selector and can start over", async () => {
+  const user = userEvent.setup();
+  render(<IndexPage />);
+  await user.click(
+    screen.getByRole("combobox", { name: "Start from an existing connection" }),
+  );
+  await user.click(screen.getByRole("option", { name: "Staging" }));
+  expect(JSON.parse(screen.getByTestId("config").textContent!)).toMatchObject({
+    nickname: "Staging copy",
+    database: "app",
+    username: "app",
+    password: "secret",
+  });
+  await user.click(
+    screen.getByRole("combobox", { name: "Start from an existing connection" }),
+  );
+  await user.click(screen.getByRole("option", { name: "Start from scratch" }));
+  expect(JSON.parse(screen.getByTestId("config").textContent!)).toEqual({
+    hostOrFilePath: "localhost",
+    temporary: false,
+  });
+});
+
+it("chooses an unused nickname for a duplicate", async () => {
+  mocks.search.sourceConnectionId = "new-id";
+  mocks.extraNicknames = ["Staging copy", "Staging copy 2"];
+  render(<IndexPage />);
+  await userEvent
+    .setup()
+    .click(screen.getByRole("button", { name: "Create connection" }));
+  expect(mocks.save).toHaveBeenCalledWith({
+    config: expect.objectContaining({ nickname: "Staging copy 3" }),
+  });
+});
+
+it("rejects a duplicate source outside the active project's connections", async () => {
+  mocks.listConnections.mockResolvedValue({
+    connections: [{ id: "local", connection: mocks.connection }],
+  });
+  const loader = IndexRoute.options.loader as (context: {
+    deps: { sourceConnectionId: string };
+  }) => Promise<unknown>;
+  await expect(
+    loader({ deps: { sourceConnectionId: "other-project-connection" } }),
+  ).rejects.toThrow("current project");
+  expect(mocks.listConnections).toHaveBeenCalledWith();
 });

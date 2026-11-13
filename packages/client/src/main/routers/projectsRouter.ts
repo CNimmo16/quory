@@ -3,7 +3,10 @@ import { dialog } from "electron";
 import { z } from "zod";
 import { projectRepo } from "../repositories/projectRepo";
 import { queryRepo } from "../repositories/queryRepo";
-import { projectQueryRepo } from "../repositories/projectQueryRepo";
+import {
+  projectQueryRepo,
+  discardProjectEphemeralQueries,
+} from "../repositories/projectQueryRepo";
 import { connectionRepo } from "../state/connectionRepo";
 import { activeProjectState } from "../state/activeProjectState";
 import {
@@ -147,6 +150,7 @@ export default router({
       assertRevision(project._rev, input.revision);
       // Unregister first so this project cannot be opened during cleanup.
       await projectRepo.remove(project);
+      discardProjectEphemeralQueries(project._id);
       if (activeProjectState.getActiveProject()?._id === project._id)
         await activeProjectState.close();
       const [{ rows: connections }, { rows: queries }] = await Promise.all([

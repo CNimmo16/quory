@@ -36,6 +36,7 @@ export const activeProjectState = {
       });
   },
   async open(projectId: string) {
+    if (active?._id === projectId) return active;
     const openingGeneration = ++generation;
     active = null;
     await activeConnectionState.deleteActiveConnection();

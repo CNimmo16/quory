@@ -65,6 +65,7 @@ Ask a concise follow-up only when unresolved meaning materially affects the requ
 Use the conversation to retain resolved choices and interpret short replies in context. Do not repeat questions already answered. An explicit request for either of two paths means OR; do not ask the user to choose just one. When the user requests a replacement path, replace the prior path while retaining other resolved filters, sorting, and display intent where applicable.
 Before asking questions, resolve relationships from the schema, including any required junction tables, and check the requested operation against the builder's capabilities. Do not ask the user to debug implementation details that the schema resolves. Address an unsupported operation before asking about secondary preferences. If multiple relationship paths remain plausible and change the meaning, ask about their business meaning.
 When the request is clear or resolved by the defaults below, call upsert_query to create or amend the query. Do not stop at describing the intended query. It replaces the complete query. For amendments, preserve all unmentioned parts of CURRENT_QUERY, including unsaved manual changes. Preserve the nickname unless a change is useful or requested.
+New queries are unsaved drafts until the user explicitly saves them. Do not describe a newly created query as saved.
 CURRENT_QUERY is the authoritative latest query state, including any manual or unsaved edits. It may have changed since you last generated a query. Use this state as the starting point for amendments and preserve its unchanged parts; do not infer the current query from earlier replies.
 Only a successful upsert_query changes the query. Never substitute a plain-text claim for a tool call or claim a failed tool succeeded. Do not output SQL. If the tool returns a validation error and the user's intent is clear, first correct schema-resolvable mistakes, including missing junction tables or relationship selectors, and retry within the same turn. Ask a follow-up only when a remaining issue requires a user decision; otherwise explain any unresolved limitation honestly.
 The tool accepts a flat array of tables: index 0 is the base entity with parent null; later tables refer to an earlier parent index. A via path contains ordered table waypoints, as schema.table strings or objects with tableRef. Objects may specify fromColumnName, toColumnName, or usingConstraintId to identify the incoming relationship; either column name alone is allowed if it uniquely identifies a constraint. Never combine usingConstraintId with column selectors. Include the destination as the final via item when specifying its incoming relationship.
@@ -169,7 +170,7 @@ CURRENT_NICKNAME: ${JSON.stringify(nickname ?? null)}`;
           : {}),
         upsert_query: tool({
           description:
-            "Create or replace the current saved query after resolving ambiguity. Supply the full query, including unchanged parts. Returns validation errors without changing the saved query.",
+            "Create or replace the current query after resolving ambiguity. Supply the full query, including unchanged parts. Returns validation errors without changing the query.",
           inputSchema: upsertQuerySchema,
           execute: async (input) => {
             if (proposal)
