@@ -112,3 +112,40 @@ it("asks native predicates for columns and returns only positively selected cand
     joinPath: "orders -> order_items -> products",
   });
 });
+
+it("uses starting-table instructions when selecting initial columns for a single table", async () => {
+  const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        answers: {
+          candidate_0: { type: "noul", noul: 0.9 },
+          candidate_1: { type: "noul", noul: 0.2 },
+        },
+      }),
+    ),
+  );
+  const result = await rankJoinCandidates(
+    {
+      kind: "columns",
+      sourceTable: "public.orders",
+      targetTable: "public.orders",
+      joinedTables: ["public.orders"],
+      selectedColumns: [],
+      candidates: ["order_number", "payload"].map((id) => ({
+        id,
+        description: id,
+      })),
+    },
+    { provider: "typesafe", model: "jev-latest" },
+    "test-key",
+    { fetcher },
+  );
+  expect(result).toEqual({
+    ranked: true,
+    orderedIds: ["order_number", "payload"],
+    selectedIds: ["order_number"],
+  });
+  const body = JSON.parse(fetcher.mock.calls[0]![1]!.body as string);
+  expect(JSON.parse(body.state).task).toContain("starting table");
+  expect(body.questions.candidate_0.instructions).toContain("starting table");
+});

@@ -35,6 +35,11 @@ export async function rankJoinCandidates(
   apiKey: string | undefined,
   options: Parameters<typeof runDecision>[3] = {},
 ) {
+  const isStartingTable =
+    request.kind === "columns" &&
+    request.sourceTable === request.targetTable &&
+    request.joinedTables.length <= 1 &&
+    !request.joinPath;
   const answers = await runDecision(
     selection,
     apiKey,
@@ -44,7 +49,9 @@ export async function rankJoinCandidates(
           request.kind === "tables"
             ? "Rank tables the user is most likely to want to join next."
             : request.kind === "columns"
-              ? "Choose which columns to display from the newly joined destination table."
+              ? isStartingTable
+                ? "Choose which columns to display from the starting table of a new query."
+                : "Choose which columns to display from the newly joined destination table."
               : "Rank exact join paths between the source and destination tables.",
         guidance:
           request.kind === "columns"
@@ -65,7 +72,9 @@ export async function rankJoinCandidates(
           ? request.candidates.map((_, index) => ({
               name: `candidate_${index}`,
               type: "predicate" as const,
-              instructions: `Include candidate_${index} in the initial visible columns for the newly joined table. It is useful and relevant enough to show by default given this query context.`,
+              instructions: isStartingTable
+                ? `Include candidate_${index} in the initial visible columns for the starting table. It is useful and relevant enough to show by default.`
+                : `Include candidate_${index} in the initial visible columns for the newly joined table. It is useful and relevant enough to show by default given this query context.`,
             }))
           : request.candidates.map((_, index) => ({
               name: `candidate_${index}`,

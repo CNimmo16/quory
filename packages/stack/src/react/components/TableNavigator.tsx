@@ -1,9 +1,19 @@
-import { memo, useCallback, useId, useMemo, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   findTableFromSchemas,
   splitTableRef,
   resolveRelationship,
   normalizeVia,
+  type DatabaseTableInfo,
+  type PreparedJoinDef,
   type RelationshipConstraint,
   type PreparedQuery,
 } from "@quory/core";
@@ -30,6 +40,13 @@ import useElementSize from "../hooks/useElementSize";
 import { useRelationshipCanvas } from "../hooks/useRelationshipCanvas";
 
 import { TableColumnsMenu } from "./TableColumnsMenu";
+import { useJoinRanker } from "../JoinRankingContext";
+import { Spinner } from "./LoadingState";
+import {
+  selectedColumnContext,
+  shortlistJoinColumns,
+  selectJoinColumns,
+} from "./joinColumnSelection";
 
 type UseQueryRet = ReturnType<typeof useQuery>;
 
@@ -109,6 +126,57 @@ function TableNavigator({
   const [focusedRoute, setFocusedRoute] = useState<string | null>(null);
   const [openRoute, setOpenRoute] = useState<string | null>(null);
   const [hoveredCompact, setHoveredCompact] = useState(false);
+  const ranker = useJoinRanker();
+  const [choosingAlias, setChoosingAlias] = useState<string | null>(null);
+  const pendingColumns = useRef<AbortController | null>(null);
+  useEffect(() => {
+    pendingColumns.current?.abort();
+    pendingColumns.current = null;
+    setChoosingAlias(null);
+    return () => pendingColumns.current?.abort();
+  }, [query, ranker, schemas]);
+  const addIntermediateTable = async (
+    join: PreparedJoinDef,
+    parent: PreparedJoinDef,
+    table: DatabaseTableInfo,
+  ) => {
+    if (pendingColumns.current || !table.columns.length) return;
+    const context = selectedColumnContext(query.base);
+    const { candidates, fallback } = shortlistJoinColumns(
+      table,
+      context.flatMap(({ columns }) => columns),
+    );
+    let columns = fallback;
+    if (ranker && candidates.length > 1) {
+      const controller = new AbortController();
+      pendingColumns.current = controller;
+      setChoosingAlias(join.joinAlias);
+      const joinPath = join.joins.length
+        ? `${parent.tableRef} -> ${join.tableRef} -> ${join.joins
+            .map((child) => child.tableRef)
+            .join(", ")}`
+        : `${parent.tableRef} -> ${join.tableRef}`;
+      columns = await selectJoinColumns(
+        ranker,
+        {
+          kind: "columns",
+          sourceTable: parent.tableRef,
+          targetTable: join.tableRef,
+          joinedTables: context.map(({ tableRef }) => tableRef),
+          selectedColumns: context,
+          joinPath: joinPath.slice(0, 12000),
+          candidates,
+        },
+        fallback,
+        table.columns.map(({ name }) => name),
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
+      pendingColumns.current = null;
+      setChoosingAlias(null);
+    }
+    joinActions(join.joinAlias).setSelectedColumns(columns);
+  };
   const compactHighlighted = layout.nodes.some(
     (node) => node.compact && node.join.joinAlias === highlightedJoinAlias,
   );
@@ -505,21 +573,26 @@ function TableNavigator({
                     >
                       <button
                         type="button"
-                        aria-label={`Add all columns from ${tableName}${instance}`}
+                        disabled={choosingAlias !== null}
+                        aria-busy={choosingAlias === join.joinAlias || undefined}
+                        aria-label={`Add ${tableName}${instance} to query`}
                         className={cn(
-                          "bg-background text-muted-foreground hover:border-primary hover:text-primary-emphasis focus-visible:outline-primary size-full cursor-pointer truncate rounded-md border px-3 text-sm font-medium ring-1 transition-[color,border-color,box-shadow] duration-300 ease-out focus-visible:outline focus-visible:outline-2 motion-reduce:transition-none",
+                          "bg-background text-muted-foreground hover:border-primary hover:text-primary-emphasis focus-visible:outline-primary inline-flex size-full cursor-pointer items-center justify-center gap-1.5 truncate rounded-md border px-3 text-sm font-medium ring-1 transition-[color,border-color,box-shadow] duration-300 ease-out focus-visible:outline focus-visible:outline-2 disabled:cursor-wait motion-reduce:transition-none",
                           highlightedJoinAlias === join.joinAlias
                             ? "border-primary ring-primary/25"
                             : "border-muted-foreground/30 ring-transparent",
                         )}
                         onClick={() =>
-                          actions.setSelectedColumns(
-                            table.columns.map((column) => column.name),
-                          )
+                          void addIntermediateTable(join, parent!, table)
                         }
                       >
-                        {tableName}
-                        {instance}
+                        {choosingAlias === join.joinAlias && (
+                          <Spinner className="size-3 shrink-0" />
+                        )}
+                        <span className="truncate">
+                          {tableName}
+                          {instance}
+                        </span>
                       </button>
                     </Hint>
                   </div>

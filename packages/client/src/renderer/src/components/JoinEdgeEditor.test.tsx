@@ -597,7 +597,7 @@ it.each([1, 2])(
     });
     expect(edit).toHaveClass("opacity-100");
     await user.hover(
-      screen.getByRole("button", { name: "Add all columns from accounts" }),
+      screen.getByRole("button", { name: "Add accounts to query" }),
     );
     expect(hoverArea).toHaveClass("opacity-0");
     expect(edit).toHaveClass("opacity-0");

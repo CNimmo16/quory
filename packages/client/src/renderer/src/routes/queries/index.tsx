@@ -296,7 +296,10 @@ function QueryLaunch({
                   {disabledReason}
                 </p>
               ) : (
-                <NewManualQuery connectionId={connectionId} />
+                <NewManualQuery
+                  projectId={projectId!}
+                  connectionId={connectionId}
+                />
               )}
             </div>
           ) : started ? (

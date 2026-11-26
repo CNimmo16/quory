@@ -11,6 +11,11 @@ export {
   type JoinRankingRequest,
   type JoinRankingResult,
 } from "./JoinRankingContext";
+export {
+  selectedColumnContext,
+  shortlistJoinColumns,
+  selectJoinColumns,
+} from "./components/joinColumnSelection";
 export { useInvalidateQuory } from "./hooks/useInvalidateQuory";
 
 export { default as DataTable } from "./components/DataTable";

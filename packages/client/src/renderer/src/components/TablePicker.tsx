@@ -31,14 +31,16 @@ export function TablePicker({
   value,
   onChange,
   maxHeight,
+  defaultOpen = !value,
 }: {
   id: string;
   groups: { name: string; tables: { name: string }[] }[];
   value: string | null;
   onChange: (value: string) => void;
   maxHeight: number;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(!value);
+  const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
   const tableList = useRef<HTMLDivElement>(null);
   useEffect(() => {

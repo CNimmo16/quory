@@ -264,7 +264,7 @@ describe("TableNavigator", () => {
     ).toBeNull();
   });
 
-  it("shows implicit bridges as labels that add all columns on click", async () => {
+  it("shows implicit bridges as labels that add columns on click", async () => {
     const user = userEvent.setup();
     const { removeJoin, setSelectedColumns } = renderNavigator({
       ...query,
@@ -290,7 +290,7 @@ describe("TableNavigator", () => {
       },
     });
     const label = screen.getByRole("button", {
-      name: "Add all columns from orders",
+      name: "Add orders to query",
     });
     const bridge = screen.getByRole("group", {
       name: "public.orders, joined from public.customers",
@@ -305,6 +305,157 @@ describe("TableNavigator", () => {
     await user.click(label);
     expect(setSelectedColumns).toHaveBeenCalledWith(["customer_id"]);
     expect(removeJoin).not.toHaveBeenCalled();
+  });
+
+  it("uses the decision model to choose columns when adding an intermediate table", async () => {
+    const user = userEvent.setup();
+    const richSchemas = structuredClone(schemas);
+    const orders = richSchemas[0]!.tables[1]!;
+    orders.columns.push(
+      {
+        name: "order_number",
+        dataType: "text",
+        genericDataType: "text",
+        isNullable: false,
+        includedInPrimaryKey: false,
+        foreignKeys: [],
+        foreignKeyReferences: [],
+      },
+      {
+        name: "total",
+        dataType: "numeric",
+        genericDataType: "number",
+        isNullable: false,
+        includedInPrimaryKey: false,
+        foreignKeys: [],
+        foreignKeyReferences: [],
+      },
+      {
+        name: "payload",
+        dataType: "jsonb",
+        genericDataType: "hierarchical",
+        isNullable: true,
+        includedInPrimaryKey: false,
+        foreignKeys: [],
+        foreignKeyReferences: [],
+      },
+    );
+    const ranker = vi.fn<JoinRanker>().mockResolvedValue({
+      ranked: true,
+      orderedIds: [],
+      selectedIds: ["total", "order_number"],
+    });
+    const { setSelectedColumns } = renderNavigator(
+      {
+        ...query,
+        base: {
+          ...query.base,
+          joins: [
+            {
+              tableRef: "public.orders",
+              joinAlias: "orders",
+              select: [],
+              resultAliases: {},
+              joins: [
+                {
+                  tableRef: "public.customers",
+                  joinAlias: "other_customers",
+                  select: ["name"],
+                  resultAliases: {},
+                  joins: [],
+                },
+              ],
+            },
+          ],
+        },
+      },
+      false,
+      richSchemas,
+      ranker,
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Add orders to query" }),
+    );
+    await waitFor(() =>
+      expect(setSelectedColumns).toHaveBeenCalledWith([
+        "order_number",
+        "total",
+      ]),
+    );
+    expect(ranker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "columns",
+        sourceTable: "public.customers",
+        targetTable: "public.orders",
+        joinedTables: [
+          "public.customers",
+          "public.orders",
+          "public.customers",
+        ],
+        joinPath: "public.customers -> public.orders -> public.customers",
+      }),
+      expect.any(AbortSignal),
+    );
+  });
+
+  it("falls back to useful columns without a decision model when adding an intermediate table", async () => {
+    const user = userEvent.setup();
+    const richSchemas = structuredClone(schemas);
+    const orders = richSchemas[0]!.tables[1]!;
+    orders.columns.push(
+      {
+        name: "order_number",
+        dataType: "text",
+        genericDataType: "text",
+        isNullable: false,
+        includedInPrimaryKey: false,
+        foreignKeys: [],
+        foreignKeyReferences: [],
+      },
+      {
+        name: "payload",
+        dataType: "jsonb",
+        genericDataType: "hierarchical",
+        isNullable: true,
+        includedInPrimaryKey: false,
+        foreignKeys: [],
+        foreignKeyReferences: [],
+      },
+    );
+    const { setSelectedColumns } = renderNavigator(
+      {
+        ...query,
+        base: {
+          ...query.base,
+          joins: [
+            {
+              tableRef: "public.orders",
+              joinAlias: "orders",
+              select: [],
+              resultAliases: {},
+              joins: [
+                {
+                  tableRef: "public.customers",
+                  joinAlias: "other_customers",
+                  select: ["name"],
+                  resultAliases: {},
+                  joins: [],
+                },
+              ],
+            },
+          ],
+        },
+      },
+      false,
+      richSchemas,
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Add orders to query" }),
+    );
+    expect(setSelectedColumns).toHaveBeenCalledWith([
+      "customer_id",
+      "order_number",
+    ]);
   });
 
   async function chooseFilterField(

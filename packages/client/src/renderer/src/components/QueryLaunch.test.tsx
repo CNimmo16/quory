@@ -12,13 +12,19 @@ vi.mock("./ConnectionBadge", () => ({
   ),
 }));
 import type { ComponentType } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
+import type { DatabaseSchema } from "@quory/core";
+import { JoinRankingProvider, type JoinRanker } from "@quory/stack/react";
 import { NewQueryDraftProvider } from "../hooks/useNewQueryDraft";
 import { TooltipProvider } from "./ui/tooltip";
 import { MainDimensionsContext } from "../hooks/useMainDimensions";
 import type { QueryChatResult } from "../../../shared/queryChat";
+
+const defaultSchemas: DatabaseSchema[] = [
+  { name: "public", tables: [{ name: "orders", columns: [] }] },
+];
 
 const mocks = vi.hoisted(() => ({
   connectionId: "connection-1",
@@ -31,6 +37,8 @@ const mocks = vi.hoisted(() => ({
     { id: "app", project: { name: "Application", storage: "database" } },
     { id: "team", project: { name: "Team", storage: "database" } },
   ],
+  schemas: [] as DatabaseSchema[],
+  ranker: undefined as JoinRanker | undefined,
   chat: vi.fn(),
   create: vi.fn(),
   navigate: vi.fn(),
@@ -58,7 +66,7 @@ vi.mock("../util/trpcClient", () => ({
 vi.mock("@quory/stack/react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@quory/stack/react")>()),
   useFetchSchema: () => ({
-    data: { schemas: [{ name: "public", tables: [{ name: "orders" }] }] },
+    data: { schemas: mocks.schemas },
   }),
 }));
 vi.mock("../util/tprc", () => ({
@@ -108,8 +116,11 @@ const Page = Route.options.component as ComponentType;
 
 beforeEach(() => {
   vi.resetAllMocks();
+  window.localStorage.clear();
   mocks.connectionId = "connection-1";
   mocks.projectId = "app";
+  mocks.schemas = structuredClone(defaultSchemas);
+  mocks.ranker = undefined;
   mocks.open.mockResolvedValue(undefined);
   mocks.create.mockResolvedValue({ queryId: "manual-query" });
   mocks.listProjects.mockResolvedValue({
@@ -138,13 +149,15 @@ it("uses first-project creation when no projects exist", async () => {
 });
 function queryPage() {
   return (
-    <NewQueryDraftProvider>
-      <TooltipProvider delayDuration={0}>
-        <MainDimensionsContext.Provider value={{ width: 900, height: 800 }}>
-          <Page />
-        </MainDimensionsContext.Provider>
-      </TooltipProvider>
-    </NewQueryDraftProvider>
+    <JoinRankingProvider value={mocks.ranker}>
+      <NewQueryDraftProvider>
+        <TooltipProvider delayDuration={0}>
+          <MainDimensionsContext.Provider value={{ width: 900, height: 800 }}>
+            <Page />
+          </MainDimensionsContext.Provider>
+        </TooltipProvider>
+      </NewQueryDraftProvider>
+    </JoinRankingProvider>
   );
 }
 function mount() {
@@ -320,6 +333,189 @@ it("does not open an old manual query after switching connections", async () => 
     expect(screen.getByRole("option", { name: "orders" })).toBeVisible(),
   );
   expect(mocks.navigate).not.toHaveBeenCalled();
+});
+
+it("uses the decision model to choose initial columns for a manual starting table and falls back without one", async () => {
+  const column = (name: string, overrides = {}) => ({
+    name,
+    dataType: "text",
+    genericDataType: "text" as const,
+    isNullable: false,
+    includedInPrimaryKey: name === "id",
+    foreignKeys: [],
+    foreignKeyReferences: [],
+    ...overrides,
+  });
+  mocks.schemas = [
+    {
+      name: "public",
+      tables: [
+        {
+          name: "orders",
+          columns: [
+            column("id"),
+            column("order_number"),
+            column("status"),
+            column("payload", {
+              dataType: "jsonb",
+              genericDataType: "hierarchical",
+            }),
+          ],
+        },
+      ],
+    },
+  ];
+  const ranker = vi.fn<JoinRanker>().mockResolvedValue({
+    ranked: true,
+    orderedIds: [],
+    selectedIds: ["status", "order_number"],
+  });
+  mocks.ranker = ranker;
+
+  const user = userEvent.setup();
+  const view = mount();
+  await user.click(screen.getByRole("button", { name: "Manual" }));
+  await user.click(screen.getByRole("option", { name: "orders" }));
+  await waitFor(() =>
+    expect(mocks.create).toHaveBeenCalledWith({
+      connectionId: "connection-1",
+      query: {
+        base: {
+          tableRef: "public.orders",
+          select: ["order_number", "status"],
+        },
+      },
+    }),
+  );
+  expect(ranker).toHaveBeenCalledWith(
+    expect.objectContaining({
+      kind: "columns",
+      sourceTable: "public.orders",
+      targetTable: "public.orders",
+      joinedTables: ["public.orders"],
+      selectedColumns: [],
+    }),
+    expect.any(AbortSignal),
+  );
+
+  // Without a decision model, use the useful fallback columns rather than "*".
+  view.unmount();
+  window.localStorage.clear();
+  mocks.create.mockClear();
+  mocks.ranker = undefined;
+  mount();
+  await user.click(screen.getByRole("button", { name: "Manual" }));
+  await user.click(screen.getByRole("option", { name: "orders" }));
+  await waitFor(() =>
+    expect(mocks.create).toHaveBeenCalledWith({
+      connectionId: "connection-1",
+      query: {
+        base: {
+          tableRef: "public.orders",
+          select: ["id", "order_number", "status"],
+        },
+      },
+    }),
+  );
+});
+
+it("starts with no recent pills, populates up to 5 from manual mode usage, and still allows selecting from the dropdown", async () => {
+  const table = (name: string) => ({ name, columns: [] });
+  mocks.schemas = [
+    {
+      name: "public",
+      tables: [
+        table("orders"),
+        table("customers"),
+        table("products"),
+        table("invoices"),
+        table("shipments"),
+        table("payments"),
+        table("returns"),
+      ],
+    },
+    {
+      name: "audit",
+      tables: [table("orders")],
+    },
+  ];
+
+  const user = userEvent.setup();
+  let view = mount();
+  await user.click(screen.getByRole("button", { name: "Manual" }));
+
+  // Starts empty with no recent pills and the dropdown open.
+  expect(
+    screen.queryByRole("group", { name: "Recent starting tables" }),
+  ).not.toBeInTheDocument();
+
+  // Select 6 tables in manual mode (repeating one to test deduplication/reordering).
+  const pickFromDropdown = async (search: string, optionName: string) => {
+    const trigger = screen.getByRole("combobox", { name: "Starting table" });
+    if (trigger.getAttribute("aria-expanded") !== "true") {
+      await user.click(trigger);
+    }
+    const input = screen.getByRole("combobox", { name: "Search tables" });
+    await user.clear(input);
+    await user.type(input, search);
+    await user.click(screen.getAllByRole("option", { name: optionName })[0]!);
+    await waitFor(() => expect(mocks.create).toHaveBeenCalled());
+    mocks.create.mockClear();
+  };
+
+  for (const [search, optionName] of [
+    ["payments", "payments"],
+    ["shipments", "shipments"],
+    ["invoices", "invoices"],
+    ["audit.orders", "orders"],
+    ["customers", "customers"],
+    ["public.orders", "orders"],
+    ["invoices", "invoices"],
+  ] as const) {
+    await pickFromDropdown(search, optionName);
+  }
+
+  // Reopening manual mode shows the 5 most recent unique manual starting tables.
+  view.unmount();
+  view = mount();
+  await user.click(screen.getByRole("button", { name: "Manual" }));
+
+  const recentGroup = screen.getByRole("group", {
+    name: "Recent starting tables",
+  });
+  const pills = within(recentGroup).getAllByRole("button");
+  expect(pills.map((button) => button.textContent)).toEqual([
+    "invoices",
+    "public.orders",
+    "customers",
+    "audit.orders",
+    "shipments",
+  ]);
+  // Dropdown stays closed by default when recent pills are shown.
+  expect(screen.queryByRole("option")).not.toBeInTheDocument();
+
+  // Clicking a pill opens a query starting from that table.
+  await user.click(
+    within(recentGroup).getByRole("button", { name: "customers" }),
+  );
+  await waitFor(() =>
+    expect(mocks.create).toHaveBeenCalledWith({
+      connectionId: "connection-1",
+      query: { base: { tableRef: "public.customers", select: "*" } },
+    }),
+  );
+
+  // Alternatively, the user can open the dropdown and choose another table.
+  mocks.create.mockClear();
+  await user.click(screen.getByRole("combobox", { name: "Starting table" }));
+  await user.click(screen.getByRole("option", { name: "returns" }));
+  await waitFor(() =>
+    expect(mocks.create).toHaveBeenCalledWith({
+      connectionId: "connection-1",
+      query: { base: { tableRef: "public.returns", select: "*" } },
+    }),
+  );
+  view.unmount();
 });
 
 it("explains missing selectors on the disabled submit button and blocks Enter submission", async () => {
