@@ -5,6 +5,7 @@ import { publicProcedure, router } from "../util/trpc";
 import { settingsStore, secureStorageAvailable } from "../settings";
 import {
   aiSettingsSchema,
+  providerSettingsSchema,
   preferencesSchema,
   providerSchema,
   modelDiscoverySchema,
@@ -14,6 +15,7 @@ import { getQueryModel } from "../ai/model";
 import { configureTelemetry } from "../telemetry";
 import { applyNativeAppearance } from "../settings/appearance";
 import { mkdirSync } from "node:fs";
+import { runDecision } from "../ai/decisions";
 import { discoverModels } from "../ai/models";
 
 const links = {
@@ -37,6 +39,12 @@ export default router({
       applyNativeAppearance(input.appearance);
       configureTelemetry(input.privacy);
       return settingsStore().preferences();
+    }),
+  saveProvider: publicProcedure
+    .input(providerSettingsSchema)
+    .mutation(({ input }) => {
+      settingsStore().saveProvider(input);
+      return settingsStore().ai();
     }),
   saveAI: publicProcedure.input(aiSettingsSchema).mutation(({ input }) => {
     settingsStore().saveAI(input);
@@ -79,6 +87,41 @@ export default router({
         success: false,
         message:
           "Connection failed. Check your saved API key, model access, billing, and network connection.",
+      };
+    }
+  }),
+  testDecision: publicProcedure.mutation(async () => {
+    try {
+      const store = settingsStore();
+      const selection = store.ai().decision;
+      if (!selection)
+        return {
+          success: false,
+          message: "Choose and save a decision model first.",
+        };
+      await runDecision(
+        selection,
+        store.credential(selection.provider),
+        {
+          input: "The sky is blue.",
+          questions: [
+            {
+              name: "connection_test",
+              type: "predicate",
+              instructions: "Does the text describe the sky as blue?",
+            },
+          ],
+        },
+        selection.provider === "cloudflare"
+          ? { accountId: store.ai().providers.cloudflare.accountId }
+          : {},
+      );
+      return { success: true, message: "Decision connection successful." };
+    } catch {
+      return {
+        success: false,
+        message:
+          "Decision connection failed. Check the saved key, model access, billing, and network connection.",
       };
     }
   }),

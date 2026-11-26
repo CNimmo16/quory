@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { defaultFilter } from "cmdk";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "./ui/button";
@@ -40,6 +40,19 @@ export function TablePicker({
 }) {
   const [open, setOpen] = useState(!value);
   const [search, setSearch] = useState("");
+  const tableList = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const resetScroll = () => {
+      if (tableList.current) tableList.current.scrollTop = 0;
+    };
+    resetScroll();
+    // cmdk updates its controlled search, then defers the selection render.
+    // Wait for both before resetting so the old selection cannot scroll back.
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(resetScroll);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [search, open]);
   // Schema groups stay intact, with exact-match schemas ahead of partial matches.
   const rankedGroups = groups
     .map((group) => ({
@@ -98,6 +111,7 @@ export function TablePicker({
             aria-label="Search tables"
           />
           <CommandList
+            ref={tableList}
             style={{
               maxHeight: `min(${Math.max(
                 120,

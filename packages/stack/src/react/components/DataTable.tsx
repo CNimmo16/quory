@@ -5,12 +5,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "./ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 import { ConditionOperator, splitTableRef } from "@quory/core";
 import type useQuery from "../hooks/useQuery";
 import { memo, useMemo, useState, type ReactNode } from "react";
@@ -18,15 +12,14 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  EyeOff,
   Filter,
   Link,
-  MoreHorizontal,
   Table2,
 } from "lucide-react";
 import classNames from "classnames";
 
 import { Spinner } from "./LoadingState";
+import { ColumnHeaderMenu } from "./ColumnHeaderMenu";
 import { TableColumnsMenu } from "./TableColumnsMenu";
 
 type UseQueryRet = ReturnType<typeof useQuery>;
@@ -412,48 +405,17 @@ function DataTable(props: DataTableProps) {
                                 )}
                               />
                             </button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  type="button"
-                                  aria-label={`Options for ${readableName}`}
-                                  className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-primary rounded-sm p-1"
-                                >
-                                  <MoreHorizontal className="size-3.5" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className="shadow-none"
-                              >
-                                <DropdownMenuItem onSelect={() => sort("asc")}>
-                                  <ArrowUp />
-                                  Sort ascending
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => sort("desc")}>
-                                  <ArrowDown />
-                                  Sort descending
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  disabled={
-                                    visibleJoins[joinIndex]!.columns.length ===
-                                      1 && join.joins.length === 0
-                                  }
-                                  onSelect={() =>
-                                    joinActions(
-                                      join.joinAlias,
-                                    ).setSelectedColumns(
-                                      visibleJoins[joinIndex]!.columns.filter(
-                                        (column) => column.name !== name,
-                                      ).map((column) => column.name),
-                                    )
-                                  }
-                                >
-                                  <EyeOff />
-                                  Hide column
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <ColumnHeaderMenu
+                              join={join}
+                              table={visibleJoins[joinIndex]!.table}
+                              column={name}
+                              readableName={readableName}
+                              visibleColumns={visibleJoins[
+                                joinIndex
+                              ]!.columns.map((column) => column.name)}
+                              joinActions={joinActions}
+                              onSort={sort}
+                            />
                           </>
                         ) : (
                           <span

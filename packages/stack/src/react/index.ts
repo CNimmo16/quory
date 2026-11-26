@@ -1,9 +1,16 @@
-import { QuoryProvider } from "./QuoryContext";
+import { QuoryProvider } from "./QuoryProvider";
 import useFetchSchema from "./hooks/useFetchSchema";
 import useQuery from "./hooks/useQuery";
 import useQueryCount from "./hooks/useQueryCount";
 
 export { QuoryProvider, useFetchSchema, useQuery, useQueryCount };
+export {
+  JoinRankingProvider,
+  useJoinRanker,
+  type JoinRanker,
+  type JoinRankingRequest,
+  type JoinRankingResult,
+} from "./JoinRankingContext";
 export { useInvalidateQuory } from "./hooks/useInvalidateQuory";
 
 export { default as DataTable } from "./components/DataTable";

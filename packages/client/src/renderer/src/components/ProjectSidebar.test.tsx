@@ -24,6 +24,8 @@ const mocks = vi.hoisted(() => ({
   expandedProject: undefined as string | undefined,
   listQueries: vi.fn(),
   openProject: vi.fn(),
+  selectProject: vi.fn(),
+  selectedProjectId: "app",
   renameProject: vi.fn(),
   deleteProject: vi.fn(),
   renameQuery: vi.fn(),
@@ -110,13 +112,35 @@ it("does not navigate when clicking the current query", () => {
   const query = screen.getByRole("link", { name: "Orders" });
   expect(fireEvent.click(query)).toBe(false);
 });
-vi.mock("../GlobalProviders", () => ({ trpcClient: {} }));
+vi.mock("../util/trpcClient", () => ({ trpcClient: {} }));
 vi.mock("../hooks/useOpenProject", () => ({
   useOpenProject: () => ({ openProject: mocks.openProject, isPending: false }),
 }));
 vi.mock("../util/tprc", () => ({
   default: {
     projects: {
+      open: {
+        useMutation: ({ onSuccess }: { onSuccess: () => Promise<void> }) => {
+          const [isPending, setPending] = useState(false);
+          const [error, setError] = useState<Error | null>(null);
+          return {
+            mutate: async (input: { projectId: string }) => {
+              setPending(true);
+              setError(null);
+              try {
+                await mocks.selectProject(input);
+                await onSuccess();
+              } catch (cause) {
+                setError(cause as Error);
+              } finally {
+                setPending(false);
+              }
+            },
+            isPending,
+            error,
+          };
+        },
+      },
       rename: {
         useMutation: () => ({
           mutateAsync: mocks.renameProject,
@@ -165,7 +189,12 @@ vi.mock("../util/tprc", () => ({
                 ]
               : [],
             activeProject: mocks.activeProject
-              ? { _id: "app", name: "Application", storage: "database" }
+              ? {
+                  _id: mocks.selectedProjectId,
+                  name:
+                    mocks.selectedProjectId === "app" ? "Application" : "Team",
+                  storage: "database",
+                }
               : null,
           },
         }),
@@ -297,10 +326,17 @@ beforeEach(() => {
   mocks.blockSwitch = false;
   mocks.localColour = undefined;
   mocks.activeProject = true;
+  mocks.selectedProjectId = "app";
   mocks.hasProjects = true;
   mocks.expandedProject = undefined;
   mocks.connect.mockResolvedValue(undefined);
   mocks.openProject.mockResolvedValue(undefined);
+  mocks.selectProject.mockImplementation(
+    async ({ projectId }: { projectId: string }) => {
+      mocks.activeProject = true;
+      mocks.selectedProjectId = projectId;
+    },
+  );
   for (const mutation of [
     mocks.renameProject,
     mocks.deleteProject,
@@ -607,6 +643,85 @@ it("highlights the selected project instead of the global New query button", asy
   );
   await userEvent.setup().click(button);
   expect(mocks.navigate).toHaveBeenCalledWith({ to: "/queries" });
+});
+
+it.each(["/queries", "/queries/"])(
+  "selects an expanded project for a new query on %s",
+  async (pathname) => {
+    mocks.pathname = pathname;
+    render(<Layout />);
+    expect(mocks.selectProject).not.toHaveBeenCalled();
+    const user = userEvent.setup();
+    const project = screen.getByRole("button", { name: "Team" });
+    await user.click(project);
+    await waitFor(() => expect(mocks.invalidateRouter).toHaveBeenCalledOnce());
+    expect(mocks.selectProject).toHaveBeenCalledWith({ projectId: "team" });
+    expect(mocks.refreshProjects).toHaveBeenCalledOnce();
+    expect(mocks.refreshQueries).toHaveBeenCalledOnce();
+    expect(mocks.refreshConnections).toHaveBeenCalledOnce();
+    expect(project).toHaveAttribute("aria-expanded", "true");
+    expect(project).toHaveAttribute("aria-current", "true");
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    expect(mocks.openProject).not.toHaveBeenCalled();
+    await user.click(project);
+    expect(project).toHaveAttribute("aria-expanded", "false");
+    expect(mocks.selectProject).toHaveBeenCalledOnce();
+  },
+);
+
+it("selects the first project by expansion when a new query has no project", async () => {
+  mocks.pathname = "/queries";
+  mocks.activeProject = false;
+  render(<Layout />);
+  await userEvent
+    .setup()
+    .click(screen.getByRole("button", { name: "Application" }));
+  await waitFor(() =>
+    expect(mocks.selectProject).toHaveBeenCalledWith({ projectId: "app" }),
+  );
+  expect(screen.getByRole("button", { name: "Application" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+});
+
+it("does not reopen the selected project when collapsing and expanding it", async () => {
+  mocks.pathname = "/queries";
+  render(<Layout />);
+  const user = userEvent.setup();
+  const project = screen.getByRole("button", { name: "Application" });
+  await user.click(project);
+  await user.click(project);
+  expect(project).toHaveAttribute("aria-expanded", "true");
+  expect(mocks.selectProject).not.toHaveBeenCalled();
+});
+
+it.each(["/queries/orders", "/projects", "/connections"])(
+  "expands without selecting a project on %s",
+  async (pathname) => {
+    mocks.pathname = pathname;
+    render(<Layout />);
+    const project = screen.getByRole("button", { name: "Team" });
+    await userEvent.setup().click(project);
+    expect(project).toHaveAttribute("aria-expanded", "true");
+    expect(mocks.selectProject).not.toHaveBeenCalled();
+    expect(mocks.openProject).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  },
+);
+
+it("shows a project selection failure without navigating away from the new query", async () => {
+  mocks.pathname = "/queries";
+  mocks.selectProject.mockRejectedValue(new Error("Project unavailable"));
+  render(<Layout />);
+  await userEvent.setup().click(screen.getByRole("button", { name: "Team" }));
+  expect(await screen.findByText("Project unavailable")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Application" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  expect(mocks.navigate).not.toHaveBeenCalled();
+  expect(mocks.invalidateRouter).not.toHaveBeenCalled();
 });
 
 it("highlights no project when global query creation has no selected project", () => {

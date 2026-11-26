@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { FolderKanban } from "lucide-react";
-import { trpcClient } from "../../GlobalProviders";
+import { trpcClient } from "../../util/trpcClient";
 import trpc from "../../util/tprc";
 import { ProjectForm } from "../../components/ProjectForm";
 import { Alert, AlertDescription } from "../../components/ui/alert";

@@ -20,6 +20,13 @@ function chain(length: number, prefix = "chain"): PreparedJoinDef {
     length > 1 ? [chain(length - 1, prefix)] : [],
   );
 }
+function withBridges(join: PreparedJoinDef): PreparedJoinDef {
+  return {
+    ...join,
+    select: join.joins.length ? [] : join.select,
+    joins: join.joins.map(withBridges),
+  };
+}
 const branch = table("root", [
   chain(8, "first"),
   table("second", [table("second_a"), chain(4, "second_b"), table("second_c")]),
@@ -39,13 +46,21 @@ describe("responsive relationship layout", () => {
   it.each([200, 280, 360, 480, 720, 1000, 1600])(
     "keeps every node and connector in bounds without crossing cards at %ipx",
     (width) => {
-      for (const base of [table("single"), chain(20), branch]) {
+      for (const base of [
+        table("single"),
+        chain(20),
+        branch,
+        withBridges(chain(20)),
+        withBridges(branch),
+      ]) {
         const layout = layoutTableDiagram(base, width);
         expect(
           new Set(layout.nodes.map((node) => node.join.joinAlias)).size,
         ).toBe(layout.nodes.length);
         expect(layout.edges).toHaveLength(layout.nodes.length - 1);
-        expect(layout.placeholders).toHaveLength(layout.nodes.length);
+        expect(layout.placeholders).toHaveLength(
+          layout.nodes.filter((node) => !node.compact).length,
+        );
         for (const placeholder of layout.placeholders) {
           expect(placeholder.x).toBeGreaterThanOrEqual(0);
           expect(placeholder.x + placeholder.width).toBeLessThanOrEqual(width);
@@ -105,7 +120,7 @@ describe("responsive relationship layout", () => {
 
   it("wraps deep relationships onto lower rows as available space decreases", () => {
     const base = chain(4);
-    const wide = layoutTableDiagram(base, 1100);
+    const wide = layoutTableDiagram(base, 1280);
     const medium = layoutTableDiagram(base, 560);
     const narrow = layoutTableDiagram(base, 300);
     expect(new Set(wide.nodes.map((node) => node.row)).size).toBe(1);
@@ -115,4 +130,28 @@ describe("responsive relationship layout", () => {
       wide.nodes.map((node) => node.join.joinAlias),
     );
   });
+});
+
+it("packs consecutive intermediate labels at half their former visible spacing while keeping full cards apart", () => {
+  const base = table("order", [
+    withBridges(
+      table("order_item", [
+        table("listing", [table("checkout", [table("user")])]),
+      ]),
+    ),
+  ]);
+  const layout = layoutTableDiagram(base, 1280);
+  expect(new Set(layout.nodes.map((node) => node.row)).size).toBe(1);
+  const [order, orderItem, listing, checkout, user] = layout.nodes;
+  expect(orderItem!.x - order!.x - order!.width).toBe(112);
+  expect(user!.x - checkout!.x - checkout!.width).toBe(112);
+  for (const [first, second] of [
+    [orderItem!, listing!],
+    [listing!, checkout!],
+  ]) {
+    const previousGap =
+      112 + (208 - first!.width) / 2 + (208 - second!.width) / 2;
+    expect(second!.x - first!.x - first!.width).toBeCloseTo(previousGap / 2);
+  }
+  expect(order!.x).toBeCloseTo(1280 - user!.x - user!.width);
 });

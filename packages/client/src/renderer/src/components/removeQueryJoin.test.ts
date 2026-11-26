@@ -101,3 +101,81 @@ it("removes only the requested leaf instance and protects the base", async () =>
     ),
   ).toThrow("Cannot remove base join");
 });
+
+it("prunes every emptied intermediate table without removing the base or unrelated empty tables", async () => {
+  const { preparedQuery } = await prepareQuery(schemas, {
+    offset: 100,
+    base: {
+      tableRef: "public.users",
+      select: ["email"],
+      joins: [
+        {
+          tableRef: "public.orders",
+          select: [],
+          joins: [
+            {
+              tableRef: "public.listings",
+              select: [],
+              joins: [{ tableRef: "public.orders", select: ["status"] }],
+            },
+          ],
+        },
+        { tableRef: "public.orders", select: [] },
+      ],
+    },
+  });
+  const bridge = preparedQuery.base.joins[0]!;
+  const target = bridge.joins[0]!.joins[0]!;
+  const next = removeQueryJoin(preparedQuery, target.joinAlias);
+  expect(next.base.joins).toEqual([preparedQuery.base.joins[1]]);
+  expect(next.base.tableRef).toBe("public.users");
+  expect(next.offset).toBe(0);
+  expect(bridge.joins[0]!.joins).toEqual([target]);
+  await expect(prepareQuery(schemas, next)).resolves.toBeDefined();
+});
+
+it.each([
+  { select: ["status"] },
+  {
+    select: [],
+    where: {
+      column: "status",
+      operator: ConditionOperator.EQUALS as const,
+      value: "paid",
+    },
+  },
+  {
+    select: [],
+    orderBy: [{ column: "created_at", direction: "desc" as const }],
+  },
+  {
+    select: [],
+    joins: [{ tableRef: "public.listings", select: ["title"] }],
+  },
+])(
+  "preserves intermediate tables that still contribute to the query: %j",
+  async (remaining) => {
+    const { preparedQuery } = await prepareQuery(schemas, {
+      base: {
+        tableRef: "public.users",
+        select: ["email"],
+        joins: [
+          {
+            tableRef: "public.orders",
+            ...remaining,
+            joins: [
+              { tableRef: "public.listings", select: ["id"] },
+              ...("joins" in remaining ? remaining.joins : []),
+            ],
+          },
+        ],
+      },
+    });
+    const bridge = preparedQuery.base.joins[0]!;
+    const next = removeQueryJoin(preparedQuery, bridge.joins[0]!.joinAlias);
+    expect(next.base.joins).toEqual([
+      { ...bridge, joins: bridge.joins.slice(1) },
+    ]);
+    await expect(prepareQuery(schemas, next)).resolves.toBeDefined();
+  },
+);

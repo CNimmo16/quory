@@ -1,8 +1,55 @@
 import { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { TablePicker } from "./TablePicker";
+
+it("resets search scroll even when the first result stays selected and after clearing", async () => {
+  const user = userEvent.setup();
+  render(
+    <TablePicker
+      id="tables"
+      groups={[
+        {
+          name: "public",
+          tables: Array.from({ length: 60 }, (_, index) => ({
+            name: `table_${String(index).padStart(2, "0")}`,
+          })),
+        },
+      ]}
+      value={null}
+      onChange={vi.fn()}
+      maxHeight={320}
+    />,
+  );
+  const search = screen.getByRole("combobox", { name: "Search tables" });
+  const list = screen.getByRole("listbox");
+  await user.type(search, "table_");
+  const first = screen.getAllByRole("option")[0]!;
+  list.scrollTop = 900;
+  await user.keyboard("{Backspace}");
+  expect(first).toHaveAttribute("aria-selected", "true");
+  await waitFor(() => expect(list.scrollTop).toBe(0));
+  expect(search).toHaveFocus();
+
+  const last = screen.getAllByRole("option").at(-1)!;
+  const scroll = vi.spyOn(last, "scrollIntoView").mockImplementation(() => {
+    list.scrollTop = 900;
+  });
+  await user.keyboard("{End}");
+  expect(scroll).toHaveBeenCalled();
+  await user.clear(search);
+  await waitFor(() => expect(list.scrollTop).toBe(0));
+  scroll.mockRestore();
+  expect(search).toHaveFocus();
+
+  await new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  );
+  list.scrollTop = 300;
+  await user.keyboard("{ArrowDown}");
+  expect(list.scrollTop).toBe(300);
+});
 
 it("searches grouped tables, selects with the keyboard and allows choosing a different table", async () => {
   const user = userEvent.setup();

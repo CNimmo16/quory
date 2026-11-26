@@ -447,3 +447,91 @@ it("embeds the table without a duplicate results header while retaining its cell
   expect(screen.queryByText("Results")).not.toBeInTheDocument();
   expect(screen.queryByText("1 rows")).not.toBeInTheDocument();
 });
+
+function filterableFixture() {
+  const data = fixture();
+  for (const entry of data.visibleJoins) {
+    entry.table.columns = ["id", "name", "notes"].map((name) => ({
+      name,
+      dataType: "text",
+      genericDataType: "text",
+      isNullable: false,
+      includedInPrimaryKey: name === "id",
+      foreignKeys: [],
+      foreignKeyReferences: [],
+    }));
+  }
+  return data;
+}
+
+it("opens the table filter popup from a column menu and filters that column on the correct join instance", async () => {
+  const user = userEvent.setup();
+  const data = filterableFixture();
+  // Repeated tables must still address the selected instance.
+  data.visibleJoins[1]!.join.tableRef = "public.customers";
+  data.visibleJoins[1]!.join.joinAlias = "customers_2";
+  show(data);
+  const trigger = screen.getAllByRole("button", {
+    name: "Options for notes",
+  })[1]!;
+  await user.click(trigger);
+  await user.click(screen.getByRole("menuitem", { name: "Filter by value…" }));
+  expect(screen.queryByRole("menu")).toBeNull();
+  const popup = within(screen.getByRole("dialog"));
+  expect(popup.getByRole("heading", { name: "Filters" })).toBeVisible();
+  expect(
+    popup.getByRole("combobox", { name: "Filter column" }),
+  ).toHaveTextContent("notes");
+  await user.type(
+    popup.getByRole("textbox", { name: "Filter value" }),
+    "urgent",
+  );
+  await user.click(popup.getByRole("button", { name: "Apply" }));
+  expect(data.joinActions).toHaveBeenLastCalledWith("customers_2");
+  expect(data.actions.setCondition).toHaveBeenCalledWith({
+    operator: ConditionOperator.AND,
+    conditions: [
+      { column: "notes", operator: ConditionOperator.EQUALS, value: "urgent" },
+    ],
+  });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(trigger).toHaveFocus();
+});
+
+it("preserves existing OR filters when adding a column filter and can cancel without changing them", async () => {
+  const user = userEvent.setup();
+  const data = filterableFixture();
+  const existing = {
+    operator: ConditionOperator.OR as const,
+    conditions: [
+      { column: "id", operator: ConditionOperator.EQUALS as const, value: "1" },
+      { column: "id", operator: ConditionOperator.EQUALS as const, value: "2" },
+    ],
+  };
+  data.visibleJoins[0]!.join.where = existing;
+  show(data);
+  const trigger = screen.getAllByRole("button", {
+    name: "Options for name",
+  })[0]!;
+  trigger.focus();
+  await user.keyboard("{Enter}");
+  await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+  const popup = within(screen.getByRole("dialog"));
+  const value = popup.getAllByRole("textbox", { name: "Filter value" })[2]!;
+  await user.type(value, "Ada");
+  await user.click(popup.getByRole("button", { name: "Apply" }));
+  expect(data.actions.setCondition).toHaveBeenCalledWith({
+    operator: ConditionOperator.AND,
+    conditions: [
+      existing,
+      { column: "name", operator: ConditionOperator.EQUALS, value: "Ada" },
+    ],
+  });
+  data.actions.setCondition.mockClear();
+  await user.click(trigger);
+  await user.click(screen.getByRole("menuitem", { name: "Filter by value…" }));
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(data.actions.setCondition).not.toHaveBeenCalled();
+  expect(data.visibleJoins[0]!.join.where).toEqual(existing);
+  expect(trigger).toHaveFocus();
+});

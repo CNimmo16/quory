@@ -42,6 +42,7 @@ export function ProjectQueries({
   hasActiveConnection = false,
   initiallyExpanded = active,
   busy = false,
+  onExpand,
   onOpenQuery,
 }: {
   projectId: string;
@@ -51,6 +52,7 @@ export function ProjectQueries({
   hasActiveConnection?: boolean;
   initiallyExpanded?: boolean;
   busy?: boolean;
+  onExpand?: () => void;
   onOpenQuery: (
     projectId: string,
     queryId: string,
@@ -111,8 +113,12 @@ export function ProjectQueries({
             aria-current={active ? "true" : undefined}
             aria-expanded={expanded}
             aria-controls={listId}
+            disabled={disabled}
             title={project.directory ?? project.name}
-            onClick={() => setExpanded((value) => !value)}
+            onClick={() => {
+              setExpanded(!expanded);
+              if (!expanded) onExpand?.();
+            }}
           >
             {expanded ? (
               <ChevronDown aria-hidden="true" className="size-3 shrink-0" />

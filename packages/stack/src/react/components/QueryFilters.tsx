@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { useState, type ComponentProps, type ReactElement } from "react";
 import {
   ConditionOperator,
   findTableFromSchemas,
@@ -17,7 +17,12 @@ import type useQuery from "../hooks/useQuery";
 import { SlidersHorizontal, ArrowUpRight } from "lucide-react";
 import ConditionEditor from "./ConditionEditor";
 import { Button } from "./ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover";
 
 type JoinActions = ReturnType<typeof useQuery>["joinActions"];
 
@@ -53,15 +58,60 @@ export function QueryFilterPopover({
   columns,
   joinActions,
   children,
+  initialColumn,
+  defaultOpen = false,
+  anchorRef,
+  onOpenChange,
+  onCloseAutoFocus,
 }: {
   join: PreparedJoinDef;
   columns: DatabaseTableInfo["columns"];
   joinActions: JoinActions;
-  children: ReactElement;
+  children?: ReactElement;
+  initialColumn?: string;
+  defaultOpen?: boolean;
+  anchorRef?: ComponentProps<typeof PopoverAnchor>["virtualRef"];
+  onOpenChange?: (open: boolean) => void;
+  onCloseAutoFocus?: ComponentProps<typeof PopoverContent>["onCloseAutoFocus"];
 }) {
-  const [open, setOpen] = useState(false);
-  const [condition, setCondition] = useState<Condition | null>(null);
+  function initialCondition(): Condition {
+    const added = {
+      column: initialColumn ?? columns[0]?.name ?? "",
+      operator: ConditionOperator.EQUALS as const,
+      value: "",
+    };
+    if (initialColumn)
+      return {
+        operator: ConditionOperator.AND,
+        conditions: [
+          ...(join.where
+            ? isBooleanCondition(join.where) &&
+              join.where.operator === ConditionOperator.AND
+              ? join.where.conditions
+              : [join.where]
+            : []),
+          added,
+        ],
+      };
+    return join.where
+      ? isBooleanCondition(join.where)
+        ? join.where
+        : { operator: ConditionOperator.AND, conditions: [join.where] }
+      : { operator: ConditionOperator.AND, conditions: [added] };
+  }
+  const [open, setOpen] = useState(defaultOpen);
+  const [condition, setCondition] = useState<Condition | null>(() =>
+    defaultOpen ? initialCondition() : null,
+  );
   const [error, setError] = useState<string | null>(null);
+  function changeOpen(next: boolean) {
+    if (next) {
+      setError(null);
+      setCondition(initialCondition());
+    }
+    setOpen(next);
+    onOpenChange?.(next);
+  }
   function apply(updated = condition) {
     if (!updated || !isBooleanCondition(updated)) return;
     let complete: Condition | null;
@@ -78,36 +128,14 @@ export function QueryFilterPopover({
     if (complete && isBooleanCondition(complete))
       joinActions(join.joinAlias).setCondition(complete);
     else joinActions(join.joinAlias).removeCondition();
-    setOpen(false);
+    changeOpen(false);
   }
   return (
-    <Popover
-      open={open}
-      onOpenChange={(next) => {
-        if (next) {
-          setError(null);
-          setCondition(
-            join.where
-              ? isBooleanCondition(join.where)
-                ? join.where
-                : { operator: ConditionOperator.AND, conditions: [join.where] }
-              : {
-                  operator: ConditionOperator.AND,
-                  conditions: [
-                    {
-                      column: columns[0]?.name ?? "",
-                      operator: ConditionOperator.EQUALS,
-                      value: "",
-                    },
-                  ],
-                },
-          );
-        }
-        setOpen(next);
-      }}
-    >
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
+    <Popover open={open} onOpenChange={changeOpen}>
+      {anchorRef && <PopoverAnchor virtualRef={anchorRef} />}
+      {children && <PopoverTrigger asChild>{children}</PopoverTrigger>}
       <PopoverContent
+        onCloseAutoFocus={onCloseAutoFocus}
         align="start"
         className="border-border bg-card flex max-h-(--radix-popover-content-available-height) w-162.5 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg p-0 shadow-none [&_button]:shadow-none [&_input]:shadow-none"
       >
@@ -134,7 +162,7 @@ export function QueryFilterPopover({
                 setCondition(next);
                 setError(null);
               }}
-              autoFocus={!join.where}
+              autoFocus={!join.where && !initialColumn}
               onApply={apply}
             />
           )}
@@ -153,7 +181,7 @@ export function QueryFilterPopover({
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:bg-muted hover:text-foreground h-7 px-2 text-xs"
-            onClick={() => setOpen(false)}
+            onClick={() => changeOpen(false)}
           >
             Cancel
           </Button>

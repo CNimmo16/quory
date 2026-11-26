@@ -104,21 +104,67 @@ credentials are required.
 
 Open **Settings** from the app toolbar or press **⌘,** on macOS / **Ctrl+,** on
 Windows and Linux. Settings are local to this device and available before opening
-a project. In **AI**, choose OpenAI, Anthropic, Google, or a custom OpenAI-compatible
-endpoint. Each provider remembers its selected model and encrypted key; switching
-providers does not require entering saved keys again. Save to activate the selected
-provider, then use **Test connection** to make a small provider request. Provider
-usage, including the connection test, may incur charges. Saved keys are encrypted
-using Electron safeStorage and are never returned to the renderer. On Linux,
-saving keys requires a supported system secret service; plaintext fallback is
-refused. Removing a saved key falls back to an environment key if one is present.
+a project. **AI** has separate sections for **Provider connections**, **AI assistant
+model**, and **Decision model**. Save a provider key once and reuse it for either
+role. Provider connections are listed with a visible credential status and an
+expandable editor for each provider. Saving credentials never switches a model. Existing keys and assistant
+selections migrate automatically. Decision models are disabled until selected.
 
-The model dropdown loads live tool-capable text models from [models.dev](https://models.dev)
-before a key is configured. With credentials, it queries the provider's own model
-API instead. **Refresh models** uses the entered key (if any) or that provider's
-saved key; no credentials are sent to models.dev. Catalogue results are cached for
-15 minutes, and account access may differ. **Enter a model ID manually…** remains
-available if discovery is offline, unsupported, or missing a model.
+Assistant providers are OpenAI, Anthropic, Google, and custom OpenAI-compatible
+endpoints. Decision providers are OpenAI, Google, TypeSafe / Jev, and Cloudflare. Each role has
+its own save and connection-test buttons. Tests make a small provider request and
+may incur charges. Saved keys are encrypted using Electron safeStorage and are
+never returned to the renderer. On Linux, saving keys requires a supported system
+secret service; plaintext fallback is refused. Removing a saved key falls back to
+an environment key if one is present.
+
+The assistant model dropdown loads tool-capable text models from
+[models.dev](https://models.dev) before a key is configured. With credentials, it
+queries the provider's model API instead. Refresh uses the saved provider
+connection; save a replacement key first. No credentials are sent to models.dev.
+Catalogue results are cached for 15 minutes, and account access may differ.
+**Enter a model ID manually…** remains available for assistant models.
+
+Native decision support was checked against provider documentation on 2026-11-13:
+
+| Provider   | Decision models                                         | API                                                                              |
+| ---------- | ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| OpenAI     | `gpt-6-luna`                                            | [`POST /v1/decisions`](https://developers.openai.com/api/docs/guides/decisions)  |
+| Google     | `gemini-decision-1`                                     | [`POST /v1beta/decisions`](https://ai.google.dev/gemini-api/docs/decisions-api)  |
+| TypeSafe   | `jev-latest`, `jev-preview`, `jev-1.14.0`, `jev-1.13.0` | [`POST /v1/systemone`](https://docs.typesafe.ai/models)                          |
+| Cloudflare | `@cf/cloudflare/clef`, `@cf/cloudflare/clef-flash`      | [Workers AI REST API](https://developers.cloudflare.com/workers-ai/models/clef/) |
+| Anthropic  | No documented native decision API found                 | [API overview](https://platform.claude.com/docs/en/api/overview)                 |
+| Custom     | Chat compatibility does not establish decision support  | Assistant only                                                                   |
+
+OpenAI, Google, and Cloudflare decision lists use documented supported IDs, rather than assuming
+that every chat model supports decisions. TypeSafe also loads its authenticated
+model list, retaining documented pinned versions; offline discovery falls back to
+the documented list. Test the saved selection to confirm account access.
+
+Cloudflare requires an account ID and a Workers AI API token with Read and Edit
+permissions. Save both in its provider editor, or supply `CLOUDFLARE_ACCOUNT_ID`
+and `CLOUDFLARE_API_TOKEN` (`CLOUDFLARE_AUTH_TOKEN` is also accepted). Tokens use the
+same encrypted storage as other provider keys. Clef requests use the account-scoped
+Workers AI endpoint and are limited to 64 questions per request. Cloudflare is
+currently available for the decision role only.
+
+`src/main/ai/decisions.ts` provides a text-only interface for batched predicates,
+choices, and rubric scores, with validated responses, bounded requests, timeouts,
+and sanitized failures. When a decision model is enabled, joining tables uses
+local shortlists of at most 32 candidates, then scores them with the saved model.
+The table list retains all reachable tables for searching. Tables with one direct
+relationship skip path selection; other selections offer up to three ranked exact
+paths, with a custom path option. Once a path is chosen, the decision model selects
+a concise set of destination columns from a shortlist of at most 32, considering
+the current selected columns and relationship path. It selects at most eight
+columns; disabled, invalid, or unavailable decisions fall back to up to six useful
+columns locally. Column selection waits at most three seconds and can be canceled.
+Existing table instances and their selections are preserved. Requests contain
+schema metadata (table and column names/types, relationship columns, and the
+currently joined tables), never row values, filter literals, or SQL. Decisions are cached for five
+minutes per connection, settings revision, and candidate context. Disabled or
+unavailable models leave local suggestions usable. Provider connection tests use
+synthetic text, not database metadata.
 
 For custom providers, enter the API base URL (for example
 `http://localhost:1234/v1`). Model discovery calls its `/models` endpoint, and AI
@@ -137,7 +183,8 @@ GitHub release; installation is manual.
 Copy the root `.env.example` to `.env.local` and set `AI_PROVIDER`, `AI_MODEL`,
 and the corresponding key. Supported providers are `openai` (`OPENAI_API_KEY`
 or `OPEN_AI_API_KEY`), `anthropic` (`ANTHROPIC_API_KEY`), and `google`
-(`GOOGLE_GENERATIVE_AI_API_KEY`). For `custom`, set `AI_BASE_URL` and optionally
+(`GOOGLE_GENERATIVE_AI_API_KEY`, or `GEMINI_API_KEY`). TypeSafe credentials can be
+provided using `TYPESAFE_API_KEY`; select its decision model in Settings. For `custom`, set `AI_BASE_URL` and optionally
 `CUSTOM_OPENAI_API_KEY`. `AI_MODEL` is the provider's model ID, without a provider
 prefix. Choose a model with tool calling support. Changes made in Settings apply
 immediately; restart Electron after changing environment variables. Packaged apps read these settings from the process environment;
@@ -146,7 +193,7 @@ development loads the root `.env.local` without overriding existing environment 
 The Vercel AI SDK runs in Electron's main process. Provider adapters are isolated
 in `src/main/ai/model.ts`; the query assistant and `upsert_query` tool are shared
 across providers. The settings form sends entered keys to the main process for
-saving or explicitly refreshing the model list; saved keys are never returned to the renderer. The provider receives the
+saving; saved keys are never returned to the renderer. The provider receives the
 database schema, chat, and current query, including filter values, but no result rows
 or database connection credentials.
 

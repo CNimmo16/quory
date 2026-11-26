@@ -26,7 +26,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import { trpcClient } from "../GlobalProviders";
+import { trpcClient } from "../util/trpcClient";
 import {
   SidebarLayoutProvider,
   useSidebarLayout,
@@ -113,6 +113,17 @@ function RootLayout() {
   const navigate = useNavigate();
 
   const utils = trpc.useUtils();
+  const projectSelection = trpc.projects.open.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.projects.list.invalidate(),
+        utils.projects.listQueries.invalidate(),
+        utils.connections.invalidate(),
+      ]);
+      await router.invalidate();
+    },
+  });
+  const projectBusy = opening.isPending || projectSelection.isPending;
 
   const activeProjectId = activeProject?._id;
   const pathname = useRouterState({
@@ -238,7 +249,7 @@ function RootLayout() {
       value={{
         connections: savedConnectionsData?.connections ?? [],
         isConnecting,
-        isBusy: isConnecting || opening.isPending,
+        isBusy: isConnecting || projectBusy,
         connectingId: connectingInput?.connectionId,
         error: connectionError?.message,
         onSelect: selectConnection,
@@ -330,7 +341,7 @@ function RootLayout() {
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 rounded-none px-3 font-normal"
-                disabled={isConnecting || opening.isPending}
+                disabled={isConnecting || projectBusy}
                 onClick={() => void navigate({ to: "/queries" })}
               >
                 <Plus aria-hidden="true" className="size-4" />
@@ -348,7 +359,16 @@ function RootLayout() {
                       initiallyExpanded={
                         id === expandedProject || id === activeProject?._id
                       }
-                      busy={opening.isPending || isConnecting}
+                      busy={projectBusy || isConnecting}
+                      onExpand={() => {
+                        if (
+                          pathname.replace(/\/$/, "") === "/queries" &&
+                          id !== activeProjectId &&
+                          !projectBusy &&
+                          !isConnecting
+                        )
+                          projectSelection.mutate({ projectId: id });
+                      }}
                       onOpenQuery={(projectId, queryId, connectionId) => {
                         const selected = matchRoute({
                           to: "/queries/$queryId",
@@ -371,10 +391,7 @@ function RootLayout() {
                 ))}
               </ul>
             </nav>
-            <NavLink
-              to="/projects/new"
-              disabled={isConnecting || opening.isPending}
-            >
+            <NavLink to="/projects/new" disabled={isConnecting || projectBusy}>
               <Plus aria-hidden="true" />
               New project
             </NavLink>
@@ -401,6 +418,13 @@ function RootLayout() {
             {opening.error && (
               <Alert variant="destructive" className="m-5">
                 <AlertDescription>{opening.error.message}</AlertDescription>
+              </Alert>
+            )}
+            {projectSelection.error && (
+              <Alert variant="destructive" className="m-5">
+                <AlertDescription>
+                  {projectSelection.error.message}
+                </AlertDescription>
               </Alert>
             )}
             <Outlet />

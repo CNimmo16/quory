@@ -29,7 +29,7 @@ import { QueryChatPane, QueryComposer } from "../../components/QueryChat";
 import { useQueryChat } from "../../hooks/useQueryChat";
 import { useNewQueryDraft } from "../../hooks/useNewQueryDraft";
 import trpc from "../../util/tprc";
-import { trpcClient } from "../../GlobalProviders";
+import { trpcClient } from "../../util/trpcClient";
 import { NewManualQuery } from "../../components/NewManualQuery";
 
 export const Route = createFileRoute("/queries/")({
@@ -330,8 +330,8 @@ function QueryLaunch({
                 {chat.isPending
                   ? "Matching your request to the tables and relationships in your database."
                   : chat.error
-                    ? "Try again in the query assistant."
-                    : "Answer in the query assistant to help Quory choose the right tables and columns."}
+                    ? "Try asking Quory again."
+                    : "Reply to Quory to help choose the right tables and columns."}
               </p>
             </div>
           ) : (
@@ -371,7 +371,6 @@ function QueryLaunch({
             disabledReason ? Promise.resolve(false) : chat.send(message)
           }
           draft={chat.draft}
-          onDraftChange={chat.setDraft}
           disabled={!!disabledReason}
         />
       )}

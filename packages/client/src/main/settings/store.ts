@@ -1,32 +1,48 @@
 import { z } from "zod";
+import { validDecisionModel } from "../../shared/decisionModels";
 import {
   defaultPreferences,
   preferencesSchema,
   providerSchema,
   endpointSchema,
+  cloudflareAccountIdSchema,
   aiSettingsSchema,
+  providerSettingsSchema,
+  assistantProviderSchema,
+  assistantSelectionSchema,
+  decisionSelectionSchema,
   type Preferences,
   type AISettingsInput,
+  type ProviderSettingsInput,
   type Provider,
-  type AIProfile,
+  type ProviderProfile,
   type AISettingsPublic,
 } from "../../shared/settings";
 
+// Accept both historical formats; all subsequent writes use separate connections
+// and model selections. Encrypted key slots are preserved byte for byte.
+const storedAISchema = z.object({
+  provider: assistantProviderSchema.optional(),
+  model: z.string().optional(),
+  profiles: z
+    .record(z.object({ model: z.string(), baseURL: endpointSchema.optional() }))
+    .default({}),
+  keys: z.record(z.string()).default({}),
+  providers: z
+    .record(
+      z.object({
+        baseURL: endpointSchema.optional(),
+        accountId: cloudflareAccountIdSchema.optional(),
+      }),
+    )
+    .optional(),
+  assistant: assistantSelectionSchema.extend({ model: z.string() }).optional(),
+  assistantModels: z.record(z.string()).optional(),
+  decision: decisionSelectionSchema.nullable().optional(),
+});
 const stateSchema = z.object({
   preferences: preferencesSchema,
-  ai: z
-    .object({
-      provider: providerSchema,
-      // Read the previous selected-model format without losing existing keys.
-      model: z.string().optional(),
-      keys: z.record(z.string()),
-      profiles: z
-        .record(
-          z.object({ model: z.string(), baseURL: endpointSchema.optional() }),
-        )
-        .default({}),
-    })
-    .optional(),
+  ai: storedAISchema.optional(),
 });
 type State = z.infer<typeof stateSchema>;
 export function createSettingsStore(
@@ -38,18 +54,76 @@ export function createSettingsStore(
   },
   env: NodeJS.ProcessEnv = process.env,
 ) {
+  const envProvider = assistantProviderSchema
+    .catch("openai")
+    .parse(env.AI_PROVIDER);
+  const envEndpoint = endpointSchema.safeParse(env.AI_BASE_URL);
+  const envBaseURL = envEndpoint.success ? envEndpoint.data : undefined;
+  const envKeys: Record<Provider, string | undefined> = {
+    openai: env.OPENAI_API_KEY || env.OPEN_AI_API_KEY,
+    anthropic: env.ANTHROPIC_API_KEY,
+    google: env.GOOGLE_GENERATIVE_AI_API_KEY || env.GEMINI_API_KEY,
+    custom: env.CUSTOM_OPENAI_API_KEY,
+    typesafe: env.TYPESAFE_API_KEY,
+    cloudflare: env.CLOUDFLARE_API_TOKEN || env.CLOUDFLARE_AUTH_TOKEN,
+  };
   let state: State | undefined;
   function read(): State {
     if (!state) {
       const raw = io.read();
-      const parsed: State =
+      const parsed =
         raw === undefined
           ? { preferences: structuredClone(defaultPreferences) }
           : stateSchema.parse(raw);
-      if (parsed.ai?.model && !parsed.ai.profiles[parsed.ai.provider]) {
-        parsed.ai.profiles[parsed.ai.provider] = { model: parsed.ai.model };
-      }
-      state = parsed;
+      const old = parsed.ai;
+      const provider = old?.provider ?? envProvider;
+      const assistantModels =
+        old?.assistantModels ??
+        Object.fromEntries(
+          Object.entries(old?.profiles ?? {}).map(([key, value]) => [
+            key,
+            value.model,
+          ]),
+        );
+      if (old?.model && !assistantModels[provider])
+        assistantModels[provider] = old.model;
+      if (!assistantModels[envProvider])
+        assistantModels[envProvider] =
+          env.AI_MODEL?.trim() ||
+          (envProvider === "openai" ? "gpt-6-luna" : "");
+      const providers: NonNullable<
+        z.infer<typeof storedAISchema>["providers"]
+      > =
+        old?.providers ??
+        Object.fromEntries(
+          Object.entries(old?.profiles ?? {}).map(([key, value]) => [
+            key,
+            value.baseURL ? { baseURL: value.baseURL } : {},
+          ]),
+        );
+      if (!providers.custom?.baseURL && envBaseURL)
+        providers.custom = { baseURL: envBaseURL };
+      const envAccount = cloudflareAccountIdSchema.safeParse(
+        env.CLOUDFLARE_ACCOUNT_ID,
+      );
+      if (!providers.cloudflare?.accountId && envAccount.success)
+        providers.cloudflare = { accountId: envAccount.data };
+      state = {
+        preferences: parsed.preferences,
+        ai: {
+          keys: old?.keys ?? {},
+          profiles: {},
+          providers,
+          assistantModels,
+          assistant: old?.assistant ?? {
+            provider,
+            model:
+              assistantModels[provider] ||
+              (provider === "openai" ? "gpt-6-luna" : ""),
+          },
+          decision: old?.decision ?? null,
+        },
+      };
     }
     return state;
   }
@@ -57,31 +131,20 @@ export function createSettingsStore(
     io.write(next);
     state = next;
   }
-  const envProvider = providerSchema.catch("openai").parse(env.AI_PROVIDER);
-  const envEndpoint = endpointSchema.safeParse(env.AI_BASE_URL);
-  const envBaseURL = envEndpoint.success ? envEndpoint.data : undefined;
-  const envKeys = {
-    openai: env.OPENAI_API_KEY || env.OPEN_AI_API_KEY,
-    anthropic: env.ANTHROPIC_API_KEY,
-    google: env.GOOGLE_GENERATIVE_AI_API_KEY,
-    custom: env.CUSTOM_OPENAI_API_KEY,
-  };
   function keySlot(provider: Provider, baseURL?: string) {
     return provider === "custom"
       ? `custom:${endpointSchema.parse(baseURL)}`
       : provider;
   }
-  function profile(provider: Provider): AIProfile {
-    const saved = read().ai?.profiles[provider];
+  function profile(provider: Provider): ProviderProfile {
     const baseURL =
-      provider === "custom"
-        ? saved?.baseURL || (envProvider === "custom" ? envBaseURL : undefined)
+      provider === "custom" ? read().ai?.providers?.custom?.baseURL : undefined;
+    const accountId =
+      provider === "cloudflare"
+        ? read().ai?.providers?.cloudflare?.accountId
         : undefined;
     return {
-      model:
-        saved?.model ||
-        (envProvider === provider ? env.AI_MODEL : undefined) ||
-        (provider === "openai" ? "gpt-6-luna" : ""),
+      ...(accountId ? { accountId } : {}),
       ...(baseURL ? { baseURL } : {}),
       hasSavedKey: Boolean(
         (provider !== "custom" || baseURL) &&
@@ -94,11 +157,15 @@ export function createSettingsStore(
     };
   }
   function ai(): AISettingsPublic {
-    const provider = read().ai?.provider ?? envProvider;
-    const profiles = Object.fromEntries(
-      providerSchema.options.map((p) => [p, profile(p)]),
-    ) as Record<Provider, AIProfile>;
-    return { provider, ...profiles[provider], profiles };
+    const saved = read().ai!;
+    return {
+      assistant: { ...saved.assistant! },
+      decision: saved.decision ? { ...saved.decision } : null,
+      providers: Object.fromEntries(
+        providerSchema.options.map((p) => [p, profile(p)]),
+      ) as Record<Provider, ProviderProfile>,
+      assistantModels: { ...saved.assistantModels },
+    };
   }
   function credential(provider: Provider, baseURL?: string) {
     if (provider === "custom" && !baseURL) return undefined;
@@ -123,39 +190,70 @@ export function createSettingsStore(
     savePreferences(preferences: Preferences) {
       commit({ ...read(), preferences: preferencesSchema.parse(preferences) });
     },
-    saveAI(value: AISettingsInput) {
-      const input = aiSettingsSchema.parse(value);
+    saveProvider(value: ProviderSettingsInput) {
+      const input = providerSettingsSchema.parse(value);
       const current = read();
-      const keys = { ...current.ai?.keys };
+      const keys = { ...current.ai!.keys };
       if (input.apiKey)
         keys[keySlot(input.provider, input.baseURL)] = io.encrypt(input.apiKey);
       commit({
         ...current,
         ai: {
-          provider: input.provider,
+          ...current.ai!,
           keys,
-          profiles: {
-            ...current.ai?.profiles,
-            [input.provider]: {
-              model: input.model,
-              ...(input.provider === "custom"
+          providers: {
+            ...current.ai!.providers,
+            [input.provider]:
+              input.provider === "custom"
                 ? { baseURL: input.baseURL }
-                : {}),
-            },
+                : input.provider === "cloudflare"
+                  ? { accountId: input.accountId }
+                  : {},
           },
+        },
+      });
+    },
+    saveAI(value: AISettingsInput) {
+      const input = aiSettingsSchema.parse(value);
+      const current = read();
+      if (
+        input.purpose === "decision" &&
+        input.selection &&
+        !validDecisionModel(input.selection)
+      )
+        throw new Error("Choose a supported decision model for this provider.");
+      if (
+        input.purpose === "assistant" &&
+        input.selection.provider === "custom" &&
+        !profile("custom").baseURL
+      )
+        throw new Error("Configure the custom provider's API base URL first.");
+      commit({
+        ...current,
+        ai: {
+          ...current.ai!,
+          [input.purpose]: input.selection,
+          ...(input.purpose === "assistant"
+            ? {
+                assistantModels: {
+                  ...current.ai!.assistantModels,
+                  [input.selection.provider]: input.selection.model,
+                },
+              }
+            : {}),
         },
       });
     },
     removeKey(provider: Provider, baseURL?: string) {
       const current = read();
-      if (!current.ai) return;
-      const keys = { ...current.ai.keys };
+      const keys = { ...current.ai!.keys };
       delete keys[keySlot(provider, baseURL || profile(provider).baseURL)];
-      commit({ ...current, ai: { ...current.ai, keys } });
+      commit({ ...current, ai: { ...current.ai!, keys } });
     },
     environment(): NodeJS.ProcessEnv {
-      const selected = ai();
-      const key = credential(selected.provider, selected.baseURL);
+      const selected = ai().assistant;
+      const baseURL = profile(selected.provider).baseURL;
+      const key = credential(selected.provider, baseURL);
       const keyName = {
         openai: "OPENAI_API_KEY",
         anthropic: "ANTHROPIC_API_KEY",
@@ -166,7 +264,7 @@ export function createSettingsStore(
         ...env,
         AI_PROVIDER: selected.provider,
         AI_MODEL: selected.model,
-        AI_BASE_URL: selected.baseURL,
+        AI_BASE_URL: baseURL,
         [keyName]: key,
       };
     },

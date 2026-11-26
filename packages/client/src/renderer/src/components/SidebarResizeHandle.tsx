@@ -31,7 +31,7 @@ export function SidebarResizeHandle({
       aria-orientation="vertical"
       tabIndex={0}
       aria-label={
-        side === "left" ? "Resize projects sidebar" : "Resize query assistant"
+        side === "left" ? "Resize projects sidebar" : "Resize Quory chat"
       }
       aria-valuemin={200}
       aria-valuemax={max}

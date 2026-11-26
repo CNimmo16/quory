@@ -26,15 +26,16 @@ declare module "@tanstack/react-router" {
   }
 }
 
-// Render the app
+// Reuse the root if this entry module is evaluated again during HMR, but always
+// render the current providers and router rather than leaving the old tree up.
 const rootElement = document.getElementById("root")!;
-if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <StrictMode>
-      <GlobalProviders>
-        <RouterProvider router={router} />
-      </GlobalProviders>
-    </StrictMode>,
-  );
-}
+const root: ReactDOM.Root =
+  import.meta.hot?.data.root ?? ReactDOM.createRoot(rootElement);
+if (import.meta.hot) import.meta.hot.data.root = root;
+root.render(
+  <StrictMode>
+    <GlobalProviders>
+      <RouterProvider router={router} />
+    </GlobalProviders>
+  </StrictMode>,
+);

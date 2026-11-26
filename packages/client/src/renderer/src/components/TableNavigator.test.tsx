@@ -13,6 +13,7 @@ import {
   type DatabaseSchema,
   type PreparedQuery,
 } from "@quory/core";
+import { JoinRankingProvider, type JoinRanker } from "@quory/stack/react";
 import TableNavigator from "./TableNavigator";
 import { QueryFilters } from "./QueryFilters";
 import { TooltipProvider } from "./ui/tooltip";
@@ -83,6 +84,7 @@ function renderNavigator(
   navigatorQuery: PreparedQuery = query,
   showBreakdown = false,
   navigatorSchemas = schemas,
+  ranker?: JoinRanker,
 ) {
   type JoinActions = ComponentProps<typeof TableNavigator>["joinActions"];
   const setSelectedColumns = vi.fn();
@@ -107,24 +109,26 @@ function renderNavigator(
     hasCondition: () => false,
   });
   const view = render(
-    <TooltipProvider>
-      {showBreakdown && (
-        <QueryFilters
+    <JoinRankingProvider value={ranker}>
+      <TooltipProvider>
+        {showBreakdown && (
+          <QueryFilters
+            query={navigatorQuery}
+            schemas={schemas}
+            joinActions={joinActions}
+            onHighlight={vi.fn()}
+          />
+        )}
+        <TableNavigator
+          width={1000}
           query={navigatorQuery}
-          schemas={schemas}
+          schemas={navigatorSchemas}
           joinActions={joinActions}
-          onHighlight={vi.fn()}
+          highlightedJoinAlias={null}
+          onChangeHighlightedJoinAlias={vi.fn()}
         />
-      )}
-      <TableNavigator
-        width={1000}
-        query={navigatorQuery}
-        schemas={navigatorSchemas}
-        joinActions={joinActions}
-        highlightedJoinAlias={null}
-        onChangeHighlightedJoinAlias={vi.fn()}
-      />
-    </TooltipProvider>,
+      </TooltipProvider>
+    </JoinRankingProvider>,
   );
   return {
     setSelectedColumns,
@@ -137,13 +141,9 @@ function renderNavigator(
 }
 
 describe("TableNavigator", () => {
-  it.each([
-    ["foreign-key", "Foreign key"],
-    ["inferred", "Inferred relationship · confidence 0.85"],
-    ["manual", "Manual relationship"],
-  ] as const)(
-    "shows the selected %s join's column pairs on hover",
-    async (source, label) => {
+  it.each(["foreign-key", "inferred", "manual"] as const)(
+    "shows only the midpoint edit action when hovering a direct %s join",
+    async (source) => {
       const user = userEvent.setup();
       const related = structuredClone(schemas);
       const orders = related[0]!.tables[1]!;
@@ -196,15 +196,32 @@ describe("TableNavigator", () => {
         },
       );
       await user.hover(edge.querySelector("path[pointer-events='stroke']")!);
-      const tooltip = await screen.findByRole("tooltip");
-      expect(tooltip).toHaveTextContent(label);
-      expect(tooltip).toHaveTextContent(
-        "public.orders.billing_id = public.customers.id",
+      expect(screen.queryByRole("tooltip")).toBeNull();
+      expect(
+        screen.queryByLabelText(
+          "Join path from public.customers to public.orders",
+        ),
+      ).toBeNull();
+      const edit = screen.getByRole("button", {
+        name: "Edit join from public.customers to public.orders",
+      });
+      expect(edit).toHaveClass("opacity-100");
+      const coordinates = edge
+        .querySelector("path")!
+        .getAttribute("d")!
+        .match(/-?\d+(?:\.\d+)?/g)!
+        .map(Number);
+      const position = edit.closest("foreignObject")!;
+      expect(Number(position.getAttribute("x")) + 12).toBe(
+        (coordinates[0]! + coordinates.at(-2)!) / 2,
       );
-      expect(tooltip).toHaveTextContent(
-        "public.orders.billing_name = public.customers.name",
+      expect(Number(position.getAttribute("y")) + 12).toBe(
+        (coordinates[1]! + coordinates.at(-1)!) / 2,
       );
-      expect(tooltip).not.toHaveTextContent("customer_id");
+      await user.hover(edit);
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(
+        "Edit path: customers to orders",
+      );
     },
   );
 
@@ -247,8 +264,9 @@ describe("TableNavigator", () => {
     ).toBeNull();
   });
 
-  it("keeps removal disabled for implicit tables needed to connect descendants", async () => {
-    const { removeJoin } = renderNavigator({
+  it("shows implicit bridges as labels that add all columns on click", async () => {
+    const user = userEvent.setup();
+    const { removeJoin, setSelectedColumns } = renderNavigator({
       ...query,
       base: {
         ...query.base,
@@ -271,9 +289,21 @@ describe("TableNavigator", () => {
         ],
       },
     });
+    const label = screen.getByRole("button", {
+      name: "Add all columns from orders",
+    });
+    const bridge = screen.getByRole("group", {
+      name: "public.orders, joined from public.customers",
+    });
+    expect(bridge).toHaveTextContent(/^orders$/);
+    expect(within(bridge).getAllByRole("button")).toEqual([label]);
     expect(
-      screen.getByRole("button", { name: "Remove orders from query" }),
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: "Add related table to orders" }),
+    ).toBeNull();
+    await user.hover(label);
+    expect(await screen.findByRole("tooltip")).toBeVisible();
+    await user.click(label);
+    expect(setSelectedColumns).toHaveBeenCalledWith(["customer_id"]);
     expect(removeJoin).not.toHaveBeenCalled();
   });
 
@@ -372,6 +402,149 @@ describe("TableNavigator", () => {
     return related;
   }
 
+  it("keeps a sole eligible table interactive without calling the model", async () => {
+    const user = userEvent.setup();
+    const ranker = vi.fn<JoinRanker>();
+    renderNavigator(query, false, schemas, ranker);
+    await user.click(
+      screen.getByRole("button", { name: "Add related table to customers" }),
+    );
+    expect(screen.getByRole("option", { name: "orders" })).toBeVisible();
+    expect(ranker).not.toHaveBeenCalled();
+  });
+
+  it("resets search scroll even when the first match stays selected, including clearing", async () => {
+    const user = userEvent.setup();
+    const related = keyboardSchemas();
+    const customer = related[0]!.tables[0]!;
+    for (let index = 0; index < 40; index++) {
+      const name = `order_${String(index).padStart(2, "0")}`;
+      related[0]!.tables.push({
+        ...structuredClone(related[0]!.tables[1]!),
+        name,
+      });
+      customer.columns[0]!.foreignKeyReferences.push({
+        ...customer.columns[0]!.foreignKeyReferences[0]!,
+        localTableName: name,
+      });
+    }
+    renderNavigator(query, false, related);
+    await user.click(
+      screen.getByRole("button", { name: "Add related table to customers" }),
+    );
+    const search = screen.getByRole("combobox", { name: "Filter tables" });
+    const list = screen.getByRole("listbox");
+    await user.type(search, "order");
+    const first = screen.getAllByRole("option")[0]!;
+    expect(first).toHaveAttribute("aria-selected", "true");
+    list.scrollTop = 900;
+    await user.keyboard("{Backspace}");
+    expect(first).toHaveAttribute("aria-selected", "true");
+    expect(list.scrollTop).toBe(0);
+    expect(search).toHaveFocus();
+
+    // Model the browser scroll that cmdk schedules for the old selection.
+    const last = screen.getAllByRole("option").at(-1)!;
+    const scroll = vi.spyOn(last, "scrollIntoView").mockImplementation(() => {
+      list.scrollTop = 900;
+    });
+    await user.keyboard("{End}");
+    expect(scroll).toHaveBeenCalled();
+    await user.click(
+      screen.getByRole("button", { name: "Clear table search" }),
+    );
+    await waitFor(() => expect(list.scrollTop).toBe(0));
+    scroll.mockRestore();
+    expect(search).toHaveFocus();
+
+    await user.type(search, "order");
+    list.scrollTop = 900;
+    await user.clear(search);
+    await waitFor(() => expect(list.scrollTop).toBe(0));
+    // Navigating results without changing the search must not reset the scroll.
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => resolve()),
+    );
+    list.scrollTop = 300;
+    await user.keyboard("{ArrowDown}");
+    expect(list.scrollTop).toBe(300);
+  });
+
+  it("ranks once, retains tables outside the bounded shortlist in search, and keeps search relevance first", async () => {
+    const user = userEvent.setup();
+    const large = keyboardSchemas();
+    const customer = large[0]!.tables[0]!;
+    for (let index = 0; index < 40; index++) {
+      const name = `extra_${String(index).padStart(2, "0")}`;
+      large[0]!.tables.push({ ...structuredClone(large[0]!.tables[1]!), name });
+      customer.columns[0]!.foreignKeyReferences.push({
+        ...customer.columns[0]!.foreignKeyReferences[0]!,
+        localTableName: name,
+      });
+    }
+    const ranker = vi.fn<JoinRanker>().mockImplementation(async (request) => ({
+      ranked: true,
+      orderedIds: request.candidates.map(({ id }) => id).reverse(),
+    }));
+    renderNavigator(query, false, large, ranker);
+    await user.click(
+      screen.getByRole("button", { name: "Add related table to customers" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Finding related tables…"),
+      ).not.toBeInTheDocument(),
+    );
+    expect(ranker).toHaveBeenCalledTimes(1);
+    const request = ranker.mock.calls[0]![0];
+    expect(request.candidates).toHaveLength(32);
+    expect(screen.getAllByRole("option")[0]).toHaveAttribute(
+      "aria-label",
+      request.candidates.at(-1)!.id.split(".")[1],
+    );
+    const outside = large[0]!.tables.find(
+      ({ name }) =>
+        name.startsWith("extra_") &&
+        !request.candidates.some(({ id }) => id === `public.${name}`),
+    )!;
+    const search = screen.getByRole("combobox", { name: "Filter tables" });
+    await user.type(search, outside.name);
+    expect(screen.getByRole("option", { name: outside.name })).toBeVisible();
+    expect(ranker).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets the user use local suggestions immediately and ignores a late ranking", async () => {
+    const user = userEvent.setup();
+    let complete!: (value: { ranked: boolean; orderedIds: string[] }) => void;
+    const ranker = vi.fn<JoinRanker>(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    renderNavigator(query, false, keyboardSchemas(), ranker);
+    await user.click(
+      screen.getByRole("button", { name: "Add related table to customers" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Use local suggestions" }),
+    );
+    const before = screen
+      .getAllByRole("option")
+      .map((item) => item.getAttribute("aria-label"));
+    complete({ ranked: true, orderedIds: ["public.orders"] });
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole("option")
+          .map((item) => item.getAttribute("aria-label")),
+      ).toEqual(before),
+    );
+    expect(
+      screen.getByRole("combobox", { name: "Filter tables" }),
+    ).toBeVisible();
+  });
+
   it("highlights the closest result after searching and joins it with Enter while keeping typing focus", async () => {
     const user = userEvent.setup();
     const { addJoin } = renderNavigator(query, false, keyboardSchemas());
@@ -387,21 +560,26 @@ describe("TableNavigator", () => {
     );
     expect(search).toHaveFocus();
     await user.keyboard("{Enter}");
-    expect(addJoin).toHaveBeenCalledWith("public.order_items", [
-      {
-        tableRef: "public.order_items",
-        usingConstraintId: JSON.stringify([
-          "customer_id",
-          "public",
-          "customers",
-          "id",
-        ]),
-      },
-    ]);
+    expect(addJoin).toHaveBeenCalledOnce();
+    expect(addJoin).toHaveBeenCalledWith(
+      "public.order_items",
+      [
+        {
+          tableRef: "public.order_items",
+          usingConstraintId: JSON.stringify([
+            "customer_id",
+            "public",
+            "customers",
+            "id",
+          ]),
+        },
+      ],
+      ["customer_id"],
+    );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("navigates results with arrows, skips already joined tables and ignores Enter with no matches", async () => {
+  it("navigates results with arrows, allows already joined tables and ignores Enter with no matches", async () => {
     const user = userEvent.setup();
     const { addJoin } = renderNavigator(
       {
@@ -432,35 +610,36 @@ describe("TableNavigator", () => {
     expect(screen.getByRole("dialog")).toBeVisible();
     await user.clear(search);
     await user.type(search, "order");
-    expect(screen.getByRole("option", { name: "orders" })).toHaveAttribute(
+    expect(screen.getByRole("option", { name: "orders" })).not.toHaveAttribute(
       "aria-disabled",
       "true",
     );
-    expect(screen.getByRole("option", { name: "order_items" })).toHaveAttribute(
+    expect(screen.getByRole("option", { name: "orders" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
     await user.keyboard("{ArrowDown}");
-    expect(
-      screen.getByRole("option", { name: "order_archive" }),
-    ).toHaveAttribute("aria-selected", "true");
-    await user.keyboard("{ArrowUp}");
     expect(screen.getByRole("option", { name: "order_items" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    await user.keyboard("{ArrowDown}{Enter}");
-    expect(addJoin).toHaveBeenCalledWith("public.order_archive", [
-      {
-        tableRef: "public.order_archive",
-        usingConstraintId: JSON.stringify([
-          "customer_id",
-          "public",
-          "customers",
-          "id",
-        ]),
-      },
-    ]);
+    await user.keyboard("{ArrowUp}{Enter}");
+    expect(addJoin).toHaveBeenCalledOnce();
+    expect(addJoin).toHaveBeenCalledWith(
+      "public.orders",
+      [
+        {
+          tableRef: "public.orders",
+          usingConstraintId: JSON.stringify([
+            "customer_id",
+            "public",
+            "customers",
+            "id",
+          ]),
+        },
+      ],
+      ["customer_id"],
+    );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -559,17 +738,22 @@ describe("TableNavigator", () => {
         name: "orders",
       }),
     );
-    expect(addJoin).toHaveBeenCalledWith("public.orders", [
-      {
-        tableRef: "public.orders",
-        usingConstraintId: JSON.stringify([
-          "customer_id",
-          "public",
-          "customers",
-          "id",
-        ]),
-      },
-    ]);
+    expect(addJoin).toHaveBeenCalledOnce();
+    expect(addJoin).toHaveBeenCalledWith(
+      "public.orders",
+      [
+        {
+          tableRef: "public.orders",
+          usingConstraintId: JSON.stringify([
+            "customer_id",
+            "public",
+            "customers",
+            "id",
+          ]),
+        },
+      ],
+      ["customer_id"],
+    );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -662,7 +846,7 @@ describe("TableNavigator", () => {
           ),
         )
         .map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["orders", "shipments"]);
+    ).toEqual(["shipments", "orders"]);
     await user.clear(search);
     await user.type(search, "SHIP");
     expect(

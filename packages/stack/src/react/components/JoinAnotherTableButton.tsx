@@ -1,4 +1,3 @@
-import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Hint } from "./Hint";
@@ -9,9 +8,16 @@ import {
   PreparedQuery,
   splitTableRef,
 } from "@quory/core";
-import { Fragment, memo, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type useQuery from "../hooks/useQuery";
-import { ArrowRight, Check, Pencil, Plus, Table2, X } from "lucide-react";
+import { Pencil, Plus, Table2, X } from "lucide-react";
 import {
   Command,
   CommandInput,
@@ -22,10 +28,21 @@ import {
 import { filterRelatedTables } from "./filterRelatedTables";
 import {
   buildJoinGraph,
+  createJoinTableLabel,
   suggestedJoinPaths,
   type JoinHop,
 } from "./joinRouteOptions";
-import { CustomJoinPath } from "./JoinPathPicker";
+import { SuggestedJoinPaths } from "./SuggestedJoinPaths";
+import { promoteJoinTables, shortlistJoinTables } from "./joinTableRanking";
+import { useJoinRanker } from "../JoinRankingContext";
+import { Spinner } from "./LoadingState";
+import {
+  selectedColumnContext,
+  shortlistJoinColumns,
+  selectJoinColumns,
+} from "./joinColumnSelection";
+import { describeJoinPath } from "./joinPathSuggestions";
+import { useRankedJoinTables } from "./useRankedJoinTables";
 
 export default memo(JoinAnotherTableButton);
 
@@ -42,8 +59,68 @@ function JoinAnotherTableButton({
 }) {
   const [open, setOpen] = useState(false);
   const searchInput = useRef<HTMLInputElement>(null);
+  const ranker = useJoinRanker();
+  const [choosingColumns, setChoosingColumns] = useState(false);
+  const pendingColumns = useRef<AbortController | null>(null);
+  useEffect(() => {
+    pendingColumns.current?.abort();
+    pendingColumns.current = null;
+    setChoosingColumns(false);
+    return () => pendingColumns.current?.abort();
+  }, [query, ranker, schemas]);
+  const changeOpen = (next: boolean) => {
+    if (!next) {
+      pendingColumns.current?.abort();
+      pendingColumns.current = null;
+      setChoosingColumns(false);
+    }
+    setOpen(next);
+  };
+  const joinPath = async (path: JoinHop[]) => {
+    if (pendingColumns.current || !path.length) return;
+    const target = path[path.length - 1]!.step.tableRef;
+    const [schemaName, tableName] = splitTableRef(target);
+    const table = schemas
+      .find(({ name }) => name === schemaName)
+      ?.tables.find(({ name }) => name === tableName);
+    if (!table?.columns.length) return;
+    const context = selectedColumnContext(query.base);
+    const { candidates, fallback } = shortlistJoinColumns(
+      table,
+      context.flatMap(({ columns }) => columns),
+    );
+    let columns = fallback;
+    if (ranker && candidates.length > 1) {
+      const controller = new AbortController();
+      pendingColumns.current = controller;
+      setChoosingColumns(true);
+      columns = await selectJoinColumns(
+        ranker,
+        {
+          kind: "columns",
+          sourceTable: parentJoin.tableRef,
+          targetTable: target,
+          joinedTables: context.map(({ tableRef }) => tableRef),
+          selectedColumns: context,
+          joinPath: describeJoinPath(parentJoin.tableRef, path).slice(0, 12000),
+          candidates,
+        },
+        fallback,
+        table.columns.map(({ name }) => name),
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
+      pendingColumns.current = null;
+    }
+    joinActions(parentJoin.joinAlias).addJoin(
+      target,
+      path.map((hop) => hop.step),
+      columns,
+    );
+    changeOpen(false);
+  };
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={changeOpen}>
       <Hint content="Join a related table">
         <PopoverTrigger asChild>
           <Button
@@ -69,19 +146,27 @@ function JoinAnotherTableButton({
           searchInput.current?.focus();
         }}
       >
-        <TablePicker
-          parentJoin={parentJoin}
-          schemas={schemas}
-          query={query}
-          searchInput={searchInput}
-          onJoin={(path) => {
-            joinActions(parentJoin.joinAlias).addJoin(
-              path[path.length - 1]!.step.tableRef,
-              path.map((hop) => hop.step),
-            );
-            setOpen(false);
-          }}
-        />
+        {choosingColumns ? (
+          <div className="flex flex-col items-center gap-3 p-6">
+            <div
+              role="status"
+              className="text-muted-foreground flex items-center gap-2 text-sm"
+            >
+              <Spinner /> Choosing columns…
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => changeOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <TablePicker
+            parentJoin={parentJoin}
+            schemas={schemas}
+            query={query}
+            searchInput={searchInput}
+            onJoin={joinPath}
+          />
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -100,68 +185,81 @@ function TablePicker({
   searchInput: React.RefObject<HTMLInputElement | null>;
   onJoin: (path: JoinHop[]) => void;
 }) {
-  function findAncestors(join: PreparedJoinDef): PreparedJoinDef[] | null {
-    if (join.joinAlias === parentJoin.joinAlias) return [join];
-    for (const child of join.joins) {
-      const path = findAncestors(child);
-      if (path) return [join, ...path];
-    }
-    return null;
-  }
   function descendants(join: PreparedJoinDef): PreparedJoinDef[] {
     return [join, ...join.joins.flatMap(descendants)];
   }
-  const existingTables = new Set(
-    [...(findAncestors(query.base) ?? []), ...descendants(parentJoin)].map(
-      (join) => join.tableRef,
-    ),
-  );
 
   const [tableSearch, setTableSearch] = useState("");
+  const tableList = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const resetScroll = () => {
+      if (tableList.current) tableList.current.scrollTop = 0;
+    };
+    resetScroll();
+    // cmdk can scroll the previous selection in a deferred layout update.
+    // Finish after that update, even when the first match hasn't changed.
+    const frame = requestAnimationFrame(resetScroll);
+    return () => cancelAnimationFrame(frame);
+  }, [tableSearch]);
   const [highlighted, setHighlighted] = useState("");
-  const [customTarget, setCustomTarget] = useState<string | null>(null);
+  const [target, setTarget] = useState<{ ref: string; custom: boolean } | null>(
+    null,
+  );
   const graph = useMemo(() => buildJoinGraph(schemas), [schemas]);
   const paths = useMemo(
     () => suggestedJoinPaths(graph, parentJoin.tableRef),
     [graph, parentJoin.tableRef],
   );
-  const tableLabel = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const schema of schemas) {
-      for (const { name } of schema.tables)
-        counts.set(name, (counts.get(name) ?? 0) + 1);
-    }
-    return (ref: string) => {
-      const [, name] = splitTableRef(ref);
-      return counts.get(name) === 1 ? name : ref;
-    };
-  }, [schemas]);
+  const tableLabel = useMemo(() => createJoinTableLabel(schemas), [schemas]);
   const tables = useMemo(
     () => Array.from(paths.incoming.keys(), splitTableRef),
     [paths],
   );
-  const filteredTables = useMemo(
-    () =>
-      filterRelatedTables(tables, tableSearch)
-        .map((parts) => parts.join("."))
-        .sort(
-          (a, b) =>
-            paths.incoming.get(a)!.distance - paths.incoming.get(b)!.distance,
-        ),
-    [tables, tableSearch, paths],
-  );
   const maxHops = MAX_QUERY_TABLES - descendants(query.base).length;
-  if (customTarget)
+  const joinedTables = descendants(query.base)
+    .map((join) => join.tableRef)
+    .sort();
+  const localTables = tables
+    .map((parts) => parts.join("."))
+    .sort(
+      (a, b) =>
+        paths.incoming.get(a)!.distance - paths.incoming.get(b)!.distance ||
+        a.localeCompare(b),
+    );
+  const candidates = shortlistJoinTables(
+    localTables
+      .filter((ref) => paths.incoming.get(ref)!.distance <= maxHops)
+      .map((id) => ({
+        id,
+        distance: paths.incoming.get(id)!.distance,
+        path: paths.pathTo(id),
+      })),
+    parentJoin.tableRef,
+    joinedTables,
+  );
+  const { pending, orderedIds, useLocal } = useRankedJoinTables({
+    kind: "tables",
+    sourceTable: parentJoin.tableRef,
+    joinedTables,
+    candidates,
+  });
+  // Search relevance takes precedence and searches the entire reachable schema.
+  const filteredTables = tableSearch.trim()
+    ? filterRelatedTables(tables, tableSearch).map((parts) => parts.join("."))
+    : promoteJoinTables(localTables, orderedIds);
+  if (target)
     return (
-      <CustomJoinPath
+      <SuggestedJoinPaths
         source={parentJoin.tableRef}
-        target={customTarget}
+        target={target.ref}
+        initialCustom={target.custom}
         tableLabel={tableLabel}
         graph={graph}
         maxHops={maxHops}
+        joinedTables={joinedTables}
         onJoin={onJoin}
         onCancel={() => {
-          setCustomTarget(null);
+          setTarget(null);
           requestAnimationFrame(() => searchInput.current?.focus());
         }}
       />
@@ -210,101 +308,86 @@ function TablePicker({
           )}
         </div>
         <CommandList
+          ref={tableList}
           aria-label="Related tables"
           className="max-h-80 min-h-0 overflow-x-auto overscroll-contain p-2"
         >
-          <CommandEmpty>No matching tables</CommandEmpty>
-          {filteredTables.map((ref) => {
-            const path = paths.pathTo(ref);
-            const intermediateTables = path
-              .slice(0, -1)
-              .map((hop) => tableLabel(hop.step.tableRef));
-            const existing = existingTables.has(ref);
-            const overLimit = paths.incoming.get(ref)!.distance > maxHops;
-            const Icon = existing ? Check : Table2;
-            return (
-              <div
-                key={ref}
-                className="group/table-row relative"
-                data-highlighted={highlighted === ref}
+          {pending ? (
+            <div
+              role="status"
+              className="text-muted-foreground px-2 py-3 text-xs"
+            >
+              Finding related tables…
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={useLocal}
               >
-                <Hint
-                  content={
-                    existing
-                      ? "Records already joined"
-                      : `Queries support up to ${MAX_QUERY_TABLES} tables`
-                  }
-                  disabled={!existing && !overLimit}
-                  side="right"
+                Use local suggestions
+              </Button>
+            </div>
+          ) : (
+            <CommandEmpty>No matching tables</CommandEmpty>
+          )}
+          {!pending &&
+            filteredTables.map((ref) => {
+              const overLimit = paths.incoming.get(ref)!.distance > maxHops;
+              return (
+                <div
+                  key={ref}
+                  className="group/table-row relative"
+                  data-highlighted={highlighted === ref}
                 >
-                  <CommandItem
-                    value={ref}
-                    aria-label={tableLabel(ref)}
-                    aria-description={
-                      intermediateTables.length
-                        ? `via ${intermediateTables.join(", ")}`
-                        : undefined
-                    }
-                    disabled={existing || overLimit}
-                    className="text-foreground data-[selected=true]:bg-primary-subtle data-[selected=true]:text-primary-emphasis min-h-8 gap-2 rounded-md py-1 pl-2 pr-9 text-xs"
-                    onSelect={() => onJoin(path)}
+                  <Hint
+                    content={`Queries support up to ${MAX_QUERY_TABLES} tables`}
+                    disabled={!overLimit}
+                    side="right"
                   >
-                    <Icon
-                      aria-hidden="true"
-                      className="text-primary-emphasis size-3.5 shrink-0"
-                    />
-                    <span className="min-w-0 break-all font-medium">
-                      {tableLabel(ref)}
-                    </span>
-                    {intermediateTables.length > 0 && (
-                      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
-                        <span className="text-muted-foreground text-[11px]">
-                          via{" "}
-                        </span>
-                        {intermediateTables.map((table, index) => (
-                          <Fragment key={table}>
-                            {index > 0 && (
-                              <ArrowRight
-                                aria-hidden="true"
-                                className="text-muted-foreground size-3 shrink-0"
-                              />
-                            )}
-                            <Badge
-                              variant="outline"
-                              className="border-primary/30 bg-primary-subtle text-primary-emphasis min-w-0 break-all px-1.5 py-0.5 text-[11px] font-medium"
-                            >
-                              {table}
-                            </Badge>
-                          </Fragment>
-                        ))}
-                      </div>
-                    )}
-                  </CommandItem>
-                </Hint>
-                {!existing && !overLimit && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Custom path to ${tableLabel(ref)}`}
-                    className="text-muted-foreground hover:text-primary-emphasis pointer-events-none absolute top-1 right-1 size-6 rounded opacity-0 transition-opacity group-hover/table-row:pointer-events-auto group-hover/table-row:opacity-100 group-focus-within/table-row:pointer-events-auto group-focus-within/table-row:opacity-100 group-data-[highlighted=true]/table-row:pointer-events-auto group-data-[highlighted=true]/table-row:opacity-100 motion-reduce:transition-none [&_svg]:size-3.5"
-                    onFocus={() => setHighlighted(ref)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ")
-                        event.stopPropagation();
-                    }}
-                    onClick={() => setCustomTarget(ref)}
-                  >
-                    <Pencil aria-hidden="true" />
-                  </Button>
-                )}
-              </div>
-            );
-          })}
+                    <CommandItem
+                      value={ref}
+                      aria-label={tableLabel(ref)}
+                      disabled={overLimit}
+                      className="text-foreground data-[selected=true]:bg-primary-subtle data-[selected=true]:text-primary-emphasis min-h-8 gap-2 rounded-md py-1 pl-2 pr-9 text-xs"
+                      onSelect={() => {
+                        const direct = graph.get(parentJoin.tableRef)?.get(ref);
+                        if (direct?.length === 1) onJoin([direct[0]!]);
+                        else setTarget({ ref, custom: false });
+                      }}
+                    >
+                      <Table2
+                        aria-hidden="true"
+                        className="text-primary-emphasis size-3.5 shrink-0"
+                      />
+                      <span className="min-w-0 break-all font-medium">
+                        {tableLabel(ref)}
+                      </span>
+                    </CommandItem>
+                  </Hint>
+                  {!overLimit && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Custom path to ${tableLabel(ref)}`}
+                      className="text-muted-foreground hover:text-primary-emphasis pointer-events-none absolute top-1 right-1 size-6 rounded opacity-0 transition-opacity group-hover/table-row:pointer-events-auto group-hover/table-row:opacity-100 group-focus-within/table-row:pointer-events-auto group-focus-within/table-row:opacity-100 group-data-[highlighted=true]/table-row:pointer-events-auto group-data-[highlighted=true]/table-row:opacity-100 motion-reduce:transition-none [&_svg]:size-3.5"
+                      onFocus={() => setHighlighted(ref)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ")
+                          event.stopPropagation();
+                      }}
+                      onClick={() => setTarget({ ref, custom: true })}
+                    >
+                      <Pencil aria-hidden="true" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
         </CommandList>
       </Command>
       <div className="border-border bg-background/60 text-muted-foreground shrink-0 border-t px-3 py-2 text-[10px]">
-        ↑ ↓ to navigate · Enter to join
+        ↑ ↓ to navigate · Enter to select
       </div>
     </>
   );

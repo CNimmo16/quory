@@ -160,8 +160,8 @@ export function ProjectConfigurationFields({
             }
           />
           <p className="text-xs text-muted-foreground">
-            0–1. Applies to query paths, counts and the assistant. Declared and
-            manual relationships score 1; inferred matches score 0.85–0.95.
+            0–1. Applies to query paths, counts and Quory. Declared and manual
+            relationships score 1; inferred matches score 0.85–0.95.
           </p>
         </div>
       </div>

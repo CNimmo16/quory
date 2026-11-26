@@ -18,7 +18,20 @@ export function removeQueryJoin(
         ],
       }));
     }
-    return [{ ...join, joins: join.joins.flatMap(visit) }];
+    const joins = join.joins.flatMap(visit);
+    // Only prune bridges emptied by this removal, not unrelated empty tables
+    // or tables still contributing filters, sorting, or another branch.
+    if (
+      join !== query.base &&
+      join.joins.length > 0 &&
+      joins.length === 0 &&
+      join.select.length === 0 &&
+      !join.where &&
+      !join.orderBy?.length
+    ) {
+      return [];
+    }
+    return [{ ...join, joins }];
   }
   return { ...query, offset: 0, base: visit(query.base)[0]! };
 }

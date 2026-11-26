@@ -36,6 +36,7 @@ const mocks = vi.hoisted(() => ({
     dialect: "postgres",
   } as CustomSqlQuery,
   chat: vi.fn(),
+  renderQueryView: vi.fn(),
   save: vi.fn(),
   update: vi.fn(),
   block: null as null | (() => boolean),
@@ -82,7 +83,7 @@ vi.mock("@tanstack/react-router", async () => {
     useRouter: () => ({ invalidate: mocks.invalidate }),
   };
 });
-vi.mock("../GlobalProviders", () => ({ trpcClient: {} }));
+vi.mock("../util/trpcClient", () => ({ trpcClient: {} }));
 vi.mock("@quory/stack/react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@quory/stack/react")>()),
   useFetchSchema: () => ({ data: { schemas } }),
@@ -166,6 +167,7 @@ vi.mock("./QueryView", async () => {
         onRedo: () => void;
       };
     }) {
+      mocks.renderQueryView();
       const [limit, setLimit] = useState(initialQuery.limit);
       useEffect(() => setLimit(initialQuery.limit), [initialQuery]);
       return (
@@ -249,9 +251,9 @@ it("opens manual queries with a placeholder and preserves drafts and edits when 
   const user = userEvent.setup();
   delete mocks.doc.chatMessages;
   mount();
-  expect(screen.getByText("Refine your query with AI")).toBeVisible();
+  expect(screen.getByText("Refine your query with Quory")).toBeVisible();
   expect(
-    screen.queryByRole("button", { name: /^(Open|Close) query assistant$/ }),
+    screen.queryByRole("button", { name: /^(Open|Close) Quory chat$/ }),
   ).not.toBeInTheDocument();
   expect(mocks.chat).not.toHaveBeenCalled();
   await user.click(
@@ -261,26 +263,20 @@ it("opens manual queries with a placeholder and preserves drafts and edits when 
     screen.getByRole("textbox", { name: "Amend your query" }),
     "Show only paid orders",
   );
-  await user.click(
-    screen.getByRole("button", { name: "Collapse query assistant" }),
-  );
-  expect(
-    screen.getByRole("complementary", { name: "Query assistant" }),
-  ).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Collapse Quory chat" }));
+  expect(screen.getByRole("complementary", { name: "Quory" })).toBeVisible();
   expect(
     screen.queryByRole("textbox", { name: "Amend your query" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: "Expand query assistant" }),
+    screen.getByRole("button", { name: "Expand Quory chat" }),
   ).toHaveAttribute("aria-expanded", "false");
   expect(screen.getByText("Displayed row limit: 7")).toBeVisible();
-  await user.click(
-    screen.getByRole("button", { name: "Expand query assistant" }),
-  );
+  await user.click(screen.getByRole("button", { name: "Expand Quory chat" }));
   expect(
-    screen.getByRole("button", { name: "Collapse query assistant" }),
+    screen.getByRole("button", { name: "Collapse Quory chat" }),
   ).toHaveAttribute("aria-expanded", "true");
-  expect(screen.getByText("Refine your query with AI")).toBeVisible();
+  expect(screen.getByText("Refine your query with Quory")).toBeVisible();
   expect(screen.getByRole("textbox", { name: "Amend your query" })).toHaveValue(
     "Show only paid orders",
   );
@@ -294,7 +290,7 @@ it("opens manual queries with a placeholder and preserves drafts and edits when 
   await user.click(screen.getByRole("button", { name: "Send" }));
   expect(await screen.findByText("Which date range?")).toBeVisible();
   expect(
-    screen.queryByText("Refine your query with AI"),
+    screen.queryByText("Refine your query with Quory"),
   ).not.toBeInTheDocument();
   expect(mocks.chat).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -323,20 +319,16 @@ it("can close and reopen chat during a request without losing the conversation",
   expect(
     screen.getByRole("button", { name: "Set manual row limit" }),
   ).toBeDisabled();
-  await user.click(
-    screen.getByRole("button", { name: "Collapse query assistant" }),
-  );
+  await user.click(screen.getByRole("button", { name: "Collapse Quory chat" }));
   expect(
-    screen.getByRole("button", { name: "Expand query assistant" }),
+    screen.getByRole("button", { name: "Expand Quory chat" }),
   ).toBeEnabled();
-  await user.click(
-    screen.getByRole("button", { name: "Expand query assistant" }),
-  );
+  await user.click(screen.getByRole("button", { name: "Expand Quory chat" }));
   expect(screen.getByText("Your orders query is ready.")).toBeVisible();
-  expect(screen.getByRole("status")).toHaveTextContent("Working on your query");
-  await user.click(
-    screen.getByRole("button", { name: "Collapse query assistant" }),
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "Quory is working on your query",
   );
+  await user.click(screen.getByRole("button", { name: "Collapse Quory chat" }));
   await act(async () => {
     finish({
       queryId: "query-1",
@@ -348,9 +340,7 @@ it("can close and reopen chat during a request without losing the conversation",
       ],
     });
   });
-  await user.click(
-    screen.getByRole("button", { name: "Expand query assistant" }),
-  );
+  await user.click(screen.getByRole("button", { name: "Expand Quory chat" }));
   expect(screen.getByText("Your orders query is ready.")).toBeVisible();
   expect(screen.getByText("Which date range?")).toBeVisible();
   expect(screen.getByRole("textbox", { name: "Amend your query" })).toHaveValue(
@@ -718,3 +708,14 @@ it.each([
     confirm.mockRestore();
   },
 );
+
+it("keeps follow-up typing out of the query workspace render path", async () => {
+  const user = userEvent.setup();
+  mount();
+  const input = screen.getByRole("textbox", { name: "Amend your query" });
+  mocks.renderQueryView.mockClear();
+  await user.type(input, "Show only paid orders");
+  expect(input).toHaveValue("Show only paid orders");
+  expect(mocks.renderQueryView).not.toHaveBeenCalled();
+  expect(mocks.chat).not.toHaveBeenCalled();
+});

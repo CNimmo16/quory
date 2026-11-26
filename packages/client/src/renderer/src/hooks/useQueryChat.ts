@@ -4,6 +4,7 @@ import type { inferRouterInputs } from "@trpc/server";
 import type { AppRouter } from "../../../main/ipc";
 import type { ChatMessage, QueryChatResult } from "../../../shared/queryChat";
 import trpc from "../util/tprc";
+import { createChatDraft } from "../util/chatDraft";
 import { useInvalidateQuory } from "@quory/stack/react";
 
 type ChatRequest = inferRouterInputs<AppRouter>["queries"]["chat"];
@@ -24,7 +25,7 @@ export function useQueryChat({
   onUpsert: (result: QueryChatResult) => Promise<void>;
 }) {
   const [messages, setMessages] = useState(initialMessages);
-  const [draft, setDraft] = useState("");
+  const [draft] = useState(createChatDraft);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const request = useRef<ChatRequest | null>(null);
@@ -81,7 +82,7 @@ export function useQueryChat({
         ]);
       if (result.queryUpdated) await onUpsert(result);
       request.current = null;
-      setDraft("");
+      draft.set("");
       return true;
     } catch (cause) {
       if (!isCurrent()) return false;
@@ -105,7 +106,7 @@ export function useQueryChat({
       setError(null);
     },
     draft,
-    setDraft,
+    setDraft: draft.set,
     pendingMessage,
     error,
     send,

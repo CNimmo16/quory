@@ -4,7 +4,7 @@ import {
   useRef,
   useState,
   type ReactNode,
-  type RefObject,
+  type Ref,
 } from "react";
 import { ArrowLeft, ArrowRight, Check, Table2, Undo2 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -48,6 +48,9 @@ function HopCard({ hop, name }: { hop: JoinHop; name: string }) {
         />
         {name}
       </span>
+      <span className="text-muted-foreground text-[11px] font-normal">
+        {hop.relationship.constraintId}
+      </span>
       {hop.relationship.columnPairs.map(({ localColumn, foreignColumn }) => {
         const [from, to] = hop.forward
           ? [localColumn, foreignColumn]
@@ -80,7 +83,7 @@ export function JoinPath({
   tableLabel: (ref: string) => string;
   choices?: JoinHop[];
   onChoose?: (hop: JoinHop) => void;
-  nextChoice?: RefObject<HTMLButtonElement | null>;
+  nextChoice?: Ref<HTMLButtonElement>;
 }) {
   const nodeStyle =
     "inline-flex w-fit max-w-full flex-col items-start gap-1 rounded-md border px-2.5 py-1.5 text-left text-xs break-all";
@@ -131,6 +134,7 @@ export function CustomJoinPath({
   maxHops,
   onCancel,
   onJoin,
+  backLabel = "Back to tables",
 }: {
   source: string;
   target: string;
@@ -139,6 +143,7 @@ export function CustomJoinPath({
   maxHops: number;
   onCancel: () => void;
   onJoin: (path: JoinHop[]) => void;
+  backLabel?: string;
 }) {
   const [path, setPath] = useState<JoinHop[]>([]);
   const nextChoice = useRef<HTMLButtonElement>(null);
@@ -165,7 +170,7 @@ export function CustomJoinPath({
           variant="ghost"
           size="icon"
           className="size-7"
-          aria-label="Back to tables"
+          aria-label={backLabel}
           onClick={onCancel}
         >
           <ArrowLeft />

@@ -49,7 +49,7 @@ vi.mock("@tanstack/react-router", () => ({
   useRouter: () => ({ invalidate: mocks.invalidateRouter }),
   redirect: (options: unknown) => options,
 }));
-vi.mock("../GlobalProviders", () => ({
+vi.mock("../util/trpcClient", () => ({
   trpcClient: {
     projects: { list: { query: mocks.listProjects } },
     connections: { fetchActiveConnection: { query: mocks.activeConnection } },
@@ -391,21 +391,15 @@ it("asks for clarification in the query assistant before navigating to the creat
   const input = screen.getByRole("textbox", { name: "Amend your query" });
   expect(input).toHaveValue("");
   await user.type(input, "Use created_at");
-  await user.click(
-    screen.getByRole("button", { name: "Collapse query assistant" }),
-  );
-  expect(
-    screen.getByRole("complementary", { name: "Query assistant" }),
-  ).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Collapse Quory chat" }));
+  expect(screen.getByRole("complementary", { name: "Quory" })).toBeVisible();
   expect(
     screen.queryByRole("textbox", { name: "Amend your query" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: "Expand query assistant" }),
+    screen.getByRole("button", { name: "Expand Quory chat" }),
   ).toHaveFocus();
-  await user.click(
-    screen.getByRole("button", { name: "Expand query assistant" }),
-  );
+  await user.click(screen.getByRole("button", { name: "Expand Quory chat" }));
   expect(screen.getByText("Which date should I use?")).toBeVisible();
   const restoredInput = screen.getByRole("textbox", {
     name: "Amend your query",

@@ -5,7 +5,13 @@ export const providerSchema = z.enum([
   "anthropic",
   "google",
   "custom",
+  "typesafe",
+  "cloudflare",
 ]);
+export const cloudflareAccountIdSchema = z
+  .string()
+  .trim()
+  .regex(/^[a-fA-F0-9]{32}$/, "Enter a 32-character Cloudflare account ID.");
 export const endpointSchema = z
   .string()
   .trim()
@@ -28,6 +34,7 @@ export const endpointSchema = z
 export const modelDiscoverySchema = z
   .object({
     provider: providerSchema,
+    purpose: z.enum(["assistant", "decision"]).default("assistant"),
     baseURL: endpointSchema.optional(),
     apiKey: z.string().trim().min(1).max(4096).optional(),
   })
@@ -52,14 +59,51 @@ export const defaultPreferences = {
   privacy: { analytics: true, errors: true },
 } satisfies z.infer<typeof preferencesSchema>;
 export type Preferences = z.infer<typeof preferencesSchema>;
-export const aiSettingsSchema = z
+export const assistantProviderSchema = z.enum([
+  "openai",
+  "anthropic",
+  "google",
+  "custom",
+]);
+export const decisionProviderSchema = z.enum([
+  "openai",
+  "google",
+  "typesafe",
+  "cloudflare",
+]);
+const modelIdSchema = z.string().trim().min(1).max(200);
+export const assistantSelectionSchema = z.object({
+  provider: assistantProviderSchema,
+  model: modelIdSchema,
+});
+export const decisionSelectionSchema = z.object({
+  provider: decisionProviderSchema,
+  model: modelIdSchema,
+});
+export const aiSettingsSchema = z.discriminatedUnion("purpose", [
+  z.object({
+    purpose: z.literal("assistant"),
+    selection: assistantSelectionSchema,
+  }),
+  z.object({
+    purpose: z.literal("decision"),
+    selection: decisionSelectionSchema.nullable(),
+  }),
+]);
+export const providerSettingsSchema = z
   .object({
     provider: providerSchema,
-    model: z.string().trim().min(1).max(200),
     apiKey: z.string().trim().min(1).max(4096).optional(),
     baseURL: endpointSchema.optional(),
+    accountId: cloudflareAccountIdSchema.optional(),
   })
   .superRefine((value, context) => {
+    if (value.provider === "cloudflare" && !value.accountId)
+      context.addIssue({
+        code: "custom",
+        path: ["accountId"],
+        message: "Enter your Cloudflare account ID.",
+      });
     if (value.provider === "custom" && !value.baseURL)
       context.addIssue({
         code: "custom",
@@ -68,20 +112,33 @@ export const aiSettingsSchema = z
       });
   });
 export type AISettingsInput = z.infer<typeof aiSettingsSchema>;
+export type ProviderSettingsInput = z.infer<typeof providerSettingsSchema>;
 export type Provider = z.infer<typeof providerSchema>;
-export type AIProfile = {
-  model: string;
+export type DecisionSelection = z.infer<typeof decisionSelectionSchema>;
+export type AssistantSelection = z.infer<typeof assistantSelectionSchema>;
+export type ProviderProfile = {
+  accountId?: string;
   baseURL?: string;
   hasSavedKey: boolean;
   hasEnvironmentKey: boolean;
 };
-export type AISettingsPublic = AIProfile & {
-  provider: Provider;
-  profiles: Record<Provider, AIProfile>;
+export type AISettingsPublic = {
+  assistant: AssistantSelection;
+  decision: DecisionSelection | null;
+  providers: Record<Provider, ProviderProfile>;
+  assistantModels: Partial<Record<Provider, string>>;
+};
+export const providerNames: Record<Provider, string> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  google: "Google AI Studio (Gemini API)",
+  custom: "Custom (OpenAI-compatible)",
+  typesafe: "TypeSafe / Jev",
+  cloudflare: "Cloudflare",
 };
 export type ModelOption = { id: string; name: string };
 export type ModelDiscovery = {
   models: ModelOption[];
-  source: "provider" | "catalog";
+  source: "provider" | "catalog" | "documented";
   notice?: string;
 };

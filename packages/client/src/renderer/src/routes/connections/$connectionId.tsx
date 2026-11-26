@@ -10,7 +10,7 @@ import { inferProcedureInput } from "@trpc/server";
 import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { LoadingState } from "../../components/LoadingState";
-import { trpcClient } from "../../GlobalProviders";
+import { trpcClient } from "../../util/trpcClient";
 import { TbTrash } from "react-icons/tb";
 
 export const Route = createFileRoute("/connections/$connectionId")({

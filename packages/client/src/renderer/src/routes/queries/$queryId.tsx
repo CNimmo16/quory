@@ -32,7 +32,7 @@ import useElementSize from "../../hooks/useElementSize";
 import { useConnectionSwitchGuard } from "../../hooks/useConnectionSwitchGuard";
 import { useQueryChat } from "../../hooks/useQueryChat";
 import trpc from "../../util/tprc";
-import { trpcClient } from "../../GlobalProviders";
+import { trpcClient } from "../../util/trpcClient";
 
 export const Route = createFileRoute("/queries/$queryId")({
   component: RouteComponent,
@@ -335,7 +335,6 @@ function QueryEditor({
           error={chat.error}
           onSend={chat.send}
           draft={chat.draft}
-          onDraftChange={chat.setDraft}
           disabled={busy || editingNickname}
         />
       </div>

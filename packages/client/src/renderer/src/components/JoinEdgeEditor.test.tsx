@@ -1,4 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import {
@@ -12,6 +18,7 @@ import {
 import useQuery from "../../../../../stack/src/react/hooks/useQuery";
 import TableNavigator from "./TableNavigator";
 import { TooltipProvider } from "./ui/tooltip";
+import { JoinRankingProvider, type JoinRanker } from "@quory/stack/react";
 
 let preparedQuery: PreparedQuery;
 vi.mock("../../../../../stack/src/react/useQuory", () => ({
@@ -108,7 +115,7 @@ const initialQuery: Query = {
   },
 };
 
-async function mountNavigator(query: Query) {
+async function mountNavigator(query: Query, ranker?: JoinRanker) {
   preparedQuery = (await prepareQuery(schemas, query)).preparedQuery;
   const onChange = vi.fn<(query: Query) => void>();
   function Navigator() {
@@ -126,12 +133,16 @@ async function mountNavigator(query: Query) {
       </TooltipProvider>
     );
   }
-  render(<Navigator />);
+  render(
+    <JoinRankingProvider value={ranker}>
+      <Navigator />
+    </JoinRankingProvider>,
+  );
   return { user: userEvent.setup(), onChange };
 }
 
-async function openEditor() {
-  const { user, onChange } = await mountNavigator(initialQuery);
+async function openEditor(ranker?: JoinRanker) {
+  const { user, onChange } = await mountNavigator(initialQuery, ranker);
   const edge = screen.getAllByRole("group", {
     name: "Relationship from main.orders to main.people",
   })[0]!;
@@ -147,10 +158,17 @@ async function openEditor() {
 it("switches the selected edge to a different foreign key and compiles the edited query", async () => {
   const { user, popup, onChange } = await openEditor();
   expect(
-    popup.getByRole("button", { name: /main.orders.buyer = main.people.id/ }),
-  ).toBeDisabled();
+    popup.getByRole("heading", { name: "orders to people" }),
+  ).toBeVisible();
+  expect(popup.queryByText("Join columns")).not.toBeInTheDocument();
+  expect(
+    popup.queryByText("Insert intermediate table"),
+  ).not.toBeInTheDocument();
+  expect(
+    popup.getByRole("button", { name: /orders.buyer → people.id/ }),
+  ).toBeVisible();
   await user.click(
-    popup.getByRole("button", { name: /main.orders.seller = main.people.id/ }),
+    popup.getByRole("button", { name: /orders.seller → people.id/ }),
   );
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(onChange).toHaveBeenCalledOnce();
@@ -166,14 +184,26 @@ it("switches the selected edge to a different foreign key and compiles the edite
   );
 });
 
-it("ranks alternate paths by length and inserts the chosen route on just that branch", async () => {
-  const { user, popup, onChange } = await openEditor();
-  const options = popup.getAllByRole("button").slice(2);
-  expect(options.map((option) => option.textContent)).toEqual([
-    "main.accounts",
-    "main.stores → main.accounts",
-  ]);
-  await user.click(options[1]!);
+it("ranks edge paths with the decision model and inserts the chosen route on just that branch", async () => {
+  const ranker = vi.fn<JoinRanker>().mockImplementation(async (request) => ({
+    ranked: true,
+    orderedIds: request.candidates.map(({ id }) => id).reverse(),
+  }));
+  const { user, popup, onChange } = await openEditor(ranker);
+  await popup.findByText("Suggested paths ranked by your decision model.");
+  expect(ranker).toHaveBeenCalledOnce();
+  expect(ranker.mock.calls[0]![0]).toMatchObject({
+    kind: "paths",
+    sourceTable: "main.orders",
+    targetTable: "main.people",
+    joinedTables: ["main.details", "main.orders", "main.people", "main.people"],
+  });
+  const options = within(
+    popup.getByRole("group", { name: "Suggested join paths" }),
+  ).getAllByRole("button");
+  expect(options).toHaveLength(3);
+  expect(options[0]).toHaveTextContent("stores");
+  await user.click(options[0]!);
   const result = await prepareQuery(schemas, onChange.mock.calls[0]![0]);
   const [stores, sibling] = result.preparedQuery.base.joins;
   expect(stores).toMatchObject({
@@ -198,6 +228,37 @@ it("ranks alternate paths by length and inserts the chosen route on just that br
   expect(sibling).toMatchObject({ tableRef: "main.people", via: [seller] });
 });
 
+it("uses the shared loading and custom-path flow when editing an edge", async () => {
+  const ranker = vi.fn<JoinRanker>(() => new Promise(() => {}));
+  const { user, popup, onChange } = await openEditor(ranker);
+  expect(popup.getByRole("status")).toHaveTextContent(
+    "Ranking suggested paths…",
+  );
+  expect(
+    popup.queryByRole("group", { name: "Suggested join paths" }),
+  ).not.toBeInTheDocument();
+  await user.click(popup.getByRole("button", { name: "Custom path" }));
+  await user.click(popup.getByRole("button", { name: /^people seller .*id$/ }));
+  await user.click(popup.getByRole("button", { name: "Join table" }));
+  expect(onChange).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  const { preparedQuery: result } = await prepareQuery(
+    schemas,
+    onChange.mock.calls[0]![0],
+  );
+  expect(result.base.joins[0]).toEqual({
+    ...preparedQuery.base.joins[0],
+    via: [seller],
+  });
+});
+
+it("closes edge path options without editing the query", async () => {
+  const { user, popup, onChange } = await openEditor();
+  await user.click(popup.getByRole("button", { name: "Close path options" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
 async function openTablePicker() {
   const { user, onChange } = await mountNavigator({
     base: { tableRef: "main.orders", select: ["id"] },
@@ -208,16 +269,63 @@ async function openTablePicker() {
   return { user, onChange, popup: within(screen.getByRole("dialog")) };
 }
 
-it("shows inline routes and applies their exact relationships", async () => {
+it("joins a single direct relationship immediately even when longer routes exist", async () => {
+  const { user, onChange, popup } = await openTablePicker();
+  // Accounts is also reachable through stores, but has one direct relationship.
+  await user.click(popup.getByRole("option", { name: "accounts" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(onChange).toHaveBeenCalledOnce();
+  const { preparedQuery: result } = await prepareQuery(
+    schemas,
+    onChange.mock.calls[0]![0],
+  );
+  expect(result.base.joins).toHaveLength(1);
+  expect(result.base.joins[0]).toMatchObject({
+    tableRef: "main.accounts",
+    via: [{ tableRef: "main.accounts", usingConstraintId: "account" }],
+    joins: [],
+  });
+});
+
+it("keeps path choices for ambiguous direct relationships", async () => {
+  const { user, onChange, popup } = await openTablePicker();
+  await user.click(popup.getByRole("option", { name: "people" }));
+  expect(onChange).not.toHaveBeenCalled();
+  expect(popup.getByText("orders to people")).toBeVisible();
+  expect(
+    within(
+      popup.getByRole("group", { name: "Suggested join paths" }),
+    ).getAllByRole("button").length,
+  ).toBeGreaterThan(1);
+});
+
+it("still opens a custom path for a table with a single direct relationship", async () => {
+  const { user, onChange, popup } = await openTablePicker();
+  await user.click(
+    popup.getByRole("button", { name: "Custom path to accounts" }),
+  );
+  expect(onChange).not.toHaveBeenCalled();
+  expect(popup.getByText("Custom path to accounts")).toBeVisible();
+});
+
+it("lists table names without path previews and applies the chosen path's exact relationships", async () => {
   const { user, onChange, popup } = await openTablePicker();
   expect(popup.getByRole("option", { name: "people" })).toHaveTextContent(
     /^people$/,
   );
   const details = popup.getByRole("option", { name: "details" });
-  expect(details).toHaveTextContent("via people");
-  expect(details).not.toHaveTextContent("main.");
+  expect(details).toHaveTextContent(/^details$/);
+  expect(details).not.toHaveAttribute("aria-description");
   expect(onChange).not.toHaveBeenCalled();
   await user.click(details);
+  expect(onChange).not.toHaveBeenCalled();
+  await user.click(
+    within(
+      popup.getByRole("group", { name: "Suggested join paths" }),
+    ).getAllByRole("button")[0]!,
+  );
+  expect(onChange).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   const { preparedQuery: result } = await prepareQuery(
     schemas,
     onChange.mock.calls[0]![0],
@@ -256,7 +364,7 @@ it("builds a custom path, supports undo, and compiles the selected relationships
   );
   await user.click(popup.getByRole("button", { name: /^people owner .*id$/ }));
   await user.click(
-    popup.getByRole("button", { name: /^details id .*person$/ }),
+    popup.getByRole("button", { name: /^details person id .*person$/ }),
   );
   expect(onChange).not.toHaveBeenCalled();
   await user.click(join);
@@ -271,7 +379,7 @@ it("builds a custom path, supports undo, and compiles the selected relationships
   const { preparedQuery: result } = await prepareQuery(schemas, next);
   expect(result.base.joins[0]!.joins[0]!.joins[0]!.joins[0]).toMatchObject({
     tableRef: "main.details",
-    select: ["id", "person"],
+    select: ["id"],
   });
 });
 
@@ -318,7 +426,9 @@ it("qualifies duplicate table names throughout the picker and commits the select
     popup.getByRole("heading", { name: "Custom path to archive.tags" }),
   ).toBeVisible();
   await user.click(
-    popup.getByRole("button", { name: /^archive\.tags id .*order_id$/ }),
+    popup.getByRole("button", {
+      name: /^archive\.tags order_id id .*order_id$/,
+    }),
   );
   await user.click(popup.getByRole("button", { name: "Join table" }));
   const { preparedQuery: result } = await prepareQuery(
@@ -454,4 +564,311 @@ it("selects columns when the only remaining table was used just for filtering", 
     joins: [],
     where: { value: "4" },
   });
+});
+
+it.each([1, 2])(
+  "edits a full route across %i intermediate tables and removes the obsolete bridges",
+  async (count) => {
+    const via = [
+      ...(count === 2
+        ? [{ tableRef: "main.stores", usingConstraintId: "store" }]
+        : []),
+      { tableRef: "main.accounts", usingConstraintId: "account" },
+      { tableRef: "main.people", usingConstraintId: "owner" },
+    ];
+    const destination = { ...initialQuery.base.joins![0]!, via };
+    const { user, onChange } = await mountNavigator({
+      ...initialQuery,
+      base: { ...initialQuery.base, joins: [destination] },
+    });
+    expect(
+      screen.queryByRole("button", { name: /Edit join.*accounts/ }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /Edit join.*stores/ }),
+    ).toBeNull();
+    const hoverArea = screen.getByLabelText(
+      "Join path from main.orders to main.people",
+    );
+    await user.hover(hoverArea);
+    expect(hoverArea).toHaveClass("opacity-100");
+    const edit = screen.getByRole("button", {
+      name: "Edit join from main.orders to main.people",
+    });
+    expect(edit).toHaveClass("opacity-100");
+    await user.hover(
+      screen.getByRole("button", { name: "Add all columns from accounts" }),
+    );
+    expect(hoverArea).toHaveClass("opacity-0");
+    expect(edit).toHaveClass("opacity-0");
+    expect(document.querySelector(".stroke-primary-emphasis")).toBeNull();
+    await user.hover(hoverArea);
+    expect(hoverArea).toHaveClass("opacity-100");
+    await user.click(edit);
+    const popup = within(screen.getByRole("dialog"));
+    expect(
+      popup.getByRole("heading", { name: "orders to people" }),
+    ).toBeVisible();
+    await user.click(
+      popup.getByRole("button", { name: /orders.seller → people.id/ }),
+    );
+    const { preparedQuery: next } = await prepareQuery(
+      schemas,
+      onChange.mock.calls[0]![0],
+    );
+    expect(next.base.joins).toHaveLength(1);
+    expect(next.base.joins[0]).toMatchObject({
+      tableRef: "main.people",
+      select: destination.select,
+      where: destination.where,
+      via: [seller],
+      joins: [{ tableRef: "main.details", select: ["id"] }],
+    });
+  },
+);
+
+it("keeps shared intermediate branches when one displayed destination changes route", async () => {
+  const { user, onChange } = await mountNavigator({
+    base: {
+      tableRef: "main.orders",
+      select: ["id"],
+      joins: [
+        {
+          tableRef: "main.accounts",
+          select: [],
+          via: [{ tableRef: "main.accounts", usingConstraintId: "account" }],
+          joins: [
+            {
+              ...initialQuery.base.joins![0]!,
+              via: [{ tableRef: "main.people", usingConstraintId: "owner" }],
+            },
+            {
+              tableRef: "main.people",
+              select: ["id"],
+              via: [{ tableRef: "main.people", usingConstraintId: "owner" }],
+              where: {
+                column: "id",
+                operator: ConditionOperator.EQUALS,
+                value: "9",
+              },
+            },
+          ],
+        },
+      ],
+    },
+  });
+  const originalSibling = preparedQuery.base.joins[0]!.joins[1]!;
+  await user.click(
+    screen.getAllByRole("button", {
+      name: "Edit join from main.orders to main.people",
+    })[0]!,
+  );
+  const popup = within(screen.getByRole("dialog"));
+  await user.click(
+    popup.getByRole("button", { name: /orders.seller → people.id/ }),
+  );
+  const next = onChange.mock.calls[0]![0];
+  expect(next.base.joins![0]).toMatchObject({
+    tableRef: "main.accounts",
+    select: [],
+    joins: [originalSibling],
+  });
+  expect(next.base.joins![1]).toMatchObject({
+    tableRef: "main.people",
+    via: [seller],
+    where: initialQuery.base.joins![0]!.where,
+  });
+  await expect(prepareQuery(schemas, next)).resolves.toBeDefined();
+});
+
+it.each([false, true])(
+  "adds another instance of an already joined table without changing the existing instances (custom: %s)",
+  async (custom) => {
+    const { user, onChange } = await mountNavigator(initialQuery);
+    await user.click(
+      screen.getByRole("button", { name: "Add related table to orders" }),
+    );
+    const popup = within(screen.getByRole("dialog"));
+    const people = popup.getByRole("option", { name: "people" });
+    expect(people).not.toHaveAttribute("aria-disabled", "true");
+    if (custom) {
+      await user.click(
+        popup.getByRole("button", { name: "Custom path to people" }),
+      );
+      await user.click(
+        popup.getByRole("button", { name: /^people seller .*id$/ }),
+      );
+      await user.click(popup.getByRole("button", { name: "Join table" }));
+    } else {
+      await user.click(people);
+      await user.click(
+        popup.getByRole("button", { name: /orders.seller → people.id/ }),
+      );
+    }
+    const { preparedQuery: next } = await prepareQuery(
+      schemas,
+      onChange.mock.calls[0]![0],
+    );
+    expect(next.base.joins).toHaveLength(3);
+    expect(next.base.joins.slice(0, 2)).toEqual(preparedQuery.base.joins);
+    expect(next.base.joins[2]).toMatchObject({
+      tableRef: "main.people",
+      select: ["id"],
+      via: [seller],
+      joins: [],
+    });
+    expect(new Set(next.base.joins.map((join) => join.joinAlias)).size).toBe(3);
+  },
+);
+
+it("adds a repeated table through a single direct relationship without overwriting its filters or columns", async () => {
+  const { user, onChange } = await mountNavigator({
+    base: {
+      tableRef: "main.orders",
+      select: ["id"],
+      joins: [
+        {
+          tableRef: "main.accounts",
+          select: ["owner"],
+          where: {
+            column: "id",
+            operator: ConditionOperator.EQUALS,
+            value: "7",
+          },
+        },
+      ],
+    },
+  });
+  await user.click(
+    screen.getByRole("button", { name: "Add related table to orders" }),
+  );
+  await user.click(screen.getByRole("option", { name: "accounts" }));
+  const { preparedQuery: next } = await prepareQuery(
+    schemas,
+    onChange.mock.calls[0]![0],
+  );
+  expect(next.base.joins).toHaveLength(2);
+  expect(next.base.joins[0]).toEqual(preparedQuery.base.joins[0]);
+  expect(next.base.joins[1]).toMatchObject({
+    tableRef: "main.accounts",
+    select: ["id"],
+    joins: [],
+  });
+  expect(next.base.joins[1]!.where).toBeUndefined();
+});
+
+it("can join another instance of an ancestor instead of reusing the ancestor", async () => {
+  const { user, onChange } = await mountNavigator({
+    base: {
+      tableRef: "main.orders",
+      select: ["id"],
+      joins: [{ tableRef: "main.people", select: ["id"], via: [buyer] }],
+    },
+  });
+  await user.click(
+    screen.getByRole("button", { name: "Add related table to people" }),
+  );
+  const popup = within(screen.getByRole("dialog"));
+  await user.click(popup.getByRole("option", { name: "orders" }));
+  await user.click(
+    popup.getByRole("button", { name: /people.id → orders.seller/ }),
+  );
+  const { preparedQuery: next } = await prepareQuery(
+    schemas,
+    onChange.mock.calls[0]![0],
+  );
+  expect(next.base.select).toEqual(["id"]);
+  expect(next.base.joins[0]!.joins[0]).toMatchObject({
+    tableRef: "main.orders",
+    via: [{ tableRef: "main.orders", usingConstraintId: "seller" }],
+  });
+  expect(next.base.joins[0]!.joins[0]!.joinAlias).not.toBe(next.base.joinAlias);
+});
+
+it("keeps hidden columns specific to each instance of a repeated table", async () => {
+  preparedQuery = (await prepareQuery(schemas, initialQuery)).preparedQuery;
+  const first = preparedQuery.base.joins[0]!;
+  const second = preparedQuery.base.joins[1]!;
+  const { result } = renderHook(() => useQuery(initialQuery, vi.fn()));
+  act(() => result.current.joinActions(first.joinAlias).setSelectedColumns([]));
+  expect(
+    result.current.joinActions(first.joinAlias).getVisibleColumns(),
+  ).toEqual([]);
+  expect(
+    result.current.joinActions(second.joinAlias).getVisibleColumns(),
+  ).toEqual(["id"]);
+});
+
+it("selects columns for a new repeated table using query and path metadata only", async () => {
+  const ranker = vi.fn<JoinRanker>().mockImplementation(async (request) => ({
+    ranked: true,
+    orderedIds: request.candidates.map(({ id }) => id),
+    ...(request.kind === "columns" ? { selectedIds: ["owner"] } : {}),
+  }));
+  const { user, onChange } = await mountNavigator(
+    {
+      base: {
+        tableRef: "main.orders",
+        select: ["id"],
+        joins: [
+          {
+            tableRef: "main.accounts",
+            select: ["id"],
+            where: {
+              column: "id",
+              operator: ConditionOperator.EQUALS,
+              value: "private-filter-value",
+            },
+          },
+        ],
+      },
+    },
+    ranker,
+  );
+  await user.click(
+    screen.getByRole("button", { name: "Add related table to orders" }),
+  );
+  await user.click(screen.getByRole("option", { name: "accounts" }));
+  const { preparedQuery: next } = await prepareQuery(
+    schemas,
+    onChange.mock.calls[0]![0],
+  );
+  expect(next.base.joins[0]).toEqual(preparedQuery.base.joins[0]);
+  expect(next.base.joins[1]!.select).toEqual(["owner"]);
+  const request = ranker.mock.calls.find(
+    ([candidateRequest]) => candidateRequest.kind === "columns",
+  )![0];
+  expect(request).toMatchObject({
+    sourceTable: "main.orders",
+    targetTable: "main.accounts",
+    selectedColumns: [
+      { tableRef: "main.orders", columns: ["id"] },
+      { tableRef: "main.accounts", columns: ["id"] },
+    ],
+  });
+  expect(request.joinPath).toContain("orders");
+  expect(JSON.stringify(request)).not.toContain("private-filter-value");
+});
+
+it("shows a cancelable column-selection spinner and never joins after cancellation", async () => {
+  let resolve!: (result: Awaited<ReturnType<JoinRanker>>) => void;
+  const ranker: JoinRanker = async (request) =>
+    request.kind === "columns"
+      ? new Promise((done) => {
+          resolve = done;
+        })
+      : { ranked: true, orderedIds: request.candidates.map(({ id }) => id) };
+  const { user, onChange } = await mountNavigator(initialQuery, ranker);
+  await user.click(
+    screen.getByRole("button", { name: "Add related table to orders" }),
+  );
+  await user.click(screen.getByRole("option", { name: "accounts" }));
+  expect(screen.getByRole("status")).toHaveTextContent("Choosing columns");
+  expect(screen.queryByRole("option")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  await act(async () =>
+    resolve({ ranked: true, orderedIds: [], selectedIds: ["owner"] }),
+  );
+  expect(onChange).not.toHaveBeenCalled();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

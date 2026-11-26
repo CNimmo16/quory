@@ -60,7 +60,7 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate,
   useRouter: () => ({ invalidate: mocks.invalidate }),
 }));
-vi.mock("../GlobalProviders", () => ({
+vi.mock("../util/trpcClient", () => ({
   trpcClient: {
     connections: { listSavedConnections: { query: mocks.listConnections } },
   },

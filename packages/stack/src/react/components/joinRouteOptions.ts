@@ -1,5 +1,6 @@
 import {
   getTableRelationships,
+  splitTableRef,
   type DatabaseSchema,
   type RelationshipConstraint,
   type ViaTableStep,
@@ -82,12 +83,12 @@ export function buildJoinGraph(schemas: DatabaseSchema[]): JoinGraph {
 
   const selectable: JoinGraph = new Map();
   for (const [from, neighbors] of graph) {
-    const available = new Map<string, JoinHop[]>();
+    const selectableNeighbors = new Map<string, JoinHop[]>();
     for (const [to, connections] of neighbors) {
       const choices = selectableConnections(to, connections);
-      if (choices.length) available.set(to, choices);
+      if (choices.length) selectableNeighbors.set(to, choices);
     }
-    selectable.set(from, available);
+    selectable.set(from, selectableNeighbors);
   }
   return selectable;
 }
@@ -165,23 +166,15 @@ export function routesToTarget(
   return { direct, routes };
 }
 
-export function getJoinRouteOptions(
-  schemas: DatabaseSchema[],
-  source: string,
-  target: string,
-) {
-  const { direct, routes } = routesToTarget(
-    buildJoinGraph(schemas),
-    source,
-    target,
-  );
-  // The edge editor offers one suggested route per intermediate table.
-  return {
-    direct,
-    routes: routes.filter(
-      (route, index) =>
-        index === 0 ||
-        route[0]!.step.tableRef !== routes[index - 1]![0]!.step.tableRef,
-    ),
+/** Include schema names only when table names are ambiguous. */
+export function createJoinTableLabel(schemas: DatabaseSchema[]) {
+  const counts = new Map<string, number>();
+  for (const schema of schemas) {
+    for (const { name } of schema.tables)
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return (ref: string) => {
+    const [, name] = splitTableRef(ref);
+    return counts.get(name) === 1 ? name : ref;
   };
 }

@@ -81,7 +81,7 @@ it("limits both sidebars to a third when open, and permits half when the opposit
   await user.click(screen.getByRole("button", { name: "Toggle right" }));
   expect(left).toHaveAttribute("aria-valuenow", "400");
   const right = screen.getByRole("separator", {
-    name: "Resize query assistant",
+    name: "Resize Quory chat",
   });
   fireEvent.pointerDown(right, { button: 0, clientX: 800 });
   fireEvent.pointerMove(right, { clientX: 600 });
@@ -100,7 +100,7 @@ it("recalculates limits when the viewport shrinks and restores text selection if
     .setup()
     .click(screen.getByRole("button", { name: "Toggle right" }));
   const right = screen.getByRole("separator", {
-    name: "Resize query assistant",
+    name: "Resize Quory chat",
   });
   fireEvent.keyDown(right, { key: "End" });
   viewport(900);

@@ -6,6 +6,8 @@ import {
   type Provider,
 } from "../../shared/settings";
 
+import { decisionModels, supportsDecisions } from "../../shared/decisionModels";
+
 const modelSchema = z.object({
   id: z.string().min(1).max(200),
   name: z.string().max(300).optional(),
@@ -138,7 +140,9 @@ async function providerModels(
           .filter(
             (m) =>
               m.supportedGenerationMethods?.includes("generateContent") &&
-              !/image|tts|audio|embedding|robotics|veo|live/i.test(m.name),
+              !/image|tts|audio|embedding|robotics|veo|live|decision/i.test(
+                m.name,
+              ),
           )
           .map((m) => ({
             id: m.name.replace(/^models\//, ""),
@@ -180,6 +184,58 @@ export async function discoverModels(
   fetcher: typeof fetch = fetch,
 ): Promise<ModelDiscovery> {
   const input = modelDiscoverySchema.parse(value);
+  if (input.purpose === "decision") {
+    if (!supportsDecisions(input.provider))
+      return {
+        models: [],
+        source: "documented",
+        notice: "This provider has no supported native decision API in Quory.",
+      };
+    const documented = decisionModels[input.provider];
+    const fallback: ModelDiscovery = {
+      models: documented,
+      source: "documented",
+      notice:
+        "Documented decision models. Test the connection to verify account access.",
+    };
+    try {
+      const key = input.apiKey || credential(input.provider, input.baseURL);
+      if (!key) return fallback;
+      // OpenAI and Google currently document one decision model each. Their
+      // general model lists do not reliably advertise decision capabilities.
+      if (input.provider !== "typesafe") return fallback;
+      const response = await fetcher("https://api.typesafe.ai/v1/models", {
+        headers: { Authorization: `Bearer ${key}` },
+        redirect: "error",
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) throw new Error("Model list unavailable");
+      const data = z
+        .object({
+          models: z
+            .array(z.object({ name: z.string().min(1).max(200) }))
+            .max(5000),
+        })
+        .parse(await response.json());
+      const models = data.models
+        .filter((m) => /^jev-/.test(m.name))
+        .map((m) => ({ id: m.name, name: m.name }));
+      if (!models.length) throw new Error("No decision models");
+      return { models: sorted([...documented, ...models]), source: "provider" };
+    } catch {
+      return {
+        ...fallback,
+        notice:
+          "Could not load your account’s models. Showing documented decision models; test the connection after saving.",
+      };
+    }
+  }
+  if (input.provider === "typesafe" || input.provider === "cloudflare")
+    return {
+      models: [],
+      source: "documented",
+      notice: "This provider is supported for decision models only in Quory.",
+    };
   try {
     const key = input.apiKey || credential(input.provider, input.baseURL);
     if (key || input.provider === "custom") {

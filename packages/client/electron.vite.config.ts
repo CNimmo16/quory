@@ -8,7 +8,7 @@ const extPlugin = externalizeDepsPlugin({
   exclude: ["@quory/stack", "@quory/core"],
 });
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   main: {
     plugins: [extPlugin],
     build: {
@@ -31,10 +31,30 @@ export default defineConfig({
     build: { sourcemap: "hidden" },
     resolve: {
       dedupe: ["react", "react-dom"],
-      alias: {
-        "@renderer": resolve("src/renderer/src"),
-      },
+      alias: [
+        {
+          find: "@renderer",
+          replacement: resolve(__dirname, "src/renderer/src"),
+        },
+        // Use one source module graph in development. Watching tsup output can
+        // replace the context and all consumers together in an opaque bundle.
+        ...(command === "serve"
+          ? [
+              {
+                find: /^@quory\/stack\/react$/,
+                replacement: resolve(__dirname, "../stack/src/react/index.ts"),
+              },
+              {
+                find: /^@quory\/stack\/react\/ui\/(.+)$/,
+                replacement: resolve(
+                  __dirname,
+                  "../stack/src/react/components/ui/$1",
+                ),
+              },
+            ]
+          : []),
+      ],
     },
     plugins: [react(), TanStackRouterVite()],
   },
-});
+}));

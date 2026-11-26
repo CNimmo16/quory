@@ -23,7 +23,7 @@ vi.mock("@tanstack/react-router", () => ({
   useBlocker: vi.fn(),
   redirect: (options: unknown) => options,
 }));
-vi.mock("../GlobalProviders", () => ({
+vi.mock("../util/trpcClient", () => ({
   trpcClient: {
     connections: { fetchActiveConnection: { query: mocks.active } },
     projects: {

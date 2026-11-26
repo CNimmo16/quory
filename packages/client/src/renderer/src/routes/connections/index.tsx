@@ -6,7 +6,7 @@ import { ConnectionForm } from "../../components/ConnectionForm";
 import trpc from "../../util/tprc";
 import { Button } from "../../components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { trpcClient } from "../../GlobalProviders";
+import { trpcClient } from "../../util/trpcClient";
 import { Label } from "../../components/ui/label";
 import {
   Select,

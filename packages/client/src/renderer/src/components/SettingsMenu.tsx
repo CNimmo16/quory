@@ -1,6 +1,16 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { Settings } from "lucide-react";
-import { AISettings } from "./AISettings";
+import {
+  AISettings,
+  aiSettingsSections,
+  type AISettingsSection,
+} from "./AISettings";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -107,6 +117,63 @@ function SettingsContent({
   refresh: () => Promise<unknown>;
 }) {
   const [section, setSection] = useState<Section>("AI");
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [activeAISection, setActiveAISection] =
+    useState<AISettingsSection>("ai-providers");
+  const [scrollRequest, setScrollRequest] = useState<{
+    id: AISettingsSection;
+  } | null>(null);
+  useLayoutEffect(() => {
+    if (section !== "AI" || !scrollRequest) return;
+    const container = contentRef.current;
+    const target = container?.querySelector<HTMLElement>(
+      `#${scrollRequest.id}`,
+    );
+    if (container && target) {
+      const padding = parseFloat(getComputedStyle(container).paddingTop) || 0;
+      container.scrollTo({
+        top: Math.max(
+          0,
+          container.scrollTop +
+            target.getBoundingClientRect().top -
+            container.getBoundingClientRect().top -
+            padding,
+        ),
+        behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")
+          .matches
+          ? "instant"
+          : "smooth",
+      });
+    }
+    setScrollRequest(null);
+  }, [section, scrollRequest]);
+  function navigateAI(id: AISettingsSection) {
+    setSection("AI");
+    setActiveAISection(id);
+    setScrollRequest({ id });
+    setError("");
+    setMessage("");
+  }
+  function trackAISection() {
+    const container = contentRef.current;
+    if (section !== "AI" || !container) return;
+    const top =
+      container.getBoundingClientRect().top +
+      (parseFloat(getComputedStyle(container).paddingTop) || 0) +
+      1;
+    let active: AISettingsSection = "ai-providers";
+    for (const item of aiSettingsSections) {
+      const target = container.querySelector<HTMLElement>(`#${item.id}`);
+      if (target && target.getBoundingClientRect().top <= top) active = item.id;
+    }
+    // A short final section cannot always reach the top of the scroll area.
+    if (
+      container.scrollTop > 0 &&
+      container.scrollTop + container.clientHeight >= container.scrollHeight - 1
+    )
+      active = "ai-decision";
+    setActiveAISection(active);
+  }
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -142,32 +209,68 @@ function SettingsContent({
         aria-label="Settings sections"
         className="flex shrink-0 flex-wrap gap-1 border-b bg-muted/30 p-3 sm:w-60 sm:flex-col sm:flex-nowrap sm:overflow-y-auto sm:border-r sm:border-b-0"
       >
-        {sections.map((item) => (
-          <Button
-            key={item}
-            variant={section === item ? "secondary" : "ghost"}
-            className="shrink-0 justify-start whitespace-nowrap text-left"
-            aria-pressed={section === item}
-            onClick={() => {
-              setSection(item);
-              setError("");
-              setMessage("");
-            }}
-          >
-            {item}
-          </Button>
-        ))}
+        <ul className="flex flex-wrap gap-1 sm:flex-col">
+          {sections.map((item) => (
+            <li key={item} className={item === "AI" ? "w-full" : ""}>
+              <Button
+                variant={section === item ? "secondary" : "ghost"}
+                className="w-full shrink-0 justify-start text-left whitespace-nowrap"
+                aria-pressed={section === item}
+                onClick={() => {
+                  if (item === "AI") {
+                    navigateAI("ai-providers");
+                    return;
+                  }
+                  setSection(item);
+                  setScrollRequest(null);
+                  contentRef.current?.scrollTo({ top: 0, behavior: "instant" });
+                  setError("");
+                  setMessage("");
+                }}
+              >
+                {item}
+              </Button>
+              {item === "AI" && (
+                <ul
+                  aria-label="AI settings sections"
+                  className="mt-1 ml-3 flex flex-wrap gap-1 border-l pl-2 sm:flex-col"
+                >
+                  {aiSettingsSections.map((child) => (
+                    <li key={child.id}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`w-full justify-start text-left whitespace-normal ${section === "AI" && activeAISection === child.id ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}
+                        aria-current={
+                          section === "AI" && activeAISection === child.id
+                            ? "location"
+                            : undefined
+                        }
+                        onClick={() => navigateAI(child.id)}
+                      >
+                        {child.label}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
       </nav>
-      <div className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto p-6">
-        <h2 className="text-lg font-semibold">
-          {section === "AI" ? "AI assistant" : section}
-        </h2>
+      <div
+        ref={contentRef}
+        onScroll={trackAISection}
+        className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto p-6"
+      >
+        <h2 className="text-lg font-semibold">{section}</h2>
         <fieldset disabled={busy} className="space-y-5 disabled:opacity-70">
           {section === "AI" && (
             <AISettings
               ai={data.ai}
               secureStorageAvailable={data.secureStorageAvailable}
               onSaved={refresh}
+              onNavigate={navigateAI}
             />
           )}
           {section === "Appearance" && (

@@ -15,7 +15,7 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate,
   redirect: (options: unknown) => options,
 }));
-vi.mock("../GlobalProviders", () => ({
+vi.mock("../util/trpcClient", () => ({
   trpcClient: {
     projects: { list: { query: async () => ({ projects: mocks.projects }) } },
   },

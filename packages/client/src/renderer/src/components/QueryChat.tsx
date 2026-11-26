@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { ArrowUp, Check, MessageSquare, PanelRightClose } from "lucide-react";
 import type { ChatMessage } from "../../../shared/queryChat";
 import { Alert, AlertDescription } from "./ui/alert";
@@ -8,6 +8,7 @@ import { Spinner } from "./LoadingState";
 import { useSidebarLayout } from "../hooks/useSidebarLayout";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { Hint } from "./Hint";
+import type { ChatDraft } from "../util/chatDraft";
 
 export function QueryComposer({
   onSend,
@@ -55,7 +56,7 @@ export function QueryComposer({
           placeholder={
             initial
               ? "Latest orders with listings for user cameron@gmail.com"
-              : "Ask a follow-up or describe a change…"
+              : "Ask Quory a follow-up or describe a change…"
           }
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
@@ -123,7 +124,6 @@ export function QueryChatPane({
   error,
   onSend,
   draft,
-  onDraftChange,
   disabled = false,
   collapsed,
   onToggle,
@@ -135,8 +135,7 @@ export function QueryChatPane({
   disabled?: boolean;
   collapsed: boolean;
   onToggle: () => void;
-  draft: string;
-  onDraftChange: (draft: string) => void;
+  draft: ChatDraft;
 }) {
   const layout = useSidebarLayout();
   const setRightOpen = layout?.setRightOpen;
@@ -161,7 +160,7 @@ export function QueryChatPane({
       className={`relative flex shrink-0 flex-col bg-background ${
         collapsed ? "h-full w-12 border-l" : "h-full border-l"
       }`}
-      aria-label="Query assistant"
+      aria-label="Quory"
     >
       <div
         className={`flex shrink-0 items-center gap-2 border-b text-sm font-medium ${
@@ -171,7 +170,7 @@ export function QueryChatPane({
         {!collapsed && (
           <>
             <MessageSquare className="size-4" aria-hidden="true" />
-            Query assistant
+            Quory
           </>
         )}
         <Button
@@ -179,12 +178,8 @@ export function QueryChatPane({
           variant="ghost"
           size="icon"
           className={`size-7 ${collapsed ? "" : "ml-auto"}`}
-          aria-label={
-            collapsed ? "Expand query assistant" : "Collapse query assistant"
-          }
-          title={
-            collapsed ? "Expand query assistant" : "Collapse query assistant"
-          }
+          aria-label={collapsed ? "Expand Quory chat" : "Collapse Quory chat"}
+          title={collapsed ? "Expand Quory chat" : "Collapse Quory chat"}
           aria-expanded={!collapsed}
           aria-controls="query-chat-content"
           onClick={onToggle}
@@ -203,13 +198,15 @@ export function QueryChatPane({
       >
         <div
           role="log"
-          aria-label="Query conversation"
+          aria-label="Conversation with Quory"
           aria-live="polite"
           className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5"
         >
           {messages.length === 0 && !pendingMessage && (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Refine your query with AI</p>
+              <p className="text-sm font-medium">
+                Refine your query with Quory
+              </p>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 Ask to add columns, filter results, or explore related tables.
                 Your current query and any unsaved edits are included.
@@ -259,7 +256,7 @@ export function QueryChatPane({
               className="flex items-center gap-2 text-sm text-muted-foreground"
             >
               <Spinner />
-              Working on your query…
+              Quory is working on your query…
             </div>
           )}
           <div ref={bottom} />
@@ -270,11 +267,10 @@ export function QueryChatPane({
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <QueryComposer
+          <FollowUpComposer
             onSend={onSend}
             pending={pendingMessage !== null || disabled}
             draft={draft}
-            onDraftChange={onDraftChange}
           />
           <p className="text-xs text-muted-foreground">
             Chat changes are saved automatically.
@@ -290,5 +286,25 @@ export function QueryChatPane({
         />
       )}
     </aside>
+  );
+}
+
+function FollowUpComposer({
+  draft,
+  onSend,
+  pending,
+}: {
+  draft: ChatDraft;
+  onSend: (message: string) => Promise<boolean>;
+  pending: boolean;
+}) {
+  const value = useSyncExternalStore(draft.subscribe, draft.getSnapshot);
+  return (
+    <QueryComposer
+      draft={value}
+      onDraftChange={draft.set}
+      onSend={onSend}
+      pending={pending}
+    />
   );
 }

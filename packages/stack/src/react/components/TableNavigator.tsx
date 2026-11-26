@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useId, useMemo, useState } from "react";
 import {
   findTableFromSchemas,
   splitTableRef,
@@ -25,6 +25,7 @@ import { cn } from "../lib/utils";
 import JoinAnotherTableButton from "./JoinAnotherTableButton";
 import { countFilters, QueryFilterPopover } from "./QueryFilters";
 import { layoutTableDiagram, type DiagramPoint } from "./tableNavigatorLayout";
+import { tableNavigatorRoutes } from "./tableNavigatorRoutes";
 import useElementSize from "../hooks/useElementSize";
 import { useRelationshipCanvas } from "../hooks/useRelationshipCanvas";
 
@@ -64,49 +65,6 @@ function connectorPath(points: DiagramPoint[]) {
   return `${path} L ${last.x} ${last.y}`;
 }
 
-function RelationshipDetails({
-  relationship,
-  configurable,
-}: {
-  relationship: RelationshipConstraint;
-  configurable: boolean;
-}) {
-  const {
-    source,
-    confidence,
-    localSchema,
-    localTable,
-    foreignSchema,
-    foreignTable,
-  } = relationship;
-  const label = {
-    "foreign-key": "Foreign key",
-    manual: "Manual relationship",
-    inferred: "Inferred relationship",
-  }[source ?? "foreign-key"];
-
-  return (
-    <div className="space-y-1">
-      <div className="font-semibold">
-        {label}
-        {source === "inferred" &&
-          confidence !== undefined &&
-          ` · confidence ${confidence.toFixed(2)}`}
-      </div>
-      {relationship.columnPairs.map(({ localColumn, foreignColumn }) => (
-        <div
-          key={JSON.stringify([localColumn, foreignColumn])}
-          className="font-mono break-all"
-        >
-          {localSchema}.{localTable}.{localColumn} = {foreignSchema}.
-          {foreignTable}.{foreignColumn}
-        </div>
-      ))}
-      {configurable && <div>Click to configure</div>}
-    </div>
-  );
-}
-
 function TableNavigator({
   width,
   maxHeight = 440,
@@ -141,6 +99,49 @@ function TableNavigator({
     () => layoutTableDiagram(query.base, availableWidth),
     [query, availableWidth],
   );
+  const joinedTables = useMemo(
+    () => layout.nodes.map(({ join }) => join.tableRef).sort(),
+    [layout],
+  );
+
+  const routes = useMemo(() => tableNavigatorRoutes(layout), [layout]);
+  const [hoveredRoute, setHoveredRoute] = useState<string | null>(null);
+  const [focusedRoute, setFocusedRoute] = useState<string | null>(null);
+  const [openRoute, setOpenRoute] = useState<string | null>(null);
+  const [hoveredCompact, setHoveredCompact] = useState(false);
+  const compactHighlighted = layout.nodes.some(
+    (node) => node.compact && node.join.joinAlias === highlightedJoinAlias,
+  );
+  const tableOnlyHighlight = hoveredCompact || compactHighlighted;
+  const activeRoute = tableOnlyHighlight
+    ? null
+    : (openRoute ?? hoveredRoute ?? focusedRoute);
+  const routeForEdge = (targetAlias: string) => {
+    const matches = routes.filter((route) =>
+      route.edges.some((edge) => edge.target === targetAlias),
+    );
+    return (
+      matches.find((route) => route.target.join.joinAlias === activeRoute) ??
+      matches[0]
+    );
+  };
+  const clipId = useId();
+  // The hover surface must never cover cards or their Join table controls,
+  // including when a long route folds onto another row.
+  const routeClip = [
+    `M0 0H${layout.width}V${layout.height}H0Z`,
+    ...[
+      ...layout.nodes.filter((node) => !node.compact),
+      ...layout.placeholders,
+    ].map((node) => {
+      const gap = "compact" in node ? 16 : 4;
+      return `M${node.x - gap} ${node.y - gap}h${node.width + gap * 2}v${node.height + gap * 2}h${-node.width - gap * 2}Z`;
+    }),
+  ].join(" ");
+  const routeAt = (target: EventTarget) =>
+    (target as Element)
+      .closest?.("[data-route-target]")
+      ?.getAttribute("data-route-target") ?? null;
 
   return (
     <section aria-label="Table relationships" className="bg-card min-w-0">
@@ -221,6 +222,23 @@ function TableNavigator({
       >
         <div
           className="relative origin-top-left"
+          onMouseMove={(event) => {
+            setHoveredRoute(routeAt(event.target));
+            setHoveredCompact(
+              Boolean(
+                (event.target as Element).closest("[data-compact-table]"),
+              ),
+            );
+          }}
+          onMouseLeave={() => {
+            setHoveredRoute(null);
+            setHoveredCompact(false);
+          }}
+          onFocusCapture={(event) => setFocusedRoute(routeAt(event.target))}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget))
+              setFocusedRoute(null);
+          }}
           style={{
             width: layout.width,
             height: layout.height,
@@ -233,6 +251,37 @@ function TableNavigator({
             width={layout.width}
             height={layout.height}
           >
+            <defs>
+              <clipPath id={clipId}>
+                <path d={routeClip} clipRule="evenodd" />
+              </clipPath>
+            </defs>
+            {routes
+              .filter((route) => route.intermediate.length > 0)
+              .map((route) => (
+                <g
+                  key={`hover-${route.target.join.joinAlias}`}
+                  clipPath={`url(#${clipId})`}
+                >
+                  <path
+                    data-canvas-node
+                    data-route-target={route.target.join.joinAlias}
+                    aria-label={`Join path from ${route.source.join.tableRef} to ${route.target.join.tableRef}`}
+                    d={connectorPath(route.bubble)}
+                    fill="none"
+                    strokeWidth={72}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    pointerEvents="stroke"
+                    className={cn(
+                      "stroke-primary/10 pointer-events-auto cursor-default transition-opacity duration-300 ease-out motion-reduce:transition-none",
+                      activeRoute === route.target.join.joinAlias
+                        ? "opacity-100"
+                        : "opacity-0",
+                    )}
+                  />
+                </g>
+              ))}
             {layout.placeholders.map(({ join, points }) => (
               <polyline
                 key={`add-${join.joinAlias}`}
@@ -277,117 +326,131 @@ function TableNavigator({
                 }
                 const clickable =
                   relationship?.source === "inferred" && !!onRelationshipClick;
+                const route = routeForEdge(edge.target);
                 const active =
-                  edge.source === highlightedJoinAlias ||
-                  edge.target === highlightedJoinAlias;
+                  !tableOnlyHighlight &&
+                  (route?.target.join.joinAlias === activeRoute ||
+                    edge.source === highlightedJoinAlias ||
+                    edge.target === highlightedJoinAlias);
                 const end = edge.points[edge.points.length - 1]!;
                 const path = connectorPath(edge.points);
                 return (
-                  <g key={edge.target} className="group/edge">
-                    <Hint
-                      content={
-                        relationship ? (
-                          <RelationshipDetails
-                            relationship={relationship}
-                            configurable={clickable}
-                          />
-                        ) : (
-                          "Relationship details unavailable"
-                        )
+                  <g
+                    key={edge.target}
+                    className="group/edge"
+                    data-route-target={route?.target.join.joinAlias}
+                  >
+                    <g
+                      role={clickable ? "button" : "group"}
+                      tabIndex={0}
+                      aria-label={
+                        clickable
+                          ? `Configure inferred relationship from ${source.tableRef} to ${target.tableRef}`
+                          : `Relationship from ${source.tableRef} to ${target.tableRef}`
+                      }
+                      className="pointer-events-auto cursor-default"
+                      onClick={
+                        clickable
+                          ? () => onRelationshipClick!(relationship!)
+                          : undefined
+                      }
+                      onKeyDown={
+                        clickable
+                          ? (event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onRelationshipClick!(relationship!);
+                              }
+                            }
+                          : undefined
                       }
                     >
-                      <g
-                        role={clickable ? "button" : "group"}
-                        tabIndex={0}
-                        aria-label={
-                          clickable
-                            ? `Configure inferred relationship from ${source.tableRef} to ${target.tableRef}`
-                            : `Relationship from ${source.tableRef} to ${target.tableRef}`
-                        }
-                        className="pointer-events-auto cursor-default"
-                        onClick={
-                          clickable
-                            ? () => onRelationshipClick!(relationship!)
-                            : undefined
-                        }
-                        onKeyDown={
-                          clickable
-                            ? (event) => {
-                                if (
-                                  event.key === "Enter" ||
-                                  event.key === " "
-                                ) {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  onRelationshipClick!(relationship!);
-                                }
-                              }
-                            : undefined
-                        }
-                      >
-                        <path
-                          d={path}
-                          fill="none"
-                          stroke="transparent"
-                          strokeWidth={16}
-                          pointerEvents="stroke"
-                        />
-                        <path
-                          d={path}
-                          fill="none"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                          className="stroke-card"
-                          strokeWidth={5}
-                        />
-                        <path
-                          d={path}
-                          fill="none"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                          className={cn(
+                      <path
+                        d={path}
+                        fill="none"
+                        stroke="transparent"
+                        strokeWidth={16}
+                        pointerEvents="stroke"
+                      />
+                      <path
+                        d={path}
+                        fill="none"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        className="stroke-card"
+                        strokeWidth={5}
+                      />
+                      <path
+                        d={path}
+                        fill="none"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        className={cn(
+                          !tableOnlyHighlight &&
                             "group-hover/edge:stroke-primary-emphasis group-focus-within/edge:stroke-primary-emphasis group-focus-within/edge:stroke-[2.5] group-hover/edge:stroke-[2.5]",
-                            active
-                              ? "stroke-primary-emphasis"
-                              : "stroke-muted-foreground/55",
-                          )}
-                          strokeWidth={active ? 2 : 1.5}
-                          strokeDasharray={
-                            relationship?.source === "inferred"
-                              ? "5 3"
-                              : undefined
-                          }
-                        />
-                        <circle
-                          cx={end.x}
-                          cy={end.y}
-                          r={2}
-                          className={cn(
+                          active
+                            ? "stroke-primary-emphasis"
+                            : "stroke-muted-foreground/55",
+                        )}
+                        strokeWidth={active ? 2 : 1.5}
+                        strokeDasharray={
+                          relationship?.source === "inferred"
+                            ? "5 3"
+                            : undefined
+                        }
+                      />
+                      <circle
+                        cx={end.x}
+                        cy={end.y}
+                        r={2}
+                        className={cn(
+                          !tableOnlyHighlight &&
                             "group-hover/edge:fill-primary-emphasis group-focus-within/edge:fill-primary-emphasis",
-                            active
-                              ? "fill-primary-emphasis"
-                              : "fill-muted-foreground/65",
-                          )}
-                        />
-                      </g>
-                    </Hint>
-                    <JoinEdgeEditor
-                      points={edge.points}
-                      schemas={schemas}
-                      source={source.tableRef}
-                      target={target.tableRef}
-                      tableCount={layout.nodes.length}
-                      current={relationship}
-                      onSelect={(steps) =>
-                        joinActions(target.joinAlias).setJoinRoute(steps)
-                      }
-                    />
+                          active
+                            ? "fill-primary-emphasis"
+                            : "fill-muted-foreground/65",
+                        )}
+                      />
+                    </g>
                   </g>
                 );
               })}
+            {routes.map((route) => {
+              let replacedIntermediates = 0;
+              for (const node of [...route.intermediate].reverse()) {
+                if (node.join.joins.length !== 1) break;
+                replacedIntermediates++;
+              }
+              return (
+                <g
+                  key={`edit-${route.target.join.joinAlias}`}
+                  data-route-target={route.target.join.joinAlias}
+                >
+                  <JoinEdgeEditor
+                    position={route.button}
+                    active={activeRoute === route.target.join.joinAlias}
+                    onOpenChange={(open) =>
+                      setOpenRoute(open ? route.target.join.joinAlias : null)
+                    }
+                    schemas={schemas}
+                    source={route.source.join.tableRef}
+                    target={route.target.join.tableRef}
+                    joinedTables={joinedTables}
+                    replacedIntermediates={replacedIntermediates}
+                    onSelect={(steps) =>
+                      joinActions(route.target.join.joinAlias).setJoinRoute(
+                        steps,
+                        route.source.join.joinAlias,
+                      )
+                    }
+                  />
+                </g>
+              );
+            })}
           </svg>
           {layout.nodes.map(
-            ({ join, parent, x, y, width: nodeWidth, height }) => {
+            ({ join, parent, x, y, width: nodeWidth, height, compact }) => {
               const [schemaName, tableName] = splitTableRef(join.tableRef);
               const table = findTableFromSchemas(
                 schemas,
@@ -398,16 +461,6 @@ function TableNavigator({
               const visibleColumns = actions.getVisibleColumns();
               const hidden = visibleColumns.length === 0;
               const filters = countFilters(join.where);
-              const isRequiredBridge = Boolean(
-                parent &&
-                join.select.length === 0 &&
-                !join.where &&
-                !join.orderBy?.length &&
-                join.joins.length > 0,
-              );
-              const linkedTables = join.joins
-                .map((child) => splitTableRef(child.tableRef)[1])
-                .join(", ");
               const repeated = layout.nodes.filter(
                 (node) => node.join.tableRef === join.tableRef,
               );
@@ -419,6 +472,59 @@ function TableNavigator({
                       ) + 1
                     }`
                   : "";
+              if (compact) {
+                return (
+                  <div
+                    key={join.joinAlias}
+                    role="group"
+                    data-canvas-node
+                    data-compact-table
+                    aria-label={`${join.tableRef}${instance}, joined from ${parent!.tableRef}`}
+                    className="absolute"
+                    style={{ left: x, top: y, width: nodeWidth, height }}
+                    onMouseEnter={() => {
+                      setHoveredCompact(true);
+                      setHoveredRoute(null);
+                      onChangeHighlightedJoinAlias(join.joinAlias);
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredCompact(false);
+                      onChangeHighlightedJoinAlias(null);
+                    }}
+                    onFocus={() => onChangeHighlightedJoinAlias(join.joinAlias)}
+                    onBlur={() => onChangeHighlightedJoinAlias(null)}
+                  >
+                    <Hint
+                      content={
+                        <span>
+                          Click to add{" "}
+                          <span className="font-mono">{tableName}</span> to the
+                          query.
+                        </span>
+                      }
+                    >
+                      <button
+                        type="button"
+                        aria-label={`Add all columns from ${tableName}${instance}`}
+                        className={cn(
+                          "bg-background text-muted-foreground hover:border-primary hover:text-primary-emphasis focus-visible:outline-primary size-full cursor-pointer truncate rounded-md border px-3 text-sm font-medium ring-1 transition-[color,border-color,box-shadow] duration-300 ease-out focus-visible:outline focus-visible:outline-2 motion-reduce:transition-none",
+                          highlightedJoinAlias === join.joinAlias
+                            ? "border-primary ring-primary/25"
+                            : "border-muted-foreground/30 ring-transparent",
+                        )}
+                        onClick={() =>
+                          actions.setSelectedColumns(
+                            table.columns.map((column) => column.name),
+                          )
+                        }
+                      >
+                        {tableName}
+                        {instance}
+                      </button>
+                    </Hint>
+                  </div>
+                );
+              }
               return (
                 <div
                   key={join.joinAlias}
@@ -484,23 +590,11 @@ function TableNavigator({
                       )}
                     </Hint>
                     {(parent || join.joins.length > 0) && (
-                      <Hint
-                        content={
-                          isRequiredBridge
-                            ? `This table is used to link to the descendant ${
-                                join.joins.length === 1 ? "table" : "tables"
-                              } ${linkedTables}. Remove the descendant ${
-                                join.joins.length === 1 ? "table" : "tables"
-                              } first.`
-                            : "Remove table from query"
-                        }
-                        side="left"
-                      >
+                      <Hint content="Remove table from query" side="left">
                         <Button
                           type="button"
                           size="icon"
                           variant="ghost"
-                          disabled={isRequiredBridge}
                           className="text-muted-foreground hover:bg-destructive-subtle hover:text-destructive size-6 shrink-0 rounded-sm shadow-none"
                           aria-label={`Remove ${tableName} from query`}
                           onClick={() => actions.removeJoin()}

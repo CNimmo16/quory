@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import GitHubLink from "../components/GitHubLink.astro";
 import Analytics from "../components/Analytics.astro";
+import SiteBackground from "../components/SiteBackground.astro";
 import ColourSchemePicker from "../components/ColourSchemePicker";
 import colourScheme from "../lib/colour-scheme.js?raw";
 import iconUrl from "../../../../packages/config/branding/quory-icon.svg?url";
@@ -43,7 +44,10 @@ const {
     <title>{title}</title>
     <Analytics />
   </head>
-  <body class="bg-background font-sans text-foreground">
+  <body
+    class="relative isolate min-h-svh bg-background font-sans text-foreground"
+  >
+    <SiteBackground />
     <a
       class="fixed top-[10px] left-[10px] z-20 [transform:translateY(-150%)] bg-primary px-[18px] py-[10px] text-primary-foreground focus:[transform:translateY(0)]"
       href="#main"

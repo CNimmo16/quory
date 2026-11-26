@@ -1,11 +1,6 @@
-import { createContext, ReactNode, useMemo } from "react";
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
-
-interface QuoryCtxValue {
-  queryClient: QueryClient;
-}
-
-export const QuoryContext = createContext<QuoryCtxValue | null>(null);
+import { type ReactNode, useMemo } from "react";
+import { QueryClient, type QueryFunction } from "@tanstack/react-query";
+import { QuoryContext } from "./QuoryContext";
 
 export type QuoryProviderConfig =
   | {

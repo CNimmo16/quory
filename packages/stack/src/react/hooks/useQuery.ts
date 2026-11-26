@@ -59,6 +59,8 @@ export default function useQuery(
         value: string;
       },
       via?: ViaTableStep[],
+      newInstance = false,
+      columnsToSelect?: string[],
     ) => {
       if (!data) {
         throw new Error("No data");
@@ -90,13 +92,13 @@ export default function useQuery(
             ],
           } satisfies BooleanCondition)
         : undefined;
-      if (sourceJoinParent?.tableRef === targetTableRef) {
+      if (!newInstance && sourceJoinParent?.tableRef === targetTableRef) {
         sourceJoinParent.select = targetTable.columns.map(({ name }) => name);
         sourceJoinParent.where = where;
       } else {
-        const matchingChildJoins = sourceJoin.joins.filter(
-          (join) => join.tableRef === targetTableRef,
-        );
+        const matchingChildJoins = newInstance
+          ? []
+          : sourceJoin.joins.filter((join) => join.tableRef === targetTableRef);
         if (matchingChildJoins.length > 1) {
           throw new Error(`Multiple join instances select ${targetTableRef}`);
         }
@@ -108,7 +110,11 @@ export default function useQuery(
           matchingChildJoin.where = where;
         } else {
           sourceJoin.joins.push({
-            select: targetTable.columns.map(({ name }) => name),
+            select: columnsToSelect
+              ? targetTable.columns
+                  .filter(({ name }) => columnsToSelect.includes(name))
+                  .map(({ name }) => name)
+              : targetTable.columns.map(({ name }) => name),
             tableRef: targetTableRef,
             ...(via && { via }),
             where,
@@ -153,30 +159,78 @@ export default function useQuery(
             .filter(
               ({ name }) =>
                 this.join.select.includes(name) &&
-                !hiddenColumnRefs.has(`${this.join.tableRef}.${name}`),
+                !hiddenColumnRefs.has(`${this.join.joinAlias}.${name}`),
             )
             .map(({ name }) => name);
         },
-        setJoinRoute(steps: ViaTableStep[]) {
+        setJoinRoute(
+          steps: ViaTableStep[],
+          sourceAlias = found.parent?.joinAlias,
+        ) {
           const destination = steps[steps.length - 1];
-          if (!found.parent || destination?.tableRef !== found.join.tableRef) {
-            throw new Error("A join route must end at the joined table.");
-          }
-          // Keep this branch independent of other instances of the same table,
-          // which may carry different filters or descendants.
-          const reroute = (join: PreparedJoinDef): JoinDef => {
-            if (join !== found.join) {
-              return { ...join, joins: join.joins.map(reroute) };
-            }
-            return steps.slice(0, -1).reduceRight<JoinDef>(
-              (child, step) => ({
-                tableRef: step.tableRef,
-                select: [],
-                via: [step],
-                joins: [child],
-              }),
-              { ...join, via: [destination] },
+          const source =
+            sourceAlias &&
+            findJoinRecursively(data.preparedQuery.base, sourceAlias)?.join;
+          if (
+            !source ||
+            !found.parent ||
+            destination?.tableRef !== found.join.tableRef
+          ) {
+            throw new Error(
+              "A join route must connect an ancestor to the joined table.",
             );
+          }
+          // Only implicit bridges may lie between the displayed endpoints.
+          let ancestor = found.parent;
+          while (ancestor.joinAlias !== sourceAlias) {
+            if (
+              ancestor.select.length ||
+              ancestor.where ||
+              ancestor.orderBy?.length
+            ) {
+              throw new Error("Cannot reroute across a selected table.");
+            }
+            const parent = findJoinRecursively(
+              data.preparedQuery.base,
+              ancestor.joinAlias,
+            )?.parent;
+            if (!parent)
+              throw new Error("The route source must be an ancestor.");
+            ancestor = parent;
+          }
+          const replacement = steps.slice(0, -1).reduceRight<JoinDef>(
+            (child, step) => ({
+              tableRef: step.tableRef,
+              select: [],
+              via: [step],
+              joins: [child],
+            }),
+            { ...found.join, via: [destination] },
+          );
+          // Remove just this destination, pruning only bridges it leaves empty.
+          // Shared bridges and their exact relationship selectors stay in place.
+          const removeDestination = (join: PreparedJoinDef): JoinDef[] => {
+            if (join === found.join) return [];
+            const joins = join.joins.flatMap(removeDestination);
+            if (
+              join.joins.length &&
+              !joins.length &&
+              !join.select.length &&
+              !join.where &&
+              !join.orderBy?.length
+            )
+              return [];
+            return [{ ...join, joins }];
+          };
+          const reroute = (join: PreparedJoinDef): JoinDef => {
+            if (join !== source)
+              return { ...join, joins: join.joins.map(reroute) };
+            // Retain the destination's position for direct joins.
+            const joins = join.joins.flatMap((child) =>
+              child === found.join ? [replacement] : removeDestination(child),
+            );
+            if (!join.joins.includes(found.join)) joins.push(replacement);
+            return { ...join, joins };
           };
           setQuery({
             ...data.preparedQuery,
@@ -206,7 +260,7 @@ export default function useQuery(
           setHiddenColumnRefs(
             produce((draft) => {
               for (const column of table.columns) {
-                const colRef = `${this.join.tableRef}.${column.name}`;
+                const colRef = `${this.join.joinAlias}.${column.name}`;
                 if (columnsToSelect.includes(column.name)) {
                   draft.delete(colRef);
                 } else if (column.includedInPrimaryKey) {
@@ -308,7 +362,9 @@ export default function useQuery(
                     throw new Error("Cannot remove base join");
                   }
                   parent.joins = [
-                    ...parent.joins.filter((j) => j.tableRef !== join.tableRef),
+                    ...parent.joins.filter(
+                      (j) => j.joinAlias !== join.joinAlias,
+                    ),
                     ...join.joins,
                   ];
                   if (parent.select.length === 0) {
@@ -325,7 +381,11 @@ export default function useQuery(
             }),
           );
         },
-        addJoin(targetTableRef: string, via?: ViaTableStep[]) {
+        addJoin(
+          targetTableRef: string,
+          via?: ViaTableStep[],
+          columnsToSelect?: string[],
+        ) {
           setQuery(
             produce(data.preparedQuery, (draft) => {
               draft.offset = 0;
@@ -335,6 +395,8 @@ export default function useQuery(
                 targetTableRef,
                 undefined,
                 via,
+                true,
+                columnsToSelect,
               );
             }),
           );
@@ -453,7 +515,7 @@ export default function useQuery(
             columns: joinItem.columns.filter(
               (column) =>
                 !hiddenColumnRefs.has(
-                  `${joinItem.join.tableRef}.${column.name}`,
+                  `${joinItem.join.joinAlias}.${column.name}`,
                 ),
             ),
           })),

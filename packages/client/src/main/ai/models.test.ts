@@ -56,18 +56,16 @@ describe("live model discovery", () => {
     );
   });
   it("uses the selected OpenAI key only at the official endpoint and filters non-chat models", async () => {
-    const fetcher = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        json({
-          data: [
-            { id: "gpt-chat" },
-            { id: "text-embedding-3-small" },
-            { id: "gpt-image-1" },
-            { id: "gpt-chat" },
-          ],
-        }),
-      );
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      json({
+        data: [
+          { id: "gpt-chat" },
+          { id: "text-embedding-3-small" },
+          { id: "gpt-image-1" },
+          { id: "gpt-chat" },
+        ],
+      }),
+    );
     const credential = vi.fn(() => "saved-openai-key");
     const result = await discoverModels(
       { provider: "openai", baseURL: "https://wrong.example/v1" },
@@ -248,4 +246,96 @@ describe("live model discovery", () => {
     expect(fetcher).not.toHaveBeenCalled();
     expect(credential).not.toHaveBeenCalled();
   });
+});
+
+it.each([
+  ["openai", ["gpt-6-luna"]],
+  ["google", ["gemini-decision-1"]],
+  ["anthropic", []],
+  ["custom", []],
+] as const)(
+  "only lists documented native decision models for %s",
+  async (provider, expected) => {
+    const fetcher = vi.fn<typeof fetch>();
+    const result = await discoverModels(
+      {
+        provider,
+        purpose: "decision",
+        ...(provider === "custom"
+          ? { baseURL: "http://localhost:1234/v1" }
+          : {}),
+      },
+      () => "key",
+      fetcher,
+    );
+    expect(result.models.map((m) => m.id)).toEqual(expected);
+    expect(result.source).toBe("documented");
+    expect(fetcher).not.toHaveBeenCalled();
+  },
+);
+it("discovers TypeSafe models using its own key and retains documented pinned versions", async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(
+      json({ models: [{ name: "jev-latest" }, { name: "jev-new" }] }),
+    );
+  const result = await discoverModels(
+    { provider: "typesafe", purpose: "decision" },
+    () => "typesafe-secret",
+    fetcher,
+  );
+  expect(result.models.map((m) => m.id)).toEqual(
+    expect.arrayContaining(["jev-latest", "jev-new", "jev-1.14.0"]),
+  );
+  expect(fetcher).toHaveBeenCalledWith(
+    "https://api.typesafe.ai/v1/models",
+    expect.objectContaining({
+      headers: { Authorization: "Bearer typesafe-secret" },
+      redirect: "error",
+    }),
+  );
+});
+it("falls back to documented Jev models offline without leaking credentials", async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockRejectedValue(new Error("typesafe-secret"));
+  const result = await discoverModels(
+    { provider: "typesafe", purpose: "decision" },
+    () => "typesafe-secret",
+    fetcher,
+  );
+  expect(result.source).toBe("documented");
+  expect(result.models.some((m) => m.id === "jev-latest")).toBe(true);
+  expect(JSON.stringify(result)).not.toContain("typesafe-secret");
+});
+it("does not offer TypeSafe as an assistant provider", async () => {
+  const fetcher = vi.fn<typeof fetch>();
+  expect(
+    (await discoverModels({ provider: "typesafe" }, () => "key", fetcher))
+      .models,
+  ).toEqual([]);
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("lists Clef and Clef Flash only as decision models", async () => {
+  const fetcher = vi.fn<typeof fetch>();
+  const result = await discoverModels(
+    { provider: "cloudflare", purpose: "decision" },
+    () => undefined,
+    fetcher,
+  );
+  expect(result.models.map((m) => m.id)).toEqual([
+    "@cf/cloudflare/clef",
+    "@cf/cloudflare/clef-flash",
+  ]);
+  expect(
+    (
+      await discoverModels(
+        { provider: "cloudflare", purpose: "assistant" },
+        () => "token",
+        fetcher,
+      )
+    ).models,
+  ).toEqual([]);
+  expect(fetcher).not.toHaveBeenCalled();
 });
