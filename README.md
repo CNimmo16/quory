@@ -1,39 +1,44 @@
 # Quory
 
-The open source database client for support engineers.
+**SQL is great. Writing joins isn't. Get answers faster with Quory.**
 
-## Why do I need this?
+Quory is the open-source database client built for rapidly surfacing customer data to solve a specific problem. Diagnose customer issues directly in your database — _fast_.
 
-Quory was created out of frustration at the way most database clients handle querying relationships.
+[Website](https://usequory.com) · [Try it live in your browser](https://usequory.com/demo/) · [Download](https://usequory.com/downloads/) · [Docs](https://usequory.com/docs/)
 
-In general, database clients are designed for two things: **managing databases** and **analyzing data**. But if you commonly work on debugging individual customer queries, especially at small companies without much internal tooling, you'll know about another use case:
+## Why Quory?
 
-**"Show me all the relevant information that I need to solve this particular query, even if that information is stored across multiple database tables."**
+Database clients are built for edits and complex queries. When you need to rapidly surface data across multiple tables, they slow you down.
 
-Quory is a database client focused on this use case, helping you to find the data you need to help your customers as quickly as possible.
+Quory is built for engineers in small teams who need to solve customer issues fast, without wasting time on complex SQL joins or building internal tooling:
 
-> At its core, Quory is also a collection of Typescript functions for joining tables without writing SQL. [Find out about using Quory to build data apps.](#building-your-own-data-app-quorycore-)
+- **The data you need at light speed.** A failed payment. A missing order. A customer waiting for an answer. Follow the relationships in your database to understand what happened and get back to the customer with the full picture.
+- **Move faster with a small team.** Small teams shouldn't need a custom dashboard for every question. Surface answers from the data you already have, and spend more time building your product than wiring up internal tools.
+- **Explore with confidence.** Get the answers you need with read-only connections that keep writes off the table, with row-level security coming soon for more granular control.
+- **Meets your data where it lives.** Supports **PostgreSQL**, **MySQL**, and **SQLite** (more coming soon).
+- **Built in the open.** Open source, built for engineers by engineers — inspect the code, share an idea, report a bug, or help shape what comes next.
+
+> At its core, Quory is also a collection of TypeScript packages for joining tables without writing SQL. [Find out about using Quory to build your own data tools.](#other-ways-to-use-quory)
 
 ## Getting started
 
-Quory is distributed as an Electron app for all major operating systems.
+Download the early-access desktop app for macOS, Windows, or Linux at [usequory.com/downloads](https://usequory.com/downloads/) (or from [GitHub Releases](https://github.com/CNimmo16/quory/releases/latest)), or [try it live in your browser](https://usequory.com/demo/).
 
-Windows, Mac and Linux installers can be found here https://github.com/CNimmo16/quory/releases/latest.
+### Installing Quory
 
-### Which installer to pick?
+> **Note:** Early-access installers aren't publisher-signed or notarized yet, so macOS and Windows may display a security warning. If you'd prefer to build from source, see [Building the Electron client](#building-the-electron-client).
 
-If you're unsure which file to download from the release, here is some guidance:
+- **macOS:** Download the `.dmg` for your Mac's chip (Apple Silicon or Intel), open it, and drag Quory into Applications. If macOS blocks the first launch, open **System Settings → Privacy & Security**, scroll to the **Security** section, and choose **Open Anyway**.
+- **Windows:** Download and run the `.exe` installer (x64). If Windows SmartScreen displays an unknown-publisher warning, choose **More info → Run anyway** (when permitted by your organization's policies).
+- **Linux:** Download the `.AppImage` (mark it as executable in file properties) or the `.deb` package for Debian/Ubuntu (x64).
 
-- On Windows, download the `quory-{version}-setup.exe` and follow the installer instructions.
-- For Linux, download the `quory-{version}.AppImage` file, or a specific file for your distro if it isn't compatible with AppImage.
-- On Mac OS, either:
-  - download the `quory-{version}.dmg` file to install Quory to the Applications folder
-  - download the `quory-{version}-arm64-mac.zip`, extract the zip file, and use it to run Quory directly
-    > For Mac OS, you'll need to run `xattr -c <path/to/application.app>` from the terminal after installing the app. This is because the app is unsigned (as I do not have an Apple developer account). If you'd prefer to build from source, [see "Building the electron client"](#building-the-electron-client).
+## Quory Cloud (coming soon)
 
-## Quory Cloud (coming soon!)
+**The insights you need, where you need them.**
 
-Working in a team? With [Quory cloud](TODO) you can setup an affordable, fully managed Quory deployment in seconds, with access to cloud-exclusive features, including row and column level access control, integrations with customer support tools like Intercom, and support for additional data sources.
+We're working on a hosted version of Quory, with integrations for your favourite support tools — view data relating to a customer's query directly in **Slack**, **Intercom**, **Zendesk**, and more.
+
+Quory Cloud is coming soon; the desktop app is available today. [Pre-register for Quory Cloud](https://usequory.com/#cloud).
 
 ## Other ways to use Quory
 
@@ -43,7 +48,7 @@ This option is for those who need a Quory client to sit on a page within their e
 
 - You want it to be deployed in a subdirectory of your existing server
 - You need the client to be rendered within an existing webpage, without the use of an `<iframe>`
-- You want to deploy Quory as a serverless app (we recommend [Quory cloud](TODO) instead for this use case to get managed updates and access to additional features)
+- You want to deploy Quory as a serverless app (we recommend [Quory Cloud](https://usequory.com/#cloud) instead for this use case to get managed updates and access to additional features)
 
 Currently only React is supported for the frontend.
 
